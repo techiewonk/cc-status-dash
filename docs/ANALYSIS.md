@@ -1,5 +1,7 @@
 # Claude Code Statusline Tools — Feature Analysis & Design Plan
 
+> Implementation status is tracked in [STATUS.md](STATUS.md) and the full feature matrix in [PARITY.md](PARITY.md). This doc is the original design plan.
+
 This document does three things:
 
 1. **Complete feature catalog** across all 7 statusline projects.

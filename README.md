@@ -40,6 +40,19 @@ Add to `~/.claude/settings.json`:
 }
 ```
 
+## Local testing (build from source)
+
+```bash
+npm install
+npm run build
+npm run demo                      # renders sample-input.json
+echo '{ "model": {"display_name":"Opus 4.8"} }' | node dist/index.js
+node dist/index.js --list-widgets # 98 widgets
+node dist/index.js --list-themes
+```
+
+To drive it from Claude Code while developing, point `~/.claude/settings.json` `statusLine.command` at `node /abs/path/dist/index.js` (see [CLAUDE.md](CLAUDE.md)). See also [docs/STATUS.md](docs/STATUS.md) for what's done vs remaining.
+
 ## Presets
 
 | Preset | Layers | Shows |
