@@ -175,6 +175,9 @@ export const DEFAULT_CONFIG: Config = {
   colorDepth: "auto",
   refreshInterval: 10,
   separator: "│",
+  minimalist: false,
+  globalBold: false,
+  padding: 0,
   lines: PRESET_LINES["essential"],
   colors: DEFAULT_COLORS,
 };

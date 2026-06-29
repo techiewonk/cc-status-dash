@@ -1,4 +1,5 @@
 node_modules/
 dist/
 *.log
+_extra_unused.txt
 .fuse_hidden*
