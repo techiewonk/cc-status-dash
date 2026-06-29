@@ -6,7 +6,7 @@ Guidance for Claude Code (and humans) working in this repo.
 A feature-rich **statusline + HUD** for Claude Code, in TypeScript. It fuses
 ccstatusline's widget-pipeline config with Claude HUD's clean look and live
 tools/agents/todos activity, plus pace-aware usage and a persistent stats store.
-**98 widgets**, 5 themes, 18 presets (1–5 layers), 3 render styles.
+**100 widgets**, 5 themes, 25 presets (1–5 layers), 3 render styles.
 
 Tagline: *ccstatusline's brain, Claude HUD's face.*
 
@@ -15,17 +15,21 @@ Claude Code pipes a JSON status payload to a `statusLine` command on **stdin**;
 the program prints the rendered line(s) to **stdout**. Entry point: `src/index.ts`.
 
 ## Build & run (do this first)
-**Bun-first** (the project targets Bun; `bun build --target=node` emits a single
-Node-compatible `dist/index.js`, so the artifact runs on both runtimes).
+**Bun-first** (the project targets Bun; `bun build --target=node` emits
+Node-compatible output, so the artifact runs on both runtimes). The build is
+**code-split** (`--outdir dist --splitting`) so the render hot path
+(`dist/index.js`) never loads React/Ink — the TUI lives in lazy chunks.
 ```bash
 bun install
-bun run build           # bun build src/index.ts --target=node -> dist/index.js
+bun run build           # bun build src/index.ts --target=node --outdir dist --splitting
 bun run demo            # bun run src/index.ts < sample-input.json
+bun test src            # full suite (also: npm run test:node for node:test on tsc output)
 # pipe your own payload:
 echo '{ ... }' | bun run src/index.ts
 # Node fallback (no Bun): npm install && npm run build:node ; node dist/index.js < sample-input.json
 ```
-Useful flags: `--list-widgets`, `--list-themes`, `--preset <id>`, `--theme <id>`, `--config <path>`.
+Useful flags: `--list-widgets`, `--list-themes`, `--preset <id>`, `--theme <id>`, `--config <path>`,
+`--validate` (check config files), `--configure`/`--wizard` (@clack preset wizard), `--tui`/`--edit` (Ink editor).
 
 `dist/` and `node_modules/` are gitignored — always build before testing.
 Source must stay **runtime-agnostic** (no Bun-only APIs) so it runs on Node too.
@@ -51,8 +55,14 @@ src/
   types.ts            ALL shared types (stdin schema, Config, Widget, Segment, providers)
   config/
     defaults.ts       preset catalog (PRESET_CATALOG/PRESET_LINES), DEFAULT_CONFIG, MAX_LAYERS
-    load.ts           config resolution chain (CLI > env > project > user > XDG > defaults)
-    mutations.ts      PURE config edits the TUI/`/configure` will drive (add/move/clone/...)
+    load.ts           config resolution chain (CLI > env > project > user > XDG > defaults) + validation
+    schema.ts         valibot partial-config schema, version/migrations, validatePartialConfig
+    mutations.ts      PURE config edits the TUI/`/configure` drive (add/move/clone/...)
+    wizard.ts         @clack/prompts preset wizard (buildWizardConfig is pure/tested)
+  tui/                Ink editor (lazy-loaded; never on the render path)
+    reducer.ts        PURE editor state machine (keys → config edits via mutations.ts)
+    picker.ts         fuzzy widget picker (subsequence-ranked)
+    app.tsx           Ink view (keys-in / frame-out); launch.ts mounts it
   data/               providers — run only if a visible widget needs them
     git.ts            git porcelain (branch, counts, sha, worktree, origin/upstream, ...)
     transcript.ts     JSONL tail parse (tools/agents/todos/skills/mcp/tokens/compaction)
@@ -114,6 +124,8 @@ Then `npm run build` and `node dist/index.js --list-widgets | grep my-widget`. R
 - Original design/plan + deep dive: **docs/ANALYSIS.md**
 - Dependency adoption plan (Ink TUI, zod, bundler, vitest, ...): **docs/DEPENDENCIES.md**
 
-Library/bundler adoption (Ink, zod, tsup, vitest) is planned in docs/DEPENDENCIES.md.
+Stack adoption progress is in docs/DEPENDENCIES.md (valibot, @clack, Ink, Biome adopted).
 
-Biggest open item: the **Ink TUI** config editor — its pure engine (`config/mutations.ts`) is done; the interactive UI layer is not built yet (needs a real terminal to verify).
+The **Ink TUI** config editor is built (`src/tui/`, `--tui`) — pure reducer/picker are
+unit-tested and the Ink view is tested headlessly via ink-testing-library. Remaining polish:
+wrap-around nav, per-widget option editor, write `refreshInterval` from the TUI, VHS demo.

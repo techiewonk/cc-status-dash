@@ -10,10 +10,12 @@ export const MAX_LAYERS = 5;
 
 // ---- reusable building-block lines ----
 
+// `show1M` on the model surfaces a "1M" badge automatically when the session is
+// on a 1M-context model (auto-detected from the name); it culls otherwise.
 const idPL = (diff = false): LineConfig => ({
   style: "powerline",
   widgets: [
-    { id: "model" },
+    { id: "model", show1M: true },
     { id: "cwd", segments: 2 },
     { id: "git.branch", showDirty: true, showAheadBehind: true, ...(diff ? { showDiff: true } : {}) },
   ],
@@ -22,7 +24,7 @@ const idPL = (diff = false): LineConfig => ({
 const idInline = (): LineConfig => ({
   style: "inline",
   widgets: [
-    { id: "model" },
+    { id: "model", show1M: true },
     { id: "cwd", segments: 1 },
     { id: "git.branch", showDirty: true },
   ],
@@ -30,7 +32,7 @@ const idInline = (): LineConfig => ({
 
 const modelContext = (): LineConfig => ({
   style: "inline",
-  widgets: [{ id: "model" }, { id: "context.bar", mode: "remaining" }],
+  widgets: [{ id: "model", show1M: true }, { id: "context.bar", mode: "remaining" }],
 });
 
 const ctx = (): LineConfig => ({
@@ -85,6 +87,20 @@ const fullMetrics = (): LineConfig => ({
   ],
 });
 
+const tokenLine = (): LineConfig => ({
+  style: "inline",
+  widgets: [
+    { id: "context.bar", mode: "remaining", barStyle: "blocks" },
+    { id: "tokens-total" },
+    { id: "tokens-per-min" },
+  ],
+});
+
+const vibeLine = (): LineConfig => ({
+  style: "inline",
+  widgets: [{ id: "model", show1M: true }, { id: "context.bar", mode: "remaining" }, { id: "cost" }],
+});
+
 const activity = (): LineConfig => ({
   style: "inline",
   showWhen: "activity",
@@ -118,7 +134,7 @@ export const PRESET_CATALOG: PresetDef[] = [
   { id: "minimal", name: "Minimal", lineCount: 1, description: "model + context", lines: [modelContext()] },
 
   // 2 lines
-  { id: "essential", name: "Essential", lineCount: 2, description: "identity (inline) + context & 5h usage", lines: [{ style: "inline", widgets: [{ id: "model" }, { id: "cwd", segments: 1 }, { id: "git.branch", showDirty: true, showAheadBehind: true }] }, ctxUsage()] },
+  { id: "essential", name: "Essential", lineCount: 2, description: "identity (inline, 1M badge) + context & 5h usage", lines: [{ style: "inline", widgets: [{ id: "model", show1M: true }, { id: "cwd", segments: 1 }, { id: "git.branch", showDirty: true, showAheadBehind: true }] }, ctxUsage()] },
   { id: "compact", name: "Compact", lineCount: 2, description: "inline identity + context & cost", lines: [idInline(), ctxCost()] },
   { id: "usage", name: "Usage focus", lineCount: 2, description: "inline identity + 5h & 7d usage", lines: [idInline(), usagePair()] },
   { id: "git", name: "Git focus", lineCount: 2, description: "powerline identity w/ diff + context & usage", lines: [idPL(true), ctxUsage()] },
@@ -140,6 +156,19 @@ export const PRESET_CATALOG: PresetDef[] = [
   { id: "max-usage", name: "Max (usage)", lineCount: 5, description: "identity / context / 5h / 7d / activity", lines: [idPL(true), ctx(), usage5h(), { style: "inline", widgets: [{ id: "usage.weekly", threshold: 0 }] }, activity()] },
   { id: "max-monitor", name: "Max (monitor)", lineCount: 5, description: "identity / context / usage / tools / agents+todos", lines: [idPL(true), ctx(), usagePair(), activityTools(), activityAgentsTodos()] },
   { id: "max-cost", name: "Max (cost)", lineCount: 5, description: "identity / context / cost / 7d / activity", lines: [idPL(false), ctx(), ctxCost(), weeklyCost(), activity()] },
+
+  // ---- extra flavors ----
+  // 1 line
+  { id: "vibe", name: "Vibe", lineCount: 1, description: "model (1M badge) + context + cost", lines: [vibeLine()] },
+  { id: "pace", name: "Pace", lineCount: 1, description: "context + 5h pace (claude-pace style)", lines: [ctxUsage()] },
+  { id: "powerline", name: "Powerline", lineCount: 1, description: "single powerline identity bar", lines: [idPL(false)] },
+  // 2 lines
+  { id: "hud", name: "HUD", lineCount: 2, description: "identity + live tools/agents/todos (Claude HUD style)", lines: [idInline(), activity()] },
+  { id: "tokens", name: "Tokens", lineCount: 2, description: "identity + token throughput (total + tok/min)", lines: [idInline(), tokenLine()] },
+  { id: "capsule", name: "Capsule", lineCount: 2, description: "capsule identity + context & usage", lines: [{ style: "capsule", widgets: [{ id: "model", show1M: true }, { id: "cwd", segments: 1 }, { id: "git.branch", showDirty: true }] }, ctxUsage()] },
+  // 3 lines
+  { id: "pace-focus", name: "Pace focus", lineCount: 3, description: "identity / context+pace / 7d+cost", lines: [idPL(false), ctxUsage(), weeklyCost()] },
+  { id: "tokens-plus", name: "Tokens+", lineCount: 3, description: "identity / tokens / 5h+7d", lines: [idInline(), tokenLine(), usagePair()] },
 ];
 
 /** id -> lines, used by config loading. */

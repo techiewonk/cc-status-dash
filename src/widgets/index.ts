@@ -9,7 +9,9 @@ function sym(unicode: string, text: string, ctx: RenderContext): string {
   return ctx.config.charset === "text" ? text : unicode;
 }
 function fmtTokens(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+  // Round up to "1.0M" once k-formatting would otherwise print "1000.0k"
+  // (ccstatusline parity: 999950+ renders as 1.0M).
+  if (n >= 999_950) return (n / 1_000_000).toFixed(1) + "M";
   if (n >= 1000) return (n / 1000).toFixed(1) + "k";
   return String(n);
 }
@@ -36,17 +38,29 @@ function usageTokens(ctx: RenderContext) {
   const cacheCreation = u?.cache_creation_input_tokens ?? st?.cacheCreation ?? 0;
   return { input, output, cacheRead, cacheCreation, total: input + output + cacheRead + cacheCreation };
 }
+/** All current Claude models are at least a 200k window. */
+const DEFAULT_MODEL_LIMIT = 200_000;
+
+/** True when the model name advertises a 1M context (`[1m]`, `(1M context)`, …). */
+function has1M(ctx: RenderContext): boolean {
+  const name = `${ctx.input.model?.id ?? ""} ${ctx.input.model?.display_name ?? ""}`;
+  return /\[1m\]|1m context|\b1m\b/i.test(name);
+}
+
 function modelLimit(ctx: RenderContext): number | undefined {
   const size = ctx.input.context_window?.context_window_size;
   if (size) return size;
+  // 1M detection must run regardless of whether modelContextLimits is configured.
+  if (has1M(ctx)) return 1_000_000;
   const lim = ctx.config.modelContextLimits;
-  if (!lim) return undefined;
   const id = (ctx.input.model?.id ?? ctx.input.model?.display_name ?? "").toLowerCase();
-  if (/\[1m\]|1m context/.test(id)) return 1_000_000;
-  if (id.includes("opus")) return lim.opus ?? lim.default;
-  if (id.includes("sonnet")) return lim.sonnet ?? lim.default;
-  if (id.includes("haiku")) return lim.haiku ?? lim.default;
-  return lim.default;
+  if (lim) {
+    if (id.includes("opus")) return lim.opus ?? lim.default ?? DEFAULT_MODEL_LIMIT;
+    if (id.includes("sonnet")) return lim.sonnet ?? lim.default ?? DEFAULT_MODEL_LIMIT;
+    if (id.includes("haiku")) return lim.haiku ?? lim.default ?? DEFAULT_MODEL_LIMIT;
+    if (lim.default) return lim.default;
+  }
+  return DEFAULT_MODEL_LIMIT;
 }
 function contextPct(ctx: RenderContext): number | null {
   const cw = ctx.input.context_window;
@@ -58,6 +72,24 @@ function contextPct(ctx: RenderContext): number | null {
 function shortModel(ctx: RenderContext): string {
   const name = ctx.input.model?.display_name ?? ctx.input.model?.id ?? "Claude";
   return name.replace(/^Claude\s+/i, "").replace(/\s*\(1M context\)\s*/i, "").trim();
+}
+
+/** Model name in a chosen format (claudia parity): abbr | name | id | version. */
+function modelText(ctx: RenderContext, fmt: unknown): string {
+  const dn = ctx.input.model?.display_name ?? ctx.input.model?.id ?? "Claude";
+  const id = ctx.input.model?.id ?? dn;
+  switch (fmt) {
+    case "name":
+      return dn;
+    case "id":
+      return id;
+    case "version": {
+      const m = dn.match(/\d+(?:\.\d+)+/);
+      return m ? m[0] : shortModel(ctx);
+    }
+    default:
+      return shortModel(ctx);
+  }
 }
 
 /** label+value honoring minimalist mode (drops the dim label). */
@@ -76,8 +108,13 @@ const add = (x: Widget) => { ALL.push(x); };
 
 // ---------------- model / session ----------------
 
-add(w("model", "model", "Model", ["stdin"], (_d, _o, ctx) =>
-  [{ text: `${sym("✱", "M", ctx)} ${shortModel(ctx)}`, color: "model", bold: true }]));
+add(w("model", "model", "Model", ["stdin"], (_d, o, ctx) => {
+  let text = `${sym("✱", "M", ctx)} ${modelText(ctx, o.format)}`;
+  if (o.show1M && has1M(ctx)) text += " 1M"; // append a 1M-context badge when present
+  return [{ text, color: "model", bold: true }];
+}));
+add(w("context-1m", "context", "1M context badge", ["stdin"], (_d, _o, ctx) =>
+  has1M(ctx) ? [{ text: sym("◇ 1M", "1M", ctx), color: "context", bold: true }] : []));
 add(w("version", "system", "Claude Code version", ["stdin"], (_d, _o, ctx) =>
   lv(null, ctx.input.version ? `v${ctx.input.version}` : null, "label", ctx)));
 add(w("output-style", "system", "Output style", ["stdin"], (_d, _o, ctx) => {
@@ -191,10 +228,23 @@ usageWindow("session-usage", "5h", "five_hour");
 usageWindow("weekly-usage", "7d", "seven_day");
 
 const timerWidget = (id: string, label: string, key: "five_hour" | "seven_day", elapsed: boolean) =>
-  add(w(id, "usage", label, ["rate_limits"], (_d, _o, ctx) => {
+  add(w(id, "usage", label, ["rate_limits"], (_d, opts, ctx) => {
     const win = ctx.input.rate_limits?.[key];
     if (!win?.resets_at) return [];
-    if (!elapsed) return lv(sym("⏱", label, ctx), fmtCountdown(win.resets_at) ?? undefined, "label", ctx);
+    if (!elapsed) {
+      const cd = fmtCountdown(win.resets_at) ?? undefined;
+      // Optional exact reset timestamp (ccstatusline parity): 12/24h + IANA tz.
+      if (opts.timestamp) {
+        const at = new Date(typeof win.resets_at === "number" ? win.resets_at : Date.parse(String(win.resets_at)));
+        const t = at.toLocaleTimeString([], {
+          hour: "2-digit", minute: "2-digit",
+          hour12: opts.hour12 === true,
+          timeZone: typeof opts.timezone === "string" ? opts.timezone : undefined,
+        });
+        return lv(sym("⏱", label, ctx), cd ? `${cd} (${t})` : t, "label", ctx);
+      }
+      return lv(sym("⏱", label, ctx), cd, "label", ctx);
+    }
     const remMs = (typeof win.resets_at === "number" ? win.resets_at : Date.parse(String(win.resets_at))) - Date.now();
     const WINDOW = (key === "five_hour" ? 5 * 3600 : 7 * 24 * 3600) * 1000;
     return lv(sym("⏱", label, ctx), fmtDuration(WINDOW - remMs), "label", ctx);
@@ -257,12 +307,20 @@ gitText("git-staged-files", "Staged files", "context", (g) => (g.staged ? `${g.s
 gitText("git-unstaged-files", "Unstaged files", "warning", (g) => (g.unstaged ? `${g.unstaged} unstaged` : null));
 gitText("git-untracked-files", "Untracked files", "label", (g) => (g.untracked ? `${g.untracked} untracked` : null));
 gitText("git-clean-status", "Clean status", "context", (g, ctx) => (g.clean ? sym("✓ clean", "clean", ctx) : sym("● dirty", "dirty", ctx)));
-gitText("git-ahead-behind", "Ahead/behind", "gitBranch", (g, ctx) => {
-  const p: string[] = [];
-  if (g.ahead) p.push(`${sym("↑", "^", ctx)}${g.ahead}`);
-  if (g.behind) p.push(`${sym("↓", "v", ctx)}${g.behind}`);
-  return p.join(" ") || null;
-});
+add(w("git-ahead-behind", "git", "Ahead/behind", ["git"], (_d, opts, ctx) => {
+  const g = ctx.data.git;
+  if (!g?.isRepo || (!g.ahead && !g.behind)) return [];
+  // Push thresholds (Claude HUD parity): color unpushed (ahead) commits when they
+  // pile up. warnThreshold → warning, critThreshold → critical.
+  const warn = typeof opts.pushWarnThreshold === "number" ? opts.pushWarnThreshold : Number.POSITIVE_INFINITY;
+  const crit = typeof opts.pushCritThreshold === "number" ? opts.pushCritThreshold : Number.POSITIVE_INFINITY;
+  const aheadColor = g.ahead && g.ahead >= crit ? "critical" : g.ahead && g.ahead >= warn ? "warning" : "gitBranch";
+  const parts: Segment[] = [];
+  if (g.ahead) parts.push({ text: `${sym("↑", "^", ctx)}${g.ahead}`, color: aheadColor });
+  if (g.behind) parts.push({ text: `${parts.length ? " " : ""}${sym("↓", "v", ctx)}${g.behind}`, color: "gitBranch" });
+  if (!ctx.config.minimalist) parts.unshift({ text: "Ahead/behind ", color: "label" });
+  return parts;
+}));
 gitText("git-conflicts", "Conflicts", "critical", (g) => g.conflicts || null);
 gitText("git-sha", "Commit SHA", "label", (g, ctx) => (g.sha ? `${sym("", "#", ctx)}${g.sha}`.trim() : null));
 gitText("git-root-dir", "Repo root dir", "cwd", (g) => (g.rootDir ? basename(g.rootDir) : null));
@@ -276,6 +334,7 @@ gitText("git-is-fork", "Is fork", "label", (g) => (g.isFork ? "fork" : null));
 gitText("git-worktree", "Worktree", "label", (g) => g.worktree?.name);
 gitText("worktree-name", "Worktree name", "label", (g) => g.worktree?.name);
 gitText("worktree-branch", "Worktree branch", "gitBranch", (g) => g.worktree?.branch);
+gitText("worktree-original-branch", "Worktree base", "gitBranch", (g) => g.worktree?.originalBranch);
 gitText("worktree-mode", "Worktree mode", "label", (g) => (g.worktree?.mode ? "worktree" : null));
 
 // ---------------- filesystem / system ----------------
@@ -381,9 +440,18 @@ add(w("lines-removed", "activity", "Lines removed", ["stdin"], (_d, _o, ctx) => 
   const n = ctx.input.cost?.total_lines_removed;
   return n ? [{ text: `-${n}`, color: "critical" }] : [];
 }));
-add(w("cache-timer", "activity", "Cache TTL timer", ["transcript"], (_d, _o, ctx) => {
+add(w("cache-timer", "activity", "Cache TTL timer", ["transcript"], (_d, opts, ctx) => {
   const ms = ctx.data.transcript?.msSinceLastUser;
   if (ms == null) return [];
+  // Prompt-cache countdown (Claude HUD parity): with ttlSeconds (Pro 300 / Max
+  // 3600), show time *remaining* before the cache expires; else elapsed.
+  const ttl = typeof opts.ttlSeconds === "number" ? opts.ttlSeconds : undefined;
+  if (ttl) {
+    const remMs = ttl * 1000 - ms;
+    if (remMs <= 0) return lv(sym("◴", "cache", ctx), "expired", "critical", ctx);
+    const color = remMs <= 60_000 ? "critical" : remMs <= 120_000 ? "warning" : "context";
+    return lv(sym("◴", "cache", ctx), fmtDuration(remMs), color, ctx);
+  }
   const min = ms / 60000;
   const color = min >= 5 ? "critical" : min >= 3 ? "warning" : "context";
   return lv(sym("◴", "cache", ctx), fmtDuration(ms), color, ctx);
@@ -423,7 +491,21 @@ add(w("provider", "model", "Provider/auth label", ["stdin"], (_d, opts, ctx) => 
 add(w("burn-rate", "usage", "Burn rate ($/hr)", ["stdin"], (_d, opts, ctx) => {
   const c = ctx.input.cost?.total_cost_usd;
   const mode = (opts.mode as string) ?? "wall";
-  const ms = mode === "active" ? ctx.input.cost?.total_api_duration_ms : ctx.input.cost?.total_duration_ms;
+  let ms: number | null | undefined;
+  if (mode === "active") {
+    ms = ctx.input.cost?.total_api_duration_ms;
+  } else if (mode === "auto-reset") {
+    // claudia parity: rate measured within the current 5h block (elapsed since
+    // the block began), so it "resets" each window instead of averaging forever.
+    const win = ctx.input.rate_limits?.five_hour;
+    if (win?.resets_at) {
+      const remMs = (typeof win.resets_at === "number" ? win.resets_at : Date.parse(String(win.resets_at))) - Date.now();
+      const elapsed = 5 * 3600 * 1000 - remMs;
+      if (elapsed > 0) ms = elapsed;
+    }
+  } else {
+    ms = ctx.input.cost?.total_duration_ms;
+  }
   if (!c || !ms) return [];
   const hrs = ms / 3_600_000;
   return hrs > 0 ? [{ text: `$${(c / hrs).toFixed(2)}/hr`, color: "warning" }] : [];

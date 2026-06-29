@@ -82,8 +82,15 @@ export function collectGit(cwd: string): GitInfo {
 
   const commonDir = git(["rev-parse", "--git-common-dir"], cwd) ?? "";
   const inWorktree = gitDir !== commonDir && gitDir.includes("worktrees");
+  let originalBranch: string | undefined;
+  if (inWorktree && commonDir) {
+    // The "original" branch is the main working tree's current branch — read it
+    // from the shared common git dir (ccstatusline / claude-powerline parity).
+    const commonAbs = isAbsolute(commonDir) ? commonDir : join(cwd, commonDir);
+    originalBranch = git(["--git-dir", commonAbs, "symbolic-ref", "--short", "HEAD"], cwd) ?? undefined;
+  }
   const worktree = inWorktree
-    ? { mode: true, name: rootDir ? basename(rootDir) : undefined, branch }
+    ? { mode: true, name: rootDir ? basename(rootDir) : undefined, branch, originalBranch }
     : { mode: false };
 
   return {

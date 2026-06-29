@@ -8,6 +8,13 @@ const STYLES: Record<string, { unicode: [string, string]; text: [string, string]
   bar: { unicode: ["▓", "░"], text: ["=", "-"] },
   line: { unicode: ["━", "┄"], text: ["-", " "] },
   dots: { unicode: ["●", "○"], text: ["*", "."] },
+  // claude-powerline parity (10 total).
+  ball: { unicode: ["⬤", "◯"], text: ["o", "."] },
+  squares: { unicode: ["■", "□"], text: ["#", "."] },
+  geometric: { unicode: ["◆", "◇"], text: [">", "."] },
+  filled: { unicode: ["█", " "], text: ["#", " "] },
+  capped: { unicode: ["▰", "▱"], text: ["=", "."] },
+  "blocks-line": { unicode: ["▬", "▭"], text: ["=", "-"] },
 };
 
 export type BarStyle = keyof typeof STYLES;

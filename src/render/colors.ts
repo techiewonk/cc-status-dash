@@ -2,8 +2,9 @@ import type { ColorDepth, Config } from "../types.js";
 
 // Minimal ANSI color layer. Default aesthetic follows Claude HUD's clean palette;
 // 256/truecolor are supported but only kick in when a widget/theme asks for them.
+// Hex/256 colors are downsampled to honor the effective color depth.
 
-const RESET = "[0m";
+const RESET = "\x1b[0m";
 
 const NAMED: Record<string, number> = {
   black: 30,
@@ -30,31 +31,88 @@ function colorsEnabled(depth: ColorDepth): boolean {
   return true;
 }
 
+/** Effective depth: resolves "auto" from COLORTERM / FORCE_COLOR / TERM. */
+type RealDepth = "truecolor" | "ansi256" | "ansi";
+function effectiveDepth(depth: ColorDepth): RealDepth {
+  if (depth === "truecolor" || depth === "ansi256" || depth === "ansi") return depth;
+  // depth === "auto" (or "none", handled earlier): sniff the environment.
+  const ct = process.env.COLORTERM;
+  if (ct === "truecolor" || ct === "24bit" || process.env.FORCE_COLOR === "3") return "truecolor";
+  if (process.env.FORCE_COLOR === "2" || /256/.test(process.env.TERM ?? "")) return "ansi256";
+  if (process.env.FORCE_COLOR === "1") return "ansi";
+  return "truecolor"; // assume a modern terminal when no signal (preserves prior behavior)
+}
+
 function resolveColorKey(key: string | undefined, config: Config): string | undefined {
   if (!key) return undefined;
   // Allow theme indirection: a color value may name another theme color.
   return config.colors[key] ?? key;
 }
 
-function fgCode(value: string): string | null {
-  if (value === "dim") return "[2m";
-  if (value.startsWith("#")) {
-    const [r, g, b] = hexToRgb(value);
-    return `[38;2;${r};${g};${b}m`;
+// ---- depth downsampling (truecolor → 256 → 16), mirrors ansi-styles ----
+function rgbToAnsi256(r: number, g: number, b: number): number {
+  if (r === g && g === b) {
+    if (r < 8) return 16;
+    if (r > 248) return 231;
+    return Math.round(((r - 8) / 247) * 24) + 232;
   }
-  if (/^\d+$/.test(value)) return `[38;5;${value}m`;
-  const named = NAMED[value];
-  return named ? `[${named}m` : null;
+  return 16 + 36 * Math.round((r / 255) * 5) + 6 * Math.round((g / 255) * 5) + Math.round((b / 255) * 5);
+}
+/** ANSI-256 index → base SGR code (30-37 / 90-97). */
+function ansi256ToBase(code: number): number {
+  if (code < 8) return 30 + code;
+  if (code < 16) return 90 + (code - 8);
+  let r: number, g: number, b: number;
+  if (code >= 232) {
+    r = g = b = ((code - 232) * 10 + 8) / 255;
+  } else {
+    const c = code - 16;
+    const rem = c % 36;
+    r = Math.floor(c / 36) / 5;
+    g = Math.floor(rem / 6) / 5;
+    b = (rem % 6) / 5;
+  }
+  const value = Math.max(r, g, b) * 2;
+  if (value === 0) return 30;
+  let base = 30 + ((Math.round(b) << 2) | (Math.round(g) << 1) | Math.round(r));
+  if (value === 2) base += 60;
+  return base;
+}
+function rgbToBase16(r: number, g: number, b: number): number {
+  return ansi256ToBase(rgbToAnsi256(r, g, b));
 }
 
-function bgCode(value: string): string | null {
+function fgCode(value: string, depth: RealDepth): string | null {
+  if (value === "dim") return "\x1b[2m";
   if (value.startsWith("#")) {
     const [r, g, b] = hexToRgb(value);
-    return `[48;2;${r};${g};${b}m`;
+    if (depth === "truecolor") return `\x1b[38;2;${r};${g};${b}m`;
+    if (depth === "ansi256") return `\x1b[38;5;${rgbToAnsi256(r, g, b)}m`;
+    return `\x1b[${rgbToBase16(r, g, b)}m`;
   }
-  if (/^\d+$/.test(value)) return `[48;5;${value}m`;
+  if (/^\d+$/.test(value)) {
+    if (depth === "ansi") return `\x1b[${ansi256ToBase(Number(value))}m`;
+    return `\x1b[38;5;${value}m`;
+  }
   const named = NAMED[value];
-  return named ? `[${named + 10}m` : null;
+  return named ? `\x1b[${named}m` : null;
+}
+
+function bgCode(value: string, depth: RealDepth): string | null {
+  // claude-powerline parity: explicit "no background".
+  if (value === "none" || value === "transparent") return null;
+  if (value.startsWith("#")) {
+    const [r, g, b] = hexToRgb(value);
+    if (depth === "truecolor") return `\x1b[48;2;${r};${g};${b}m`;
+    if (depth === "ansi256") return `\x1b[48;5;${rgbToAnsi256(r, g, b)}m`;
+    return `\x1b[${rgbToBase16(r, g, b) + 10}m`;
+  }
+  if (/^\d+$/.test(value)) {
+    if (depth === "ansi") return `\x1b[${ansi256ToBase(Number(value)) + 10}m`;
+    return `\x1b[48;5;${value}m`;
+  }
+  const named = NAMED[value];
+  return named ? `\x1b[${named + 10}m` : null;
 }
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -74,20 +132,21 @@ export interface Painter {
 
 export function createPainter(config: Config): Painter {
   const enabled = colorsEnabled(config.colorDepth);
+  const depth = effectiveDepth(config.colorDepth);
   return {
     paint(text, opts) {
       if (!enabled || (!opts.color && !opts.bgColor && !opts.bold)) return text;
       let codes = "";
-      if (opts.bold) codes += "[1m";
-      const fg = fgCode(resolveColorKey(opts.color, config) ?? "");
-      const bg = bgCode(resolveColorKey(opts.bgColor, config) ?? "");
+      if (opts.bold) codes += "\x1b[1m";
+      const fg = fgCode(resolveColorKey(opts.color, config) ?? "", depth);
+      const bg = bgCode(resolveColorKey(opts.bgColor, config) ?? "", depth);
       if (fg) codes += fg;
       if (bg) codes += bg;
       return codes ? `${codes}${text}${RESET}` : text;
     },
     rawFg(key) {
       if (!enabled) return "";
-      const fg = fgCode(resolveColorKey(key, config) ?? "");
+      const fg = fgCode(resolveColorKey(key, config) ?? "", depth);
       return fg ?? "";
     },
   };

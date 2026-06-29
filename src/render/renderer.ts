@@ -1,4 +1,4 @@
-import type { Config, LineConfig, RenderContext, Segment } from "../types.js";
+import type { Config, LineConfig, RenderContext, Segment, WidgetConfig } from "../types.js";
 import { getWidget } from "../widgets/index.js";
 import { stripVTControlCharacters } from "node:util";
 import { createPainter, type Painter } from "./colors.js";
@@ -19,6 +19,32 @@ function plainLen(s: string): number {
   return stripVTControlCharacters(s).length;
 }
 
+/**
+ * Apply per-widget style overrides (`color`/`bgColor`/`bold`/`dim`) declared on
+ * the WidgetConfig — ccstatusline / claude-powerline / Claude-HUD parity. `color`
+ * and `dim` retint only the *value* segments (the dim "label" prefix is left
+ * alone); `bgColor`/`bold` apply to the whole widget. Applied after globalBold so
+ * an explicit per-widget `bold: false` can opt a widget out of the global bold.
+ */
+function applyWidgetStyle(segments: Segment[], wc: WidgetConfig): Segment[] {
+  const color = typeof wc.color === "string" ? wc.color : undefined;
+  const bgColor = typeof wc.bgColor === "string" ? wc.bgColor : undefined;
+  const bold = typeof wc.bold === "boolean" ? wc.bold : undefined;
+  const dim = wc.dim === true;
+  if (color === undefined && bgColor === undefined && bold === undefined && !dim) return segments;
+  return segments.map((s) => {
+    const isLabel = s.color === "label";
+    const next: Segment = { ...s };
+    if (bgColor !== undefined) next.bgColor = bgColor;
+    if (bold !== undefined) next.bold = bold;
+    if (!isLabel) {
+      if (color !== undefined) next.color = color;
+      if (dim) next.color = "dim";
+    }
+    return next;
+  });
+}
+
 function buildLineWidgets(line: LineConfig, ctx: RenderContext): BuiltWidget[] {
   const built: BuiltWidget[] = [];
   const pad = " ".repeat(Math.max(0, ctx.config.padding));
@@ -28,6 +54,7 @@ function buildLineWidgets(line: LineConfig, ctx: RenderContext): BuiltWidget[] {
     let segments = widget.render(widget.collect(ctx), wc, ctx);
     if (segments.length === 0) continue;
     if (ctx.config.globalBold) segments = segments.map((s) => ({ ...s, bold: true }));
+    segments = applyWidgetStyle(segments, wc);
     if (pad) segments = [{ text: pad }, ...segments, { text: pad }];
     built.push({ segments, merge: wc.merge === true });
   }

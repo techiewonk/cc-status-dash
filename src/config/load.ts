@@ -4,6 +4,7 @@ import { join } from "node:path";
 import type { Config } from "../types.js";
 import { DEFAULT_CONFIG, PRESET_LINES } from "./defaults.js";
 import { resolvePalette, type ThemeColors } from "../themes/index.js";
+import { validatePartialConfig } from "./schema.js";
 
 // Config resolution order (highest priority last applied wins on merge):
 //   defaults < XDG < ~/.claude/cc-status-dash.json < ./.cc-status-dash.json < env < CLI
@@ -21,14 +22,32 @@ function candidatePaths(cliPath?: string): string[] {
   return paths;
 }
 
+/** Warn to stderr only — stdout is reserved for the rendered statusline. */
+function warn(msg: string): void {
+  try {
+    process.stderr.write(`cc-status-dash: ${msg}\n`);
+  } catch {
+    /* ignore */
+  }
+}
+
 function readJson(path: string): Partial<Config> | null {
+  let raw: unknown;
   try {
     if (!existsSync(path)) return null;
-    return JSON.parse(readFileSync(path, "utf8")) as Partial<Config>;
+    raw = JSON.parse(readFileSync(path, "utf8"));
   } catch {
     // Invalid JSON silently falls back (Claude HUD behavior).
     return null;
   }
+  // Validate shape/types; on failure warn (to stderr) and fall back to skipping
+  // this file rather than letting a malformed value reach the render path.
+  const result = validatePartialConfig(raw);
+  if (!result.ok) {
+    warn(`ignoring invalid config ${path}: ${result.issues.join("; ")}`);
+    return null;
+  }
+  return result.value;
 }
 
 function applyEnv(cfg: Config): Config {
@@ -56,6 +75,35 @@ export interface CliFlags {
   config?: string;
   theme?: string;
   preset?: Config["preset"];
+}
+
+export interface ConfigFileReport {
+  path: string;
+  ok: boolean;
+  version: number;
+  issues: string[];
+}
+
+/**
+ * Validate every config file that exists in the resolution chain (or just the
+ * explicit `--config` path). Used by the `--validate` inspection flag; reads
+ * files but never mutates anything.
+ */
+export function validateConfigFiles(cliPath?: string): ConfigFileReport[] {
+  const reports: ConfigFileReport[] = [];
+  for (const path of candidatePaths(cliPath)) {
+    if (!existsSync(path)) continue;
+    let raw: unknown;
+    try {
+      raw = JSON.parse(readFileSync(path, "utf8"));
+    } catch (e) {
+      reports.push({ path, ok: false, version: 0, issues: [`invalid JSON: ${(e as Error).message}`] });
+      continue;
+    }
+    const result = validatePartialConfig(raw);
+    reports.push({ path, ok: result.ok, version: result.version, issues: result.issues });
+  }
+  return reports;
 }
 
 export function loadConfig(flags: CliFlags = {}): Config {
