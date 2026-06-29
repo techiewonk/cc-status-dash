@@ -21,6 +21,8 @@ Snapshot: **98 widgets**, 5 themes, 18 presets (1–5 layers), persistent stats 
 - Batch 5: widget merging (`merge`), auto-wrap to terminal width (`autoWrap`), tokens-per-min, rules-count in config-counts.
 - Repo: committed under user identity; `docs/ANALYSIS.md`, `docs/PARITY.md`, `docs/STATUS.md`.
 
+- Modern stack started: `node:util.stripVTControlCharacters` for width math; `node:test` suite for the mutation engine (6 passing); Biome configured for lint/format.
+
 ## 🔄 In progress
 - See **docs/DEPENDENCIES.md** for the plan to adopt ccstatusline's stack (bundler + Ink + zod + vitest).
 - **Ink TUI**: the mutation engine (`src/config/mutations.ts`) is done and tested; the interactive Ink UI layer (live preview, fuzzy widget picker, clone/reorder keys, preset wizard) is the next build — best verified in a real terminal.

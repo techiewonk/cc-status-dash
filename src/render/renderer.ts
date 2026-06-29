@@ -1,5 +1,6 @@
 import type { Config, LineConfig, RenderContext, Segment } from "../types.js";
 import { getWidget } from "../widgets/index.js";
+import { stripVTControlCharacters } from "node:util";
 import { createPainter, type Painter } from "./colors.js";
 
 // Renders the resolved config into the final multi-line string.
@@ -14,7 +15,8 @@ const CAP_RIGHT = "";
 interface BuiltWidget { segments: Segment[]; merge: boolean; }
 
 function plainLen(s: string): number {
-  return s.replace(/\[[0-9;]*m/g, "").replace(/\]8;;.*?/g, "").length;
+  // Node built-in: strips ANSI/VT (incl. OSC8 hyperlinks) — replaces a hand regex.
+  return stripVTControlCharacters(s).length;
 }
 
 function buildLineWidgets(line: LineConfig, ctx: RenderContext): BuiltWidget[] {
