@@ -1,5 +1,5 @@
 import { totalmem, freemem, homedir } from "node:os";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { SystemInfo } from "../types.js";
 
@@ -26,6 +26,8 @@ export function collectSystem(cwd?: string): SystemInfo {
   const mcpConfigCount = dotClaude?.mcpServers ? Object.keys(dotClaude.mcpServers).length : undefined;
   const hooksCount = settings?.hooks ? Object.keys(settings.hooks).length : undefined;
 
+  const countDir = (pp: string) => { try { return existsSync(pp) ? readdirSync(pp).length : 0; } catch { return 0; } };
+  const rulesCount = (countDir(join(dir, "rules")) + (cwd ? countDir(join(cwd, ".cursor", "rules")) + countDir(join(cwd, ".claude", "rules")) : 0)) || undefined;
   let claudeMdCount = 0;
   if (existsSync(join(dir, "CLAUDE.md"))) claudeMdCount++;
   if (cwd && existsSync(join(cwd, "CLAUDE.md"))) claudeMdCount++;
@@ -40,5 +42,6 @@ export function collectSystem(cwd?: string): SystemInfo {
     claudeMdCount: claudeMdCount || undefined,
     mcpConfigCount,
     hooksCount,
+    rulesCount,
   };
 }

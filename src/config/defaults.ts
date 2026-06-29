@@ -178,6 +178,7 @@ export const DEFAULT_CONFIG: Config = {
   minimalist: false,
   globalBold: false,
   padding: 0,
+  autoWrap: false,
   lines: PRESET_LINES["essential"],
   colors: DEFAULT_COLORS,
 };

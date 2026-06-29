@@ -2,17 +2,20 @@ import type { Config, LineConfig, RenderContext, Segment } from "../types.js";
 import { getWidget } from "../widgets/index.js";
 import { createPainter, type Painter } from "./colors.js";
 
-// Turns the resolved config + render context into the final multi-line string.
-// Line styles: "inline" (HUD-clean separators) and "powerline" (filled segments
-// with arrow transitions). Honors global options: globalBold, padding, minimalist
-// (minimalist is applied inside widgets, which drop their labels).
+// Renders the resolved config into the final multi-line string.
+// Line styles: inline / powerline / capsule. Global options honored:
+// globalBold, padding, minimalist (in widgets), widget merge, and auto-wrap.
 
 const POWERLINE_SEP = "";
 const POWERLINE_SEP_TEXT = "";
-const CAP_LEFT = "";
-const CAP_RIGHT = "";
+const CAP_LEFT = "";
+const CAP_RIGHT = "";
 
-interface BuiltWidget { segments: Segment[]; }
+interface BuiltWidget { segments: Segment[]; merge: boolean; }
+
+function plainLen(s: string): number {
+  return s.replace(/\[[0-9;]*m/g, "").replace(/\]8;;.*?/g, "").length;
+}
 
 function buildLineWidgets(line: LineConfig, ctx: RenderContext): BuiltWidget[] {
   const built: BuiltWidget[] = [];
@@ -20,20 +23,37 @@ function buildLineWidgets(line: LineConfig, ctx: RenderContext): BuiltWidget[] {
   for (const wc of line.widgets) {
     const widget = getWidget(wc.id);
     if (!widget) continue;
-    const data = widget.collect(ctx);
-    let segments = widget.render(data, wc, ctx);
+    let segments = widget.render(widget.collect(ctx), wc, ctx);
     if (segments.length === 0) continue;
     if (ctx.config.globalBold) segments = segments.map((s) => ({ ...s, bold: true }));
     if (pad) segments = [{ text: pad }, ...segments, { text: pad }];
-    built.push({ segments });
+    built.push({ segments, merge: wc.merge === true });
   }
   return built;
 }
 
-function renderInline(built: BuiltWidget[], painter: Painter, sep: string): string {
-  const chunks = built.map((wgt) => wgt.segments.map((s) => painter.paint(s.text, s)).join(""));
-  const joiner = ` ${painter.paint(sep, { color: "label" })} `;
-  return chunks.join(joiner);
+function renderInline(built: BuiltWidget[], painter: Painter, sep: string, autoWrap: boolean): string {
+  const chunks: string[] = [];
+  for (const wgt of built) {
+    const str = wgt.segments.map((s) => painter.paint(s.text, s)).join("");
+    if (wgt.merge && chunks.length) chunks[chunks.length - 1] += str;
+    else chunks.push(str);
+  }
+  const sepStr = ` ${painter.paint(sep, { color: "label" })} `;
+  if (!autoWrap) return chunks.join(sepStr);
+
+  const width = process.stdout.columns || Number(process.env.COLUMNS) || 80;
+  const sepLen = plainLen(sepStr);
+  const lines: string[] = [];
+  let cur = "", curLen = 0;
+  for (const c of chunks) {
+    const cl = plainLen(c);
+    if (cur === "") { cur = c; curLen = cl; }
+    else if (curLen + sepLen + cl <= width) { cur += sepStr + c; curLen += sepLen + cl; }
+    else { lines.push(cur); cur = c; curLen = cl; }
+  }
+  if (cur) lines.push(cur);
+  return lines.join("\n");
 }
 
 function renderCapsule(built: BuiltWidget[], painter: Painter, ctx: RenderContext): string {
@@ -72,7 +92,7 @@ export function render(ctx: RenderContext): string {
     out.push(
       line.style === "powerline" ? renderPowerline(built, painter, ctx)
       : line.style === "capsule" ? renderCapsule(built, painter, ctx)
-      : renderInline(built, painter, config.separator),
+      : renderInline(built, painter, config.separator, config.autoWrap),
     );
   }
   return out.join("\n");

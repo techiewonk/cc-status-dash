@@ -92,7 +92,7 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Arbitrary env-var widget | ✅ | `env` |
 | tmux session/window | 🟡 | `system` field; detection partial |
 | Memory / RAM usage | ✅ | `free-memory` |
-| Config counts (CLAUDE.md/rules/MCP/hooks) | ✅ | `config-counts` (CLAUDE.md/MCP/hooks); rules roadmap |
+| Config counts (CLAUDE.md/rules/MCP/hooks) | ✅ | `config-counts` (CLAUDE.md/MCP/hooks/rules) |
 | MCP server health/connection | 🟡 | `mcp-count` (health roadmap) |
 | Current time / clock | ✅ | `session-clock` |
 | Terminal width | ✅ | `terminal-width` |
@@ -129,8 +129,8 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Nerd Font + ASCII fallback | ✅ | `charset` |
 | Layout presets | ✅ | preset catalog grouped by line count |
 | Separator styles (capsule / tui) | 🟡 | inline + powerline + capsule; tui-panel roadmap |
-| Auto-wrap / flex separators | 🗺️ | roadmap |
-| Widget merging | 🗺️ | roadmap |
+| Auto-wrap / flex separators | 🟡 | auto-wrap done (`autoWrap`); flex separators roadmap |
+| Widget merging | ✅ | `merge: true` per widget |
 | Powerline auto-align across lines | 🗺️ | roadmap |
 | Per-segment show/hide icons | 🟡 | charset-level; per-segment roadmap |
 | CSS-grid TUI panel engine | 🗺️ | roadmap (claude-powerline style) |

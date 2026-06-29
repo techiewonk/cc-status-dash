@@ -140,6 +140,7 @@ export interface SystemInfo {
   claudeMdCount?: number;
   mcpConfigCount?: number;
   hooksCount?: number;
+  rulesCount?: number;
 }
 
 export interface Widget<TData = unknown> {
@@ -180,6 +181,7 @@ export interface Config {
   minimalist: boolean;   // strip labels, raw values only
   globalBold: boolean;   // force bold on all segments
   padding: number;       // spaces of padding around each segment's text
+  autoWrap: boolean;     // wrap inline lines to terminal width
   lines: LineConfig[];
   /** Optional per-model context-window limits (tokens). */
   modelContextLimits?: { sonnet?: number; opus?: number; haiku?: number; default?: number };

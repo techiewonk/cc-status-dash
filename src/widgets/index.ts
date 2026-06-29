@@ -514,12 +514,19 @@ add(w("config-counts", "system", "Config counts (CLAUDE.md/MCP/hooks)", ["system
   if (s.claudeMdCount) parts.push(`${sym("⌘", "md", ctx)}${s.claudeMdCount}`);
   if (s.mcpConfigCount) parts.push(`${sym("⚙", "mcp", ctx)}${s.mcpConfigCount}`);
   if (s.hooksCount) parts.push(`${sym("⚓", "hk", ctx)}${s.hooksCount}`);
+  if (s.rulesCount) parts.push(`${sym("§", "rules", ctx)}${s.rulesCount}`);
   return parts.length ? [{ text: parts.join(" "), color: "label" }] : [];
 }));
 add(w("last-response-time", "activity", "Last response time", ["transcript"], (_d, _o, ctx) => {
   const ms = ctx.data.transcript?.lastResponseMs;
   if (ms == null) return [];
   return lv(sym("Δ", "resp", ctx), ms >= 1000 ? fmtDuration(ms) : `${ms}ms`, "label", ctx);
+}));
+
+// ---------------- tokens/min ----------------
+add(w("tokens-per-min", "tokens", "Tokens per minute", ["stats"], (_d, _o, ctx) => {
+  const v = ctx.data.stats?.tokenSpeed.total;
+  return v ? lv("tok/min", String(v * 60), "usage", ctx) : [];
 }));
 // ---------------- registry ----------------
 
