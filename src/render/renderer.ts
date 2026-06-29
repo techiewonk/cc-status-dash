@@ -44,7 +44,7 @@ function renderInline(built: BuiltWidget[], painter: Painter, sep: string, autoW
   const sepStr = ` ${painter.paint(sep, { color: "label" })} `;
   if (!autoWrap) return chunks.join(sepStr);
 
-  const width = process.stdout.columns || Number(process.env.COLUMNS) || 80;
+  const width = Number(process.env.COLUMNS) || process.stdout.columns || 80;
   const sepLen = plainLen(sepStr);
   const lines: string[] = [];
   let cur = "", curLen = 0;
