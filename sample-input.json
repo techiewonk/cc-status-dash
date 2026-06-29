@@ -1,0 +1,19 @@
+{
+  "model": { "id": "claude-opus-4-8", "display_name": "Claude Opus 4.8" },
+  "workspace": { "current_dir": "/home/dev/projects/cc-status-dash" },
+  "cwd": "/home/dev/projects/cc-status-dash",
+  "session_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "version": "2.1.97",
+  "transcript_path": "/home/dev/.claude/projects/cc-status-dash/transcript.jsonl",
+  "context_window": {
+    "context_window_size": 200000,
+    "used_percentage": 46,
+    "current_usage": { "input_tokens": 88000, "output_tokens": 4000 }
+  },
+  "cost": { "total_cost_usd": 3.42 },
+  "rate_limits": {
+    "five_hour": { "used_percentage": 38, "resets_at": 1782778200000 },
+    "seven_day": { "used_percentage": 61, "resets_at": 1783036800000 }
+  },
+  "effort": { "level": "high" }
+}

@@ -1,0 +1,39 @@
+{
+  "name": "cc-status-dash",
+  "version": "0.1.0",
+  "description": "A feature-rich Claude Code statusline + HUD: widget formatter (à la ccstatusline) fused with live tool/agent/todo activity (à la Claude HUD).",
+  "type": "module",
+  "bin": {
+    "cc-status-dash": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -w -p tsconfig.json",
+    "start": "node dist/index.js",
+    "demo": "node dist/index.js < sample-input.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "claude-code",
+    "statusline",
+    "hud",
+    "powerline",
+    "cli",
+    "terminal"
+  ],
+  "license": "MIT",
+  "files": [
+    "dist",
+    "commands",
+    ".claude-plugin",
+    "README.md"
+  ],
+  "devDependencies": {
+    "@types/node": "^26.0.1",
+    "typescript": "^5.9.3"
+  }
+}
