@@ -118,7 +118,7 @@ export const PRESET_CATALOG: PresetDef[] = [
   { id: "minimal", name: "Minimal", lineCount: 1, description: "model + context", lines: [modelContext()] },
 
   // 2 lines
-  { id: "essential", name: "Essential", lineCount: 2, description: "identity (powerline) + context & 5h usage", lines: [idPL(false), ctxUsage()] },
+  { id: "essential", name: "Essential", lineCount: 2, description: "identity (inline) + context & 5h usage", lines: [{ style: "inline", widgets: [{ id: "model" }, { id: "cwd", segments: 1 }, { id: "git.branch", showDirty: true, showAheadBehind: true }] }, ctxUsage()] },
   { id: "compact", name: "Compact", lineCount: 2, description: "inline identity + context & cost", lines: [idInline(), ctxCost()] },
   { id: "usage", name: "Usage focus", lineCount: 2, description: "inline identity + 5h & 7d usage", lines: [idInline(), usagePair()] },
   { id: "git", name: "Git focus", lineCount: 2, description: "powerline identity w/ diff + context & usage", lines: [idPL(true), ctxUsage()] },
