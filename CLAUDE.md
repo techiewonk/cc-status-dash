@@ -15,16 +15,20 @@ Claude Code pipes a JSON status payload to a `statusLine` command on **stdin**;
 the program prints the rendered line(s) to **stdout**. Entry point: `src/index.ts`.
 
 ## Build & run (do this first)
+**Bun-first** (the project targets Bun; `bun build --target=node` emits a single
+Node-compatible `dist/index.js`, so the artifact runs on both runtimes).
 ```bash
-npm install
-npm run build           # tsc -> dist/
-npm run demo            # node dist/index.js < sample-input.json
-# or pipe your own payload:
-echo '{ ... }' | node dist/index.js
+bun install
+bun run build           # bun build src/index.ts --target=node -> dist/index.js
+bun run demo            # bun run src/index.ts < sample-input.json
+# pipe your own payload:
+echo '{ ... }' | bun run src/index.ts
+# Node fallback (no Bun): npm install && npm run build:node ; node dist/index.js < sample-input.json
 ```
 Useful flags: `--list-widgets`, `--list-themes`, `--preset <id>`, `--theme <id>`, `--config <path>`.
 
-`dist/` and `node_modules/` are gitignored — always `npm run build` before testing.
+`dist/` and `node_modules/` are gitignored — always build before testing.
+Source must stay **runtime-agnostic** (no Bun-only APIs) so it runs on Node too.
 
 ## Test it live in Claude Code
 Build, then point Claude Code's `~/.claude/settings.json` at the built file:
@@ -32,7 +36,7 @@ Build, then point Claude Code's `~/.claude/settings.json` at the built file:
 {
   "statusLine": {
     "type": "command",
-    "command": "node /ABSOLUTE/PATH/TO/cc-status-dash/dist/index.js",
+    "command": "bun /ABSOLUTE/PATH/TO/cc-status-dash/dist/index.js",
     "padding": 0,
     "refreshInterval": 10
   }
@@ -100,7 +104,7 @@ Then `npm run build` and `node dist/index.js --list-widgets | grep my-widget`. R
 - Git/PR widgets need a real git repo as the payload's `workspace.current_dir`.
 
 ## Conventions
-- TypeScript strict, ESM (`.js` import specifiers), Node 18+. No runtime deps yet.
+- TypeScript strict, ESM (`.js` import specifiers). **Bun-first, Node 18+ compatible** — no Bun-only APIs. No runtime deps yet.
 - Never throw into the render path — providers and `index.ts` swallow errors and fall back (worst case prints `Claude`).
 - Keep the hot path fast: short timeouts on git, lazy providers, tail-only transcript reads.
 

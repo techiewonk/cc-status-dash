@@ -6,7 +6,7 @@ You are setting up **cc-status-dash**, a statusline + HUD for Claude Code.
 
 Do the following:
 
-1. Detect a JavaScript runtime (Node 18+ or Bun). If none, tell the user to install Node LTS and stop.
+1. Detect a JavaScript runtime. Prefer **Bun** (`bunx cc-status-dash@latest`, ~4x faster per-render startup); fall back to Node (`npx cc-status-dash@latest`). If neither, tell the user to install Bun (`npm install -g bun`) or Node LTS and stop.
 2. Run the preset wizard (preset choices: `minimal`, `essential` (default), `full`, `dashboard`).
 3. Write the chosen config to `~/.claude/cc-status-dash.json`.
 4. Add/merge this block into the user's Claude Code `~/.claude/settings.json`:
@@ -15,7 +15,7 @@ Do the following:
    {
      "statusLine": {
        "type": "command",
-       "command": "npx -y cc-status-dash@latest",
+       "command": "bunx cc-status-dash@latest",
        "padding": 0,
        "refreshInterval": 10
      }

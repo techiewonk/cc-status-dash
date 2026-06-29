@@ -5,6 +5,7 @@ _Last updated: 2026-06-30. Living tracker of what is done, in progress, and rema
 Snapshot: **98 widgets**, 5 themes, 18 presets (1–5 layers), persistent stats store, config-mutation engine. Builds clean (`tsc`), renders all presets. See [PARITY.md](PARITY.md) for the full feature-by-feature matrix.
 
 ## ✅ Done
+- **Runtime: Bun-first**, Node-compatible (`bun build --target=node` → single `dist/index.js`; `build:node` tsc fallback). Source stays runtime-agnostic.
 - Core engine: stdin parse, provider loading (git / transcript / system / stats), widget registry, inline + powerline + **capsule** renderers, color layer (16/256/truecolor, NO_COLOR), themes + custom colors.
 - Widgets (94): model, provider label, version, session id/name, thinking effort, output style, compaction counter.
 - Context: bar, %, usable %, length, window, token breakdown.

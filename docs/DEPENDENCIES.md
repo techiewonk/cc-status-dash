@@ -64,7 +64,7 @@ deps are bundled + lazy-loaded.
 > Not in their list but needed by us: a **bundler** (`tsup`/`esbuild`) and **`@types/node`**.
 
 ## Architectural prerequisite: a bundler
-- Add `tsup` (or `esbuild`/`bun build`) to bundle `src/index.ts` → one `dist/index.js`.
+**Decision: the project is Bun-first — use Bun's built-in bundler** (`bun build src/index.ts --target=node --outfile=dist/index.js`). No separate bundler dependency needed. `--target=node` keeps the artifact Node-compatible so `npx`/`node` users still work. (tsdown/esbuild remain Node-only fallbacks via `build:node` = `tsc`.)
 - **Lazy-`import()` the TUI** (Ink/React) only when launched interactively, so the render
   path (run every ~300ms) never loads React.
 - Keep `package.json` `dependencies` empty; everything lives in `devDependencies` + bundled.
@@ -93,7 +93,7 @@ count dramatically while being faster.
 
 | ccstatusline dep | Recommended instead | Why it's better | Decision |
 |---|---|---|---|
-| `tsup` (bundler) | **tsdown** (Rolldown/Rust) | tsup is no longer actively maintained; tsdown is its successor, ~3–5× faster, tsup-compatible API, emits `.d.ts` | ✅ use tsdown |
+| `tsup` (bundler) | **Bun's built-in `bun build`** (project is Bun-first); tsdown as Node-only fallback | no extra bundler dep on Bun; tsdown (Rolldown/Rust) is the Node fallback since tsup is unmaintained | ✅ bun build |
 | `zod` | **valibot** | ~10× smaller bundle (1.4KB vs ~15KB), 16× faster init, similar runtime; ideal for a small CLI config schema | ✅ use valibot (zod v4 acceptable fallback) |
 | `eslint` + `typescript-eslint` + `@eslint/js` + `@stylistic/eslint-plugin` + `globals` + `eslint-plugin-import-x` + `eslint-import-resolver-typescript` + `eslint-plugin-import-newlines` | **Biome** (Rust) | one tool replaces ~8 packages; lint+format ~25× faster (10k files: 0.8s vs 45s); v2.3 has 420+ rules | ✅ use Biome as primary |
 | `eslint-plugin-react` / `eslint-plugin-react-hooks` | keep **only if** TUI uses React/Ink | Biome can't do hooks rules yet; add a minimal ESLint just for these two if we go Ink+JSX | 🎨 conditional |
@@ -115,7 +115,7 @@ roughly: **tsdown, biome, valibot, @clack/prompts (+ ink & react only if we buil
 editor), @types/node** — most width/color/glob/proxy/plural/test needs are covered by Node itself.
 
 ### Revised rollout
-1. **tsdown** bundler (single file, lazy-load TUI).
+1. **bun build --target=node** (built-in; single file, lazy-load TUI).
 2. **node:test** for the mutation engine + pace/context math.
 3. **valibot** config schema + version/migrations.
 4. **Biome** for lint+format (replaces the whole ESLint cluster).

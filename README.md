@@ -27,28 +27,33 @@ Scaffold (v0.1.0) with 98 widgets across model, context, tokens, usage, git, sys
 
 ### Via npx (manual)
 
-Add to `~/.claude/settings.json`:
+Add to `~/.claude/settings.json` (Bun-first — ~4x faster per-render startup):
 
 ```json
 {
   "statusLine": {
     "type": "command",
-    "command": "npx -y cc-status-dash@latest",
+    "command": "bunx cc-status-dash@latest",
     "padding": 0,
     "refreshInterval": 10
   }
 }
 ```
 
+No Bun? Use the Node-compatible build (`npx cc-status-dash@latest` or `node /abs/path/dist/index.js`). The shipped `dist/index.js` is bundled `--target=node`, so it runs on both runtimes.
+
 ## Local testing (build from source)
 
 ```bash
-npm install
-npm run build
-npm run demo                      # renders sample-input.json
-echo '{ "model": {"display_name":"Opus 4.8"} }' | node dist/index.js
-node dist/index.js --list-widgets # 98 widgets
-node dist/index.js --list-themes
+# Bun-first (recommended)
+bun install
+bun run build                     # bun build src/index.ts --target=node -> dist/index.js
+bun run demo                      # renders sample-input.json
+bun run src/index.ts --list-widgets   # 98 widgets
+
+# Node fallback (no Bun)
+npm install && npm run build:node # tsc -> dist/
+node dist/index.js < sample-input.json
 ```
 
 To drive it from Claude Code while developing, point `~/.claude/settings.json` `statusLine.command` at `node /abs/path/dist/index.js` (see [CLAUDE.md](CLAUDE.md)). See also [docs/STATUS.md](docs/STATUS.md) for what's done vs remaining.
