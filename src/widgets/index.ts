@@ -398,8 +398,10 @@ add(w("provider", "model", "Provider/auth label", ["stdin"], (_d, opts, ctx) => 
 }));
 
 // ---------------- usage (extended) ----------------
-add(w("burn-rate", "usage", "Burn rate ($/hr)", ["stdin"], (_d, _o, ctx) => {
-  const c = ctx.input.cost?.total_cost_usd, ms = ctx.input.cost?.total_duration_ms;
+add(w("burn-rate", "usage", "Burn rate ($/hr)", ["stdin"], (_d, opts, ctx) => {
+  const c = ctx.input.cost?.total_cost_usd;
+  const mode = (opts.mode as string) ?? "wall";
+  const ms = mode === "active" ? ctx.input.cost?.total_api_duration_ms : ctx.input.cost?.total_duration_ms;
   if (!c || !ms) return [];
   const hrs = ms / 3_600_000;
   return hrs > 0 ? [{ text: `$${(c / hrs).toFixed(2)}/hr`, color: "warning" }] : [];
@@ -460,6 +462,26 @@ add(w("cost-projection", "usage", "Cost projection (block)", ["stats", "rate_lim
   const elapsedFrac = (WINDOW - remMs) / WINDOW;
   if (elapsedFrac <= 0.02) return [];
   return lv("Est", `$${(cost / elapsedFrac).toFixed(2)}`, "warning", ctx);
+}));
+
+// ---------------- git PR / API time ----------------
+add(w("git-pr", "git", "Pull request (gh/glab)", ["git"], (_d, _o, ctx) => {
+  const g = ctx.data.git;
+  if (!g?.isRepo) return [];
+  const cwd = ctx.input.workspace?.current_dir ?? ctx.input.cwd ?? process.cwd();
+  const opts: import("node:child_process").ExecSyncOptionsWithStringEncoding = { cwd, timeout: 1200, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8" };
+  try {
+    const j = JSON.parse(execSync("gh pr view --json number,title,state", opts).trim());
+    return [{ text: `${sym("⎇", "PR", ctx)} ${String(j.state).toLowerCase()} #${j.number} ${j.title}`.trim(), color: "gitBranch" }];
+  } catch { /* try glab */ }
+  try {
+    const j = JSON.parse(execSync("glab mr view -F json", opts).trim());
+    return j?.iid ? [{ text: `${sym("⎇", "MR", ctx)} !${j.iid} ${j.title ?? ""}`.trim(), color: "gitBranch" }] : [];
+  } catch { return []; }
+}));
+add(w("total-api-time", "activity", "Total API time", ["stdin"], (_d, _o, ctx) => {
+  const ms = ctx.input.cost?.total_api_duration_ms;
+  return ms ? lv(sym("⧖", "api", ctx), fmtDuration(ms), "label", ctx) : [];
 }));
 // ---------------- registry ----------------
 

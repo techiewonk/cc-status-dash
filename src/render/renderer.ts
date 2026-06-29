@@ -9,6 +9,8 @@ import { createPainter, type Painter } from "./colors.js";
 
 const POWERLINE_SEP = "";
 const POWERLINE_SEP_TEXT = "";
+const CAP_LEFT = "";
+const CAP_RIGHT = "";
 
 interface BuiltWidget { segments: Segment[]; }
 
@@ -34,6 +36,17 @@ function renderInline(built: BuiltWidget[], painter: Painter, sep: string): stri
   return chunks.join(joiner);
 }
 
+function renderCapsule(built: BuiltWidget[], painter: Painter, ctx: RenderContext): string {
+  const bgCycle = ["model", "cwd", "git"];
+  const lcap = ctx.config.charset === "text" ? "(" : CAP_LEFT;
+  const rcap = ctx.config.charset === "text" ? ")" : CAP_RIGHT;
+  return built.map((wgt, i) => {
+    const bg = bgCycle[i % bgCycle.length];
+    const text = wgt.segments.map((s) => s.text).join("");
+    return painter.paint(lcap, { color: bg }) + painter.paint(` ${text} `, { bgColor: bg, color: "label", bold: true }) + painter.paint(rcap, { color: bg });
+  }).join(" ");
+}
+
 function renderPowerline(built: BuiltWidget[], painter: Painter, ctx: RenderContext): string {
   const bgCycle = ["model", "cwd", "git"];
   const arrow = ctx.config.charset === "text" ? POWERLINE_SEP_TEXT : POWERLINE_SEP;
@@ -56,7 +69,11 @@ export function render(ctx: RenderContext): string {
     const built = buildLineWidgets(line, ctx);
     if (line.showWhen === "activity" && built.length === 0) continue;
     if (built.length === 0) continue;
-    out.push(line.style === "powerline" ? renderPowerline(built, painter, ctx) : renderInline(built, painter, config.separator));
+    out.push(
+      line.style === "powerline" ? renderPowerline(built, painter, ctx)
+      : line.style === "capsule" ? renderCapsule(built, painter, ctx)
+      : renderInline(built, painter, config.separator),
+    );
   }
   return out.join("\n");
 }

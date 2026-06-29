@@ -49,7 +49,7 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Cost source: official vs calculated | ⚙️ | uses stdin official cost; calculated roadmap |
 | Block reset exact timestamp (tz/12-24h) | 🟡 | countdown done; timestamp/tz roadmap |
 | Daily / weekly / monthly cost | ✅ | `daily-cost`, `weekly-cost`, `monthly-cost` (stats store) |
-| Burn-rate modes (wall/active/auto-reset) | 🗺️ | roadmap (needs stats) |
+| Burn-rate modes (wall/active/auto-reset) | 🟡 | `burn-rate` `mode: wall|active`; auto-reset roadmap |
 | Cost projections / estimates | ✅ | `cost-projection` (block) |
 | Per-model weekly usage (sonnet/opus) | 🗺️ | roadmap (not in stdin; needs API) |
 | Usage API fallback (cached/async) | 🗺️ | roadmap |
@@ -80,7 +80,7 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Commit count | ✅ | `git-commit-count` |
 | Submodule status | ✅ | `git-submodules` |
 | Repo root dir | ✅ | `git-root-dir` |
-| GitHub + GitLab PR/MR | 🗺️ | roadmap (`gh`/`glab`) |
+| GitHub + GitLab PR/MR | ✅ | `git-pr` (`gh` then `glab`) |
 | Clickable PR / branch links | 🟡 | generic `link` widget; auto-link roadmap |
 
 ## Filesystem / environment
@@ -106,7 +106,7 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Session duration | ✅ | `session-duration` |
 | Lines added / removed | ✅ | `lines-added`, `lines-removed` |
 | Cache TTL timer | ✅ | `cache-timer` |
-| Total API time / last-response / msg count | 🟡 | `message-count` done; API-time/last-response roadmap |
+| Total API time / last-response / msg count | 🟡 | `total-api-time`, `message-count` done; last-response roadmap |
 
 ## Custom / extensibility
 | Feature | Status | Where |
@@ -128,7 +128,7 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Padding control | ✅ | `padding` |
 | Nerd Font + ASCII fallback | ✅ | `charset` |
 | Layout presets | ✅ | preset catalog grouped by line count |
-| Separator styles (capsule / tui) | 🟡 | inline + powerline; capsule/tui roadmap |
+| Separator styles (capsule / tui) | 🟡 | inline + powerline + capsule; tui-panel roadmap |
 | Auto-wrap / flex separators | 🗺️ | roadmap |
 | Widget merging | 🗺️ | roadmap |
 | Powerline auto-align across lines | 🗺️ | roadmap |
