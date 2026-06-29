@@ -42,7 +42,7 @@ export interface RateLimitWindow {
   resets_at?: number | string | null; // epoch ms (usually) or ISO string
 }
 
-export type DataSource = "stdin" | "git" | "transcript" | "rate_limits" | "system";
+export type DataSource = "stdin" | "git" | "transcript" | "rate_limits" | "system" | "stats";
 
 export type WidgetCategory =
   | "model"
@@ -72,6 +72,7 @@ export interface RenderContext {
 }
 
 export interface ProviderData {
+  stats?: StatsInfo;
   git?: GitInfo;
   transcript?: TranscriptInfo;
   system?: SystemInfo;
@@ -116,6 +117,16 @@ export interface TranscriptInfo {
   sessionTokens?: { input: number; output: number; cacheCreation: number; cacheRead: number };
   compactionCount?: number;
   msSinceLastUser?: number;
+}
+
+export interface StatsInfo {
+  sessionCost?: number;
+  dailyCost: number;
+  weeklyCost: number;
+  monthlyCost: number;
+  /** tokens per second over the configured window */
+  tokenSpeed: { input: number; output: number; total: number };
+  messageCount: number;
 }
 
 export interface SystemInfo {

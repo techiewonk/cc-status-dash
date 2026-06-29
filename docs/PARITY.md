@@ -48,13 +48,13 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Cache efficiency / hit ratio | ✅ | `cache-hit-rate` |
 | Cost source: official vs calculated | ⚙️ | uses stdin official cost; calculated roadmap |
 | Block reset exact timestamp (tz/12-24h) | 🟡 | countdown done; timestamp/tz roadmap |
-| Daily / weekly / monthly cost | 🗺️ | roadmap (needs persistence) |
+| Daily / weekly / monthly cost | ✅ | `daily-cost`, `weekly-cost`, `monthly-cost` (stats store) |
 | Burn-rate modes (wall/active/auto-reset) | 🗺️ | roadmap (needs stats) |
-| Cost projections / estimates | 🗺️ | roadmap |
+| Cost projections / estimates | ✅ | `cost-projection` (block) |
 | Per-model weekly usage (sonnet/opus) | 🗺️ | roadmap (not in stdin; needs API) |
 | Usage API fallback (cached/async) | 🗺️ | roadmap |
-| Budgets + warning thresholds | 🗺️ | roadmap (config) |
-| Token speed (tok/s, rolling window) | 🗺️ | roadmap (needs history) |
+| Budgets + warning thresholds | ✅ | `budget` (session/today/month, threshold) |
+| Token speed (tok/s, rolling window) | ✅ | `input-speed`, `output-speed`, `total-speed` |
 | Subagent-aware speed | 🗺️ | roadmap |
 
 ## Git
@@ -106,7 +106,7 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Session duration | ✅ | `session-duration` |
 | Lines added / removed | ✅ | `lines-added`, `lines-removed` |
 | Cache TTL timer | ✅ | `cache-timer` |
-| Total API time / last-response / msg count | 🗺️ | roadmap |
+| Total API time / last-response / msg count | 🟡 | `message-count` done; API-time/last-response roadmap |
 
 ## Custom / extensibility
 | Feature | Status | Where |
@@ -168,12 +168,12 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Bun + Node support | ✅ | runs on both |
 | Non-blocking render (timeouts on git) | ✅ | git provider 300ms timeout |
 | Windows-specific handling | 🟡 | path handling; UTF-8 codepage roadmap |
-| Caching (git/usage TTL) | 🗺️ | roadmap |
+| Caching (git/usage TTL) | 🟡 | persistent stats store; git/usage TTL roadmap |
 | JSONL dedupe | 🟡 | tail parse; full dedupe roadmap |
 | HTTPS_PROXY for usage API | 🗺️ | roadmap (with API fallback) |
 | Hook integration (PreCompact/SessionStart) | 🗺️ | roadmap |
 | npm provenance / version pinning | 🗺️ | release infra |
-| SQLite persistent stats | ⛔ | roadmap / opt-in variant (claudia) |
+| Persistent stats store | 🟡 | JSON store (`~/.local/state/cc-status-dash`); SQLite opt-in roadmap |
 | Cloud sync (Turso) | ⛔ | out-of-scope |
 | Single compiled binary / single bash file | ⛔ | n/a (TypeScript by design) |
 | Claude Code patcher | ⛔ | out-of-scope (CCometixLine) |

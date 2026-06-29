@@ -410,6 +410,57 @@ add(w("token-breakdown", "tokens", "Token breakdown (high context)", ["stdin"], 
   const t = usageTokens(ctx);
   return [{ text: `in ${fmtTokens(t.input)} out ${fmtTokens(t.output)} cache ${fmtTokens(t.cacheRead + t.cacheCreation)}`, color: "label" }];
 }));
+
+// ---------------- stats-backed (persistence) ----------------
+const speedWidget = (id: string, label: string, kind: "input" | "output" | "total") =>
+  add(w(id, "tokens", label, ["stats"], (_d, _o, ctx) => {
+    const v = ctx.data.stats?.tokenSpeed[kind];
+    return v ? lv(label, `${v} tok/s`, "usage", ctx) : [];
+  }));
+speedWidget("input-speed", "In speed", "input");
+speedWidget("output-speed", "Out speed", "output");
+speedWidget("total-speed", "Speed", "total");
+
+const aggCost = (id: string, label: string, pick: (s: NonNullable<RenderContext["data"]["stats"]>) => number) =>
+  add(w(id, "usage", label, ["stats"], (_d, _o, ctx) => {
+    const s = ctx.data.stats;
+    if (!s) return [];
+    const v = pick(s);
+    return v > 0 ? lv(label, `$${v.toFixed(2)}`, "paceGood", ctx) : [];
+  }));
+aggCost("daily-cost", "Today", (s) => s.dailyCost);
+aggCost("weekly-cost", "7d cost", (s) => s.weeklyCost);
+aggCost("monthly-cost", "30d cost", (s) => s.monthlyCost);
+
+add(w("message-count", "activity", "Message count", ["stats"], (_d, _o, ctx) => {
+  const n = ctx.data.stats?.messageCount;
+  return n ? lv(sym("⟐", "msgs", ctx), n, "label", ctx) : [];
+}));
+
+add(w("budget", "usage", "Budget", ["stats"], (_d, opts, ctx) => {
+  const amount = Number(opts.amount ?? 0);
+  if (amount <= 0) return [];
+  const scope = (opts.scope as string) ?? "session";
+  const s = ctx.data.stats;
+  const val = scope === "today" ? s?.dailyCost : scope === "month" ? s?.monthlyCost : s?.sessionCost;
+  if (val == null) return [];
+  const pct = Math.round((val / amount) * 100);
+  const warn = Number(opts.warningThreshold ?? 80);
+  const color = pct >= 100 ? "critical" : pct >= warn ? "warning" : "usage";
+  const mark = pct >= warn ? "!" : "";
+  return lv(sym("◱", "budget", ctx), `${mark}${pct}%`, color, ctx);
+}));
+
+add(w("cost-projection", "usage", "Cost projection (block)", ["stats", "rate_limits"], (_d, _o, ctx) => {
+  const cost = ctx.data.stats?.sessionCost;
+  const win = ctx.input.rate_limits?.five_hour;
+  if (!cost || !win?.resets_at) return [];
+  const remMs = (typeof win.resets_at === "number" ? win.resets_at : Date.parse(String(win.resets_at))) - Date.now();
+  const WINDOW = 5 * 3600 * 1000;
+  const elapsedFrac = (WINDOW - remMs) / WINDOW;
+  if (elapsedFrac <= 0.02) return [];
+  return lv("Est", `$${(cost / elapsedFrac).toFixed(2)}`, "warning", ctx);
+}));
 // ---------------- registry ----------------
 
 export const WIDGETS: Record<string, Widget> = {};
