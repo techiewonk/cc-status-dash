@@ -16,7 +16,7 @@
     "demo": "bun run src/index.ts < sample-input.json",
     "demo:node": "node dist/index.js < sample-input.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "bun test",
+    "test": "bun test src",
     "test:node": "npm run build:node && node --test dist/__tests__/*.test.js",
     "lint": "biome check .",
     "format": "biome format --write ."
