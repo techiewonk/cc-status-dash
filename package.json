@@ -25,20 +25,7 @@
     "bun": ">=1.0.0",
     "node": ">=18"
   },
-  "keywords": [
-    "claude-code",
-    "statusline",
-    "hud",
-    "powerline",
-    "cli",
-    "terminal",
-    "bun"
-  ],
+  "keywords": ["claude-code", "statusline", "hud", "powerline", "cli", "terminal", "bun"],
   "license": "MIT",
-  "files": [
-    "dist",
-    "commands",
-    ".claude-plugin",
-    "README.md"
-  ]
+  "files": ["dist", "commands", ".claude-plugin", "README.md"]
 }

@@ -15,6 +15,8 @@ function fmtTokens(n: number): string {
 }
 function fmtDuration(ms: number): string {
   const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  const d = Math.floor(h / 24);
+  if (d > 0) return `${d}d ${h % 24}h`;
   if (h > 0) return `${h}h ${m}m`;
   if (m > 0) return `${m}m`;
   return `${s}s`;

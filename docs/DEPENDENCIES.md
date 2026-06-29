@@ -127,7 +127,7 @@ editor), @types/node** — most width/color/glob/proxy/plural/test needs are cov
 ## Adopted so far
 - ✅ **Already dependency-free**: no chalk/glob/proxy/pluralize libs — we use our own `colors.ts` and Node APIs.
 - ✅ **`node:util.stripVTControlCharacters`** now powers `plainLen()` (auto-wrap width) — replaced the hand regex (zero dep).
-- ✅ **Tests**: `src/__tests__/mutations.test.ts` via `node:test` (run `npm run test:node`, or `bun test`). 6 passing.
+- ✅ **Tests**: `src/__tests__/mutations.test.ts` via `node:test` (run `npm run test:node`, or `bun test`). 96 passing.
 - ✅ **Bun-first build**: `bun build --target=node`; `build:node` (tsc) fallback.
 - ✅ **Biome** configured (`biome.json`, `npm run lint` / `npm run format`) — replaces the ESLint cluster; `bun add -d @biomejs/biome` to enable.
 - 🗺️ Next (need a Bun session to install): **valibot** config schema, **@clack/prompts** wizard, **Ink** advanced editor, **VHS** demo.
