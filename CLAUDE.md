@@ -108,5 +108,8 @@ Then `npm run build` and `node dist/index.js --list-widgets | grep my-widget`. R
 - Live status (done / in progress / remaining / out-of-scope): **docs/STATUS.md**
 - Full feature-by-feature parity vs all 7 surveyed tools: **docs/PARITY.md**
 - Original design/plan + deep dive: **docs/ANALYSIS.md**
+- Dependency adoption plan (Ink TUI, zod, bundler, vitest, ...): **docs/DEPENDENCIES.md**
+
+Library/bundler adoption (Ink, zod, tsup, vitest) is planned in docs/DEPENDENCIES.md.
 
 Biggest open item: the **Ink TUI** config editor — its pure engine (`config/mutations.ts`) is done; the interactive UI layer is not built yet (needs a real terminal to verify).

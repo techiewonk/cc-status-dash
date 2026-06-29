@@ -21,6 +21,7 @@ Snapshot: **98 widgets**, 5 themes, 18 presets (1–5 layers), persistent stats 
 - Repo: committed under user identity; `docs/ANALYSIS.md`, `docs/PARITY.md`, `docs/STATUS.md`.
 
 ## 🔄 In progress
+- See **docs/DEPENDENCIES.md** for the plan to adopt ccstatusline's stack (bundler + Ink + zod + vitest).
 - **Ink TUI**: the mutation engine (`src/config/mutations.ts`) is done and tested; the interactive Ink UI layer (live preview, fuzzy widget picker, clone/reorder keys, preset wizard) is the next build — best verified in a real terminal.
 
 ## 🗺️ Remaining (roadmap)
