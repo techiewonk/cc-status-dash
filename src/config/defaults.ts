@@ -177,7 +177,7 @@ export const DEFAULT_CONFIG: Config = {
   separator: "│",
   minimalist: false,
   globalBold: false,
-  padding: 0,
+  padding: 1,
   autoWrap: false,
   lines: PRESET_LINES["essential"],
   colors: DEFAULT_COLORS,
