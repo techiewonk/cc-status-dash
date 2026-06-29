@@ -19,7 +19,7 @@ export function collectProviderData(input: StatuslineInput, config: Config): Pro
   const cwd = input.workspace?.current_dir ?? input.cwd ?? process.cwd();
   if (needed.has("git")) data.git = collectGit(cwd);
   if (needed.has("transcript")) data.transcript = collectTranscript(input.transcript_path);
-  if (needed.has("system")) data.system = collectSystem();
+  if (needed.has("system")) data.system = collectSystem(cwd);
   if (needed.has("stats")) data.stats = collectStats(input);
   return data;
 }

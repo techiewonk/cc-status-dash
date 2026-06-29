@@ -13,7 +13,7 @@ Plus the best ideas from the wider ecosystem: **pace delta** (burn vs. time-left
 
 ## Status
 
-Scaffold (v0.1.0) with 94 widgets across model, context, tokens, usage, git, system, activity, and custom categories. See [docs/PARITY.md](docs/PARITY.md) for the full feature-by-feature parity matrix against all 7 surveyed statuslines. The render pipeline, widget registry, themes, config loading, and several widgets work today. The Ink TUI, full git/usage widget set, and SQLite stats are on the roadmap (see `docs/ANALYSIS.md`).
+Scaffold (v0.1.0) with 97 widgets across model, context, tokens, usage, git, system, activity, and custom categories. See [docs/PARITY.md](docs/PARITY.md) for the full feature-by-feature parity matrix against all 7 surveyed statuslines. The render pipeline, widget registry, themes, config loading, and several widgets work today. The Ink TUI, full git/usage widget set, and SQLite stats are on the roadmap (see `docs/ANALYSIS.md`).
 
 ## Install
 

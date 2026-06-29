@@ -14,7 +14,7 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Provider/auth label (Bedrock/Vertex/API) | ✅ | `provider` |
 | Session name from `/rename` | ✅ | `session-name` |
 | Session ID | ✅ | `claude-session-id` |
-| Claude account email (`~/.claude.json`) | 🗺️ | roadmap |
+| Claude account email (`~/.claude.json`) | ✅ | `claude-account-email` |
 | Claude Code version | ✅ | `version` |
 | Thinking effort level | ✅ | `thinking-effort` |
 | Extended-thinking on/off | 🟡 | `thinking-effort` (level); on/off roadmap |
@@ -30,8 +30,8 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Context window size (separate) | ✅ | `context-window` |
 | Auto-compact buffer usable % | ✅ | `context-percentage-usable` |
 | Token breakdown at high context | ✅ | `token-breakdown` |
-| 1M-context detection | 🟡 | size from stdin `context_window_size`; label strip in `model` |
-| Per-model context limits config | 🗺️ | roadmap (config map) |
+| 1M-context detection | ✅ | `modelLimit` detects `[1m]`/`1m context`; label strip in `model` |
+| Per-model context limits config | ✅ | `modelContextLimits` (sonnet/opus/haiku/default) |
 | Compaction counter | ✅ | `compaction-counter` |
 | Adaptive context-limit learning | ⛔ | out-of-scope (claudia experimental) |
 | Real-time compaction via hooks | 🗺️ | roadmap (hook integration) |
@@ -81,18 +81,18 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Submodule status | ✅ | `git-submodules` |
 | Repo root dir | ✅ | `git-root-dir` |
 | GitHub + GitLab PR/MR | ✅ | `git-pr` (`gh` then `glab`) |
-| Clickable PR / branch links | 🟡 | generic `link` widget; auto-link roadmap |
+| Clickable PR / branch links | 🟡 | `git.branch` `link` (OSC8 to GitHub); PR auto-link roadmap |
 
 ## Filesystem / environment
 | Feature | Status | Where |
 |---|---|---|
 | Current working directory (segment count) | ✅ | `cwd` / `current-working-dir` |
-| CWD styles (fish / basename / full) | 🟡 | segment count done; fish-abbrev roadmap |
+| CWD styles (fish / basename / full) | ✅ | `cwd` `style: segments|fish|basename|full` |
 | Git root dir (+ IDE links) | ✅ | `git-root-dir` (IDE links roadmap) |
 | Arbitrary env-var widget | ✅ | `env` |
 | tmux session/window | 🟡 | `system` field; detection partial |
 | Memory / RAM usage | ✅ | `free-memory` |
-| Config counts (CLAUDE.md/rules/MCP/hooks) | 🟡 | `mcp-count` done; others roadmap |
+| Config counts (CLAUDE.md/rules/MCP/hooks) | ✅ | `config-counts` (CLAUDE.md/MCP/hooks); rules roadmap |
 | MCP server health/connection | 🟡 | `mcp-count` (health roadmap) |
 | Current time / clock | ✅ | `session-clock` |
 | Terminal width | ✅ | `terminal-width` |
@@ -106,7 +106,7 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Session duration | ✅ | `session-duration` |
 | Lines added / removed | ✅ | `lines-added`, `lines-removed` |
 | Cache TTL timer | ✅ | `cache-timer` |
-| Total API time / last-response / msg count | 🟡 | `total-api-time`, `message-count` done; last-response roadmap |
+| Total API time / last-response / msg count | ✅ | `total-api-time`, `last-response-time`, `message-count` |
 
 ## Custom / extensibility
 | Feature | Status | Where |
@@ -159,7 +159,7 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Zero-config defaults | ✅ | essential preset |
 | Ink TUI w/ live preview | 🗺️ | roadmap (UI mockup designed) |
 | Fuzzy widget picker / clone / wrap-around nav | 🗺️ | roadmap (TUI) |
-| `CLAUDE_CONFIG_DIR` support | 🗺️ | roadmap |
+| `CLAUDE_CONFIG_DIR` support | ✅ | config path + claude-config reads honor it |
 
 ## Platform / engineering
 | Feature | Status | Where |

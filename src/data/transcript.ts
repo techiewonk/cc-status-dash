@@ -31,6 +31,7 @@ export function collectTranscript(path?: string): TranscriptInfo {
   let compactionCount = 0;
   let sessionName: string | undefined;
   let lastUserMs: number | undefined;
+  let lastAssistantMs: number | undefined;
 
   for (const line of lines) {
     let entry: any;
@@ -39,6 +40,10 @@ export function collectTranscript(path?: string): TranscriptInfo {
     if (entry.type === "user" && entry.timestamp) {
       const t = Date.parse(entry.timestamp);
       if (!Number.isNaN(t)) lastUserMs = t;
+    }
+    if (entry.type === "assistant" && entry.timestamp) {
+      const t = Date.parse(entry.timestamp);
+      if (!Number.isNaN(t)) lastAssistantMs = t;
     }
     if (entry.type === "compact_boundary" || entry.subtype === "compact_boundary") compactionCount++;
     if (entry.sessionName) sessionName = entry.sessionName;
@@ -86,6 +91,7 @@ export function collectTranscript(path?: string): TranscriptInfo {
     sessionTokens,
     compactionCount,
     msSinceLastUser: lastUserMs ? Date.now() - lastUserMs : undefined,
+    lastResponseMs: (lastAssistantMs && lastUserMs && lastAssistantMs > lastUserMs) ? lastAssistantMs - lastUserMs : undefined,
   };
 }
 

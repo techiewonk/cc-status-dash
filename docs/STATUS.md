@@ -1,8 +1,8 @@
 # Project status — cc-status-dash
 
-_Last updated: 2026-06-30. Living tracker of what's done, in progress, and remaining._
+_Last updated: 2026-06-30. Living tracker of what is done, in progress, and remaining._
 
-Snapshot: **94 widgets**, 5 themes, 18 presets (1–5 layers), persistent stats store, config-mutation engine. Builds clean (`tsc`), renders all presets. See [PARITY.md](PARITY.md) for the full feature-by-feature matrix.
+Snapshot: **97 widgets**, 5 themes, 18 presets (1–5 layers), persistent stats store, config-mutation engine. Builds clean (`tsc`), renders all presets. See [PARITY.md](PARITY.md) for the full feature-by-feature matrix.
 
 ## ✅ Done
 - Core engine: stdin parse, provider loading (git / transcript / system / stats), widget registry, inline + powerline + **capsule** renderers, color layer (16/256/truecolor, NO_COLOR), themes + custom colors.
@@ -16,6 +16,7 @@ Snapshot: **94 widgets**, 5 themes, 18 presets (1–5 layers), persistent stats 
 - Custom: text, symbol, command, OSC8 link.
 - Config: JSON file, priority chain, `--config`, presets by line count, global options (minimalist/globalBold/padding/charset), **config-mutation engine** (add/remove/move/clone/setOption/preset/theme), slash commands `/setup` + `/configure`.
 - Persistent stats store (`~/.local/state/cc-status-dash/stats.json`).
+- Batch 4: account email, config-counts (CLAUDE.md/MCP/hooks), last-response-time, fish/basename/full cwd, clickable git branch link (OSC8), per-model context limits + 1M auto-detect, `CLAUDE_CONFIG_DIR` support.
 - Repo: committed under user identity; `docs/ANALYSIS.md`, `docs/PARITY.md`, `docs/STATUS.md`.
 
 ## 🔄 In progress
@@ -23,11 +24,11 @@ Snapshot: **94 widgets**, 5 themes, 18 presets (1–5 layers), persistent stats 
 
 ## 🗺️ Remaining (roadmap)
 - Ink TUI UI layer (see above) + write `refreshInterval` from TUI.
-- Metrics: burn-rate `auto-reset` mode, last-response time, per-model weekly (sonnet/opus), usage-API fallback for non-subscriber accounts, tokens/min.
+- Metrics: burn-rate `auto-reset` mode, per-model weekly (sonnet/opus), usage-API fallback for non-subscriber accounts, tokens/min.
 - Git: auto clickable PR/branch links (OSC8), worktree original-branch.
 - Layout: TUI-panel (CSS-grid) style, auto-wrap / flex separators, widget merging, powerline caps + auto-align, per-segment icon toggles.
-- Context: per-model context-limit config, 1M auto-detect from label, real-time compaction via hooks.
-- Misc: Claude account email, vim mode, voice status, config counts (CLAUDE.md/rules/hooks), `CLAUDE_CONFIG_DIR`, git/usage caching TTL, COLORTERM detection, fish-style cwd.
+- Context: real-time compaction via hooks.
+- Misc: vim mode, voice status, rules-count, git/usage caching TTL, COLORTERM detection.
 - Engineering: JSONL dedupe, HTTPS_PROXY, hook integration, npm provenance/version pinning, Windows UTF-8 codepage.
 
 ## ⛔ Out of scope (by design)

@@ -13,6 +13,8 @@ function candidatePaths(cliPath?: string): string[] {
   const paths: string[] = [];
   const xdg = process.env.XDG_CONFIG_HOME;
   if (xdg) paths.push(join(xdg, "cc-status-dash", "config.json"));
+  const ccDir = process.env.CLAUDE_CONFIG_DIR;
+  if (ccDir) paths.push(join(ccDir, "cc-status-dash.json"));
   paths.push(join(homedir(), ".claude", "cc-status-dash.json"));
   paths.push(join(process.cwd(), ".cc-status-dash.json"));
   if (cliPath) paths.push(cliPath);

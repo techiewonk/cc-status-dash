@@ -34,12 +34,23 @@ function usageTokens(ctx: RenderContext) {
   const cacheCreation = u?.cache_creation_input_tokens ?? st?.cacheCreation ?? 0;
   return { input, output, cacheRead, cacheCreation, total: input + output + cacheRead + cacheCreation };
 }
+function modelLimit(ctx: RenderContext): number | undefined {
+  const size = ctx.input.context_window?.context_window_size;
+  if (size) return size;
+  const lim = ctx.config.modelContextLimits;
+  if (!lim) return undefined;
+  const id = (ctx.input.model?.id ?? ctx.input.model?.display_name ?? "").toLowerCase();
+  if (/\[1m\]|1m context/.test(id)) return 1_000_000;
+  if (id.includes("opus")) return lim.opus ?? lim.default;
+  if (id.includes("sonnet")) return lim.sonnet ?? lim.default;
+  if (id.includes("haiku")) return lim.haiku ?? lim.default;
+  return lim.default;
+}
 function contextPct(ctx: RenderContext): number | null {
   const cw = ctx.input.context_window;
-  if (!cw) return null;
-  if (typeof cw.used_percentage === "number") return cw.used_percentage;
-  const t = usageTokens(ctx);
-  if (cw.context_window_size) return Math.round((t.total / cw.context_window_size) * 100);
+  if (cw && typeof cw.used_percentage === "number") return cw.used_percentage;
+  const limit = modelLimit(ctx);
+  if (limit) return Math.round((usageTokens(ctx).total / limit) * 100);
   return null;
 }
 function shortModel(ctx: RenderContext): string {
@@ -120,7 +131,7 @@ add(w("context-length", "context", "Context length (tokens)", ["stdin"], (_d, _o
   return t ? lv("Ctx", fmtTokens(t), "usage", ctx) : [];
 }));
 add(w("context-window", "context", "Context window size", ["stdin"], (_d, _o, ctx) => {
-  const size = ctx.input.context_window?.context_window_size;
+  const size = modelLimit(ctx);
   return size ? lv("Win", fmtTokens(size), "label", ctx) : [];
 }));
 
@@ -210,6 +221,10 @@ add(w("git.branch", "git", "Git branch", ["git"], (_d, opts, ctx) => {
   if (opts.showDirty && g.dirty) text += " *";
   if (opts.showAheadBehind) { if (g.ahead) text += ` ${sym("↑", "^", ctx)}${g.ahead}`; if (g.behind) text += ` ${sym("↓", "v", ctx)}${g.behind}`; }
   if (opts.showDiff) { if (g.insertions) text += ` +${g.insertions}`; if (g.deletions) text += ` -${g.deletions}`; }
+  if (opts.link && g.originOwner && g.originRepo && g.branch) {
+    const url = `https://github.com/${g.originOwner}/${g.originRepo}/tree/${g.branch}`;
+    text = `\u001b]8;;${url}\u0007${text}\u001b]8;;\u0007`;
+  }
   return [{ text, color: "gitBranch" }];
 }));
 add(w("git-status", "git", "Git status", ["git"], (_d, _o, ctx) => {
@@ -265,9 +280,14 @@ gitText("worktree-mode", "Worktree mode", "label", (g) => (g.worktree?.mode ? "w
 
 const cwdWidget = (id: string) => add(w(id, "system", "Working directory", ["stdin"], (_d, opts, ctx) => {
   const data = ctx.input.workspace?.current_dir ?? ctx.input.cwd ?? process.cwd();
-  const segments = Number(opts.segments ?? 1);
   const parts = data.replace(/[\\/]+$/, "").split(/[\\/]/).filter(Boolean);
-  return [{ text: parts.slice(-segments).join("/") || data, color: "cwd" }];
+  const style = (opts.style as string) ?? "segments";
+  let out: string;
+  if (style === "full") out = data;
+  else if (style === "basename") out = parts[parts.length - 1] ?? data;
+  else if (style === "fish") out = parts.map((p, i) => (i < parts.length - 1 ? p.slice(0, 1) : p)).join("/");
+  else out = parts.slice(-Number(opts.segments ?? 1)).join("/") || data;
+  return [{ text: out, color: "cwd" }];
 }));
 cwdWidget("cwd"); cwdWidget("current-working-dir");
 
@@ -482,6 +502,24 @@ add(w("git-pr", "git", "Pull request (gh/glab)", ["git"], (_d, _o, ctx) => {
 add(w("total-api-time", "activity", "Total API time", ["stdin"], (_d, _o, ctx) => {
   const ms = ctx.input.cost?.total_api_duration_ms;
   return ms ? lv(sym("⧖", "api", ctx), fmtDuration(ms), "label", ctx) : [];
+}));
+
+// ---------------- claude config / response time ----------------
+add(w("claude-account-email", "model", "Account email", ["system"], (_d, _o, ctx) =>
+  lv(sym("✉", "@", ctx), ctx.data.system?.accountEmail, "label", ctx)));
+add(w("config-counts", "system", "Config counts (CLAUDE.md/MCP/hooks)", ["system"], (_d, _o, ctx) => {
+  const s = ctx.data.system;
+  if (!s) return [];
+  const parts: string[] = [];
+  if (s.claudeMdCount) parts.push(`${sym("⌘", "md", ctx)}${s.claudeMdCount}`);
+  if (s.mcpConfigCount) parts.push(`${sym("⚙", "mcp", ctx)}${s.mcpConfigCount}`);
+  if (s.hooksCount) parts.push(`${sym("⚓", "hk", ctx)}${s.hooksCount}`);
+  return parts.length ? [{ text: parts.join(" "), color: "label" }] : [];
+}));
+add(w("last-response-time", "activity", "Last response time", ["transcript"], (_d, _o, ctx) => {
+  const ms = ctx.data.transcript?.lastResponseMs;
+  if (ms == null) return [];
+  return lv(sym("Δ", "resp", ctx), ms >= 1000 ? fmtDuration(ms) : `${ms}ms`, "label", ctx);
 }));
 // ---------------- registry ----------------
 

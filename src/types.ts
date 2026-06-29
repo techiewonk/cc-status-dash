@@ -117,6 +117,7 @@ export interface TranscriptInfo {
   sessionTokens?: { input: number; output: number; cacheCreation: number; cacheRead: number };
   compactionCount?: number;
   msSinceLastUser?: number;
+  lastResponseMs?: number;
 }
 
 export interface StatsInfo {
@@ -135,6 +136,10 @@ export interface SystemInfo {
   memTotalBytes?: number;
   tmuxSession?: string;
   terminalWidth?: number;
+  accountEmail?: string;
+  claudeMdCount?: number;
+  mcpConfigCount?: number;
+  hooksCount?: number;
 }
 
 export interface Widget<TData = unknown> {
@@ -176,5 +181,7 @@ export interface Config {
   globalBold: boolean;   // force bold on all segments
   padding: number;       // spaces of padding around each segment's text
   lines: LineConfig[];
+  /** Optional per-model context-window limits (tokens). */
+  modelContextLimits?: { sonnet?: number; opus?: number; haiku?: number; default?: number };
   colors: Record<string, string>;
 }
