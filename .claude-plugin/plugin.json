@@ -1,6 +1,6 @@
 {
   "name": "cc-status-dash",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "A feature-rich Claude Code statusline + HUD dashboard: ccstatusline-style widget config with Claude HUD's clean look, live tool/agent/todo activity, pace-aware usage, and up to 5 layers.",
   "author": "Hemprasad Badgujar",
   "homepage": "https://github.com/techiewonk/cc-status-dash",
