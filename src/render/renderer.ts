@@ -83,19 +83,34 @@ function applyWidgetStyle(segments: Segment[], wc: WidgetConfig): Segment[] {
   });
 }
 
+// OSC-8 hyperlink introducer (ESC ] 8 ; ;). A complete link has two of these
+// (open with a URL, close with an empty URL). An odd count means a link was
+// opened but its closer got truncated away — left dangling, the link would
+// "bleed" onto everything after it on the line. (Claude HUD closeOpenHyperlink parity.)
+const OSC8_INTRO = "\x1b]8;;";
+const OSC8_CLOSE = "\x1b]8;;\x07";
+function hasOpenHyperlink(text: string): boolean {
+  return (text.split(OSC8_INTRO).length - 1) % 2 === 1;
+}
+
 /** Truncate a widget's segments to `maxWidth` display columns, appending an ellipsis.
  * ccstatusline WidgetItem.maxWidth parity. Measures real terminal columns. */
 function truncateSegments(segments: Segment[], maxWidth: number): Segment[] {
   if (maxWidth <= 0) return segments;
+  // Measure VISIBLE columns (strip VT/OSC8) so a hyperlink's URL bytes don't
+  // count toward the budget.
   let total = 0;
-  for (const s of segments) total += displayWidth(s.text);
+  for (const s of segments) total += plainLen(s.text);
   if (total <= maxWidth) return segments;
   const limit = Math.max(1, maxWidth - 1); // leave a column for the ellipsis
   const out: Segment[] = [];
   let used = 0;
   for (const s of segments) {
-    const w = displayWidth(s.text);
+    const w = plainLen(s.text);
     if (used + w <= limit) { out.push(s); used += w; continue; }
+    // A segment carrying escape sequences (e.g. an OSC-8 hyperlink) is atomic:
+    // include it whole if it fits, else stop — never cut mid-sequence/mid-URL.
+    if (s.text.includes("\x1b")) break;
     let txt = "";
     for (const ch of s.text) {
       const cw = displayWidth(ch);
@@ -105,6 +120,9 @@ function truncateSegments(segments: Segment[], maxWidth: number): Segment[] {
     if (txt) out.push({ ...s, text: txt });
     break;
   }
+  // If truncation cut inside an OSC-8 hyperlink, close it before the ellipsis so
+  // the link can't swallow the rest of the line.
+  if (hasOpenHyperlink(out.map((s) => s.text).join(""))) out.push({ text: OSC8_CLOSE });
   out.push({ text: "…" });
   return out;
 }

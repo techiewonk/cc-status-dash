@@ -155,10 +155,21 @@ function prettifyModelId(raw: string): string {
  * `barStyle` (and it isn't "none"), any percentage widget can render a bar — parity
  * with claude-hud's `usageBarEnabled` and ccstatusline's ContextBar progress toggle.
  * The bar always reflects `usedPct`; `text` is what's printed after it. */
+/** Bar width: explicit `barWidth` opt wins; otherwise adapt to terminal columns
+ * (narrow terminals get a shorter bar — Claude HUD getAdaptiveBarWidth parity).
+ * Piped stdout reports no columns, so it falls back to `fallback`. */
+function barWidthFor(opts: Record<string, unknown>, fallback: number): number {
+  if (typeof opts.barWidth === "number" && opts.barWidth > 0) return Math.min(40, Math.floor(opts.barWidth));
+  const cols = Number(process.env.CC_STATUS_DASH_WIDTH) || Number(process.env.COLUMNS) || process.stdout.columns || 0;
+  if (!cols) return fallback;
+  if (cols < 60) return 4;
+  if (cols < 100) return 6;
+  return fallback;
+}
 function pctSegments(label: string, usedPct: number, text: string, color: string, opts: Record<string, unknown>, ctx: RenderContext): Segment[] {
   const style = opts.barStyle;
   if (typeof style === "string" && style !== "none") {
-    const bar = renderBar(usedPct, 8, style as BarStyle, ctx.config.charset);
+    const bar = renderBar(usedPct, barWidthFor(opts, 8), style as BarStyle, ctx.config.charset);
     const head: Segment[] = ctx.config.minimalist ? [] : [{ text: `${label} `, color: "label" }];
     return [...head, { text: bar.filled, color }, { text: bar.empty, color: "barEmpty" }, { text: " " }, { text, color }];
   }
@@ -204,11 +215,37 @@ add(w("output-style", "system", "Output style", ["stdin"], (_d, _o, ctx) => {
 }));
 add(w("session-name", "system", "Session name", ["stdin", "transcript"], (_d, _o, ctx) =>
   lv(null, san(ctx.input.session_name) ?? ctx.data.transcript?.sessionName, "model", ctx)));
+// Editor vim mode from stdin `vim.mode` (ccstatusline VimMode parity); culls when off.
+add(w("vim-mode", "system", "Vim mode", ["stdin"], (_d, _o, ctx) => {
+  const mode = san(ctx.input.vim?.mode);
+  return mode ? [{ text: mode.toUpperCase(), color: "model", bold: true }] : [];
+}));
+// Voice on/off from layered settings (ccstatusline VoiceStatus parity). `format`:
+// icon | text | both. Culls only when Claude Code was never initialised.
+add(w("voice-status", "system", "Voice status", ["system"], (_d, opts, ctx) => {
+  const en = ctx.data.system?.voiceEnabled;
+  if (en == null) return [];
+  const fmt = (opts.format as string) ?? "icon";
+  const icon = sym(en ? "◉" : "○", en ? "on" : "off", ctx);
+  const word = en ? "on" : "off";
+  if (fmt === "text") return lv(sym("🎤", "voice", ctx), word, en ? "doneTool" : "label", ctx);
+  if (fmt === "both") return [{ text: `${sym("🎤", "voice", ctx)} ${icon} ${word}`, color: en ? "doneTool" : "label" }];
+  return [{ text: `${sym("🎤", "voice", ctx)}${icon}`, color: en ? "doneTool" : "label" }];
+}));
+// Remote-control bridge attached to this session (ccstatusline RemoteControlStatus parity).
+add(w("remote-control-status", "system", "Remote control", ["system"], (_d, _o, ctx) => {
+  const en = ctx.data.system?.remoteControlEnabled;
+  if (en == null) return [];
+  return [{ text: `${sym("⇄", "remote", ctx)} ${sym(en ? "◉" : "○", en ? "on" : "off", ctx)}`, color: en ? "agent" : "label" }];
+}));
 add(w("claude-session-id", "system", "Session id", ["stdin"], (_d, _o, ctx) =>
   lv(sym("⌗", "#", ctx), ctx.input.session_id?.slice(0, 8), "label", ctx)));
 add(w("thinking-effort", "model", "Thinking effort", ["stdin"], (_d, opts, ctx) => {
   const e = ctx.input.effort;
-  const level = (typeof e === "string" ? e : e?.level)?.toLowerCase();
+  // Fallback chain: stdin effort → configured `default` → `?` (when showUnknown) → cull.
+  let level = (typeof e === "string" ? e : e?.level)?.toLowerCase();
+  if (!level && typeof opts.default === "string") level = opts.default.toLowerCase();
+  if (!level && opts.showUnknown) level = "?";
   if (!level) return [];
   // `symbols`: a compact severity glyph instead of the word (Claude HUD parity).
   if (opts.symbols && ctx.config.charset !== "text") {
@@ -233,7 +270,7 @@ add(w("context.bar", "context", "Context bar", ["stdin"], (_d, opts, ctx) => {
   const color = thresholdColor(used);
   const segs: Segment[] = ctx.config.minimalist ? [] : [{ text: "Context ", color: "label" }];
   if (opts.barStyle) {
-    const bar = renderBar(used, 10, opts.barStyle as BarStyle, ctx.config.charset);
+    const bar = renderBar(used, barWidthFor(opts, 10), opts.barStyle as BarStyle, ctx.config.charset);
     segs.push({ text: bar.filled, color }, { text: bar.empty, color: "barEmpty" }, { text: " " });
   }
   segs.push({ text: `${pctStr(shown)}${mode === "remaining" && !ctx.config.minimalist ? " left" : ""}`, color });
@@ -345,12 +382,12 @@ const usageWindow = (id: string, label: string, key: "five_hour" | "seven_day", 
     if (pct < Number(opts.threshold ?? 0)) return [];
     // Limit reached (Claude HUD parity): at/over 100% show a clear warning + reset time.
     if (pct >= 100) {
-      const seg: Segment[] = [{ text: `${sym("⚠", "!", ctx)} ${label} limit`, color: "critical" }];
+      const seg: Segment[] = [{ text: `${sym("⚠", "!", ctx)} ${label} limit`, color: "usageCritical" }];
       const cd = win.resets_at != null ? fmtCountdown(win.resets_at) : null;
       if (cd) seg.push({ text: ` (${cd})`, color: "label" });
       return seg;
     }
-    const color = pct >= critAt ? "critical" : pct >= 60 ? "warning" : "usage";
+    const color = pct >= critAt ? "usageCritical" : pct >= 60 ? "usageWarning" : "usage";
     // mode: "used" (default) shows % consumed; "remaining" shows % left (claude-hud parity).
     // The bar/threshold/color always track the *used* pct; only the number flips.
     const mode = (opts.mode as string) ?? "used";

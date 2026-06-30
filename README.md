@@ -23,7 +23,7 @@ It fuses the two most popular Claude Code statusline tools into one:
 
 Plus the best ideas from the wider ecosystem: **pace delta** (burn vs. time-left) from claude-pace, multiple bar styles from claude-powerline, and up to a 5-layer dashboard.
 
-> **111 widgets · 10 themes · 35 presets (1–9 layers) · 3 render styles · 10 bar styles**
+> **114 widgets · 10 themes · 35 presets (1–9 layers) · 3 render styles · 10 bar styles**
 
 ---
 
@@ -180,7 +180,7 @@ layer on top. `NO_COLOR` is honored.
 
 ## Widgets
 
-**111 widgets** across 8 categories — incl. cc-status-dash exclusives `session-health` (context + pace + reset at a glance) and `cache-roi` (`--list-widgets` for the full list):
+**114 widgets** across 8 categories — incl. cc-status-dash exclusives `session-health` (context + pace + reset at a glance) and `cache-roi` (`--list-widgets` for the full list):
 
 | Category | # | Examples |
 |---|---|---|
@@ -198,7 +198,7 @@ layer on top. `NO_COLOR` is honored.
 ## CLI
 
 ```bash
-npx cc-status-dash --list-widgets     # 111 widgets
+npx cc-status-dash --list-widgets     # 114 widgets
 npx cc-status-dash --list-themes      # 10 themes
 npx cc-status-dash --list-presets     # 35 presets
 npx cc-status-dash --validate         # check config files in the resolution chain

@@ -11,6 +11,8 @@ export interface StatuslineInput {
   session_name?: string;
   version?: string;
   output_style?: { name?: string } | string;
+  /** Editor vim mode when the user has vim keybindings on (e.g. `NORMAL`/`INSERT`). */
+  vim?: { mode?: string } | null;
   transcript_path?: string;
   context_window?: {
     context_window_size?: number;
@@ -150,6 +152,10 @@ export interface SystemInfo {
   mcpConfigCount?: number;
   hooksCount?: number;
   rulesCount?: number;
+  /** `voice.enabled` from layered settings (undefined = Claude Code never initialised). */
+  voiceEnabled?: boolean;
+  /** Remote-control bridge attached to the current session (undefined = no manifest). */
+  remoteControlEnabled?: boolean;
 }
 
 export interface Widget<TData = unknown> {

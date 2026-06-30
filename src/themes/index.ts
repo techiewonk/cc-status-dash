@@ -27,6 +27,8 @@ export const THEME_KEYS = [
   "usage",
   "warning",
   "critical",
+  "usageWarning",
+  "usageCritical",
   "label",
   "paceGood",
   "paceBad",
@@ -220,5 +222,11 @@ export function listThemes(): string[] {
  */
 export function resolvePalette(themeName: string, overrides: ThemeColors = {}): ThemeColors {
   const base = THEMES[themeName] ?? THEMES["hud-clean"];
-  return { ...base.colors, ...overrides };
+  const merged = { ...base.colors, ...overrides };
+  // Usage-specific semantic colors fall back to the generic warning/critical when
+  // a theme (or user) hasn't set them — existing themes keep working unchanged,
+  // and a user can `colors.usageWarning` to recolor usage warnings alone.
+  if (merged.usageWarning == null) merged.usageWarning = merged.warning;
+  if (merged.usageCritical == null) merged.usageCritical = merged.critical;
+  return merged;
 }

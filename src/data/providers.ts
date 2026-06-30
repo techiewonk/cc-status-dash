@@ -22,7 +22,7 @@ export function collectProviderData(input: StatuslineInput, config: Config): Pro
   const wantGitFiles = config.lines.some((l) => l.widgets.some((wc) => wc.id === "git.files"));
   try { if (needed.has("git")) data.git = collectGit(cwd, { files: wantGitFiles }); } catch { /* ignore */ }
   try { if (needed.has("transcript")) data.transcript = collectTranscript(input.transcript_path); } catch { /* ignore */ }
-  try { if (needed.has("system")) data.system = collectSystem(cwd); } catch { /* ignore */ }
+  try { if (needed.has("system")) data.system = collectSystem(cwd, input.session_id); } catch { /* ignore */ }
   try { if (needed.has("stats")) data.stats = collectStats(input); } catch { /* ignore */ }
   return data;
 }

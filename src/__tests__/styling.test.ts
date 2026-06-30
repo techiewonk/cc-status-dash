@@ -256,6 +256,43 @@ test("auto depth respects COLORTERM", () => {
   }
 });
 
+// ---- Phase 1b: render-engine parity ----
+
+test("usageWarning/usageCritical fall back to warning/critical, and override independently", () => {
+  const base = resolvePalette("hud-clean");
+  assert.equal(base.usageWarning, base.warning, "usageWarning falls back to warning");
+  assert.equal(base.usageCritical, base.critical, "usageCritical falls back to critical");
+  const over = resolvePalette("hud-clean", { usageWarning: "#ff00ff" });
+  assert.equal(over.usageWarning, "#ff00ff", "usageWarning override applies");
+  assert.equal(over.warning, base.warning, "generic warning is unaffected by usageWarning override");
+});
+
+test("adaptive bar width shrinks the context bar on narrow terminals", () => {
+  const prev = process.env.CC_STATUS_DASH_WIDTH;
+  try {
+    const input: StatuslineInput = { context_window: { context_window_size: 200000, used_percentage: 50 } };
+    const conf = { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme), preset: "custom",
+      lines: [{ style: "inline" as const, widgets: [{ id: "context.bar", barStyle: "blocks" }] }] };
+    process.env.CC_STATUS_DASH_WIDTH = "50"; // < 60 => width 4
+    const narrow = strip(render({ input, data: {}, config: conf })).replace(/[^█░]/g, "");
+    process.env.CC_STATUS_DASH_WIDTH = "200"; // wide => default width 10
+    const wide = strip(render({ input, data: {}, config: conf })).replace(/[^█░]/g, "");
+    assert.equal(narrow.length, 4, `narrow bar is 4 cells, got ${narrow.length}`);
+    assert.equal(wide.length, 10, `wide bar is 10 cells, got ${wide.length}`);
+  } finally {
+    if (prev === undefined) delete process.env.CC_STATUS_DASH_WIDTH; else process.env.CC_STATUS_DASH_WIDTH = prev;
+  }
+});
+
+test("maxWidth truncation closes a dangling OSC-8 hyperlink (no bleed)", () => {
+  const input: StatuslineInput = { workspace: { current_dir: "D:/some/very/long/project/path/here" } };
+  const conf = { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme), preset: "custom",
+    lines: [{ style: "inline" as const, widgets: [{ id: "cwd", style: "full", link: true, maxWidth: 10 }] }] };
+  const out = render({ input, data: {}, config: conf });
+  const opens = out.split("\x1b]8;;").length - 1;
+  assert.equal(opens % 2, 0, `OSC-8 markers must be balanced (no open link), got ${opens} in ${JSON.stringify(out)}`);
+});
+
 test("cache-timer ttlSeconds counts down remaining cache life", () => {
   const ctx: RenderContext = {
     input: INPUT,

@@ -14,7 +14,46 @@ function readJson(path: string): any | null {
   try { return existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : null; } catch { return null; }
 }
 
-export function collectSystem(cwd?: string): SystemInfo {
+/** Effective `voice.enabled` across Claude Code's 4 layered settings files
+ * (project local/json > user local/json). Returns undefined when CC never
+ * initialised (no file), false when files exist but none sets it. */
+function readVoiceEnabled(cwd?: string): boolean | undefined {
+  const dir = claudeConfigDir();
+  const candidates = [
+    cwd ? join(cwd, ".claude", "settings.local.json") : "",
+    cwd ? join(cwd, ".claude", "settings.json") : "",
+    join(dir, "settings.local.json"),
+    join(dir, "settings.json"),
+  ].filter(Boolean);
+  let anyExisted = false;
+  for (const f of candidates) {
+    if (!existsSync(f)) continue;
+    anyExisted = true;
+    const v = readJson(f)?.voice;
+    if (v && typeof v.enabled === "boolean") return v.enabled;
+  }
+  return anyExisted ? false : undefined;
+}
+
+/** Whether the current session has a remote-control bridge attached, by scanning
+ * `<config>/sessions/<pid>.json` for a manifest matching `sessionId` with a
+ * non-empty `bridgeSessionId`. Undefined when no matching manifest exists. */
+function readRemoteControl(sessionId?: string): boolean | undefined {
+  if (!sessionId) return undefined;
+  const sessionsDir = join(claudeConfigDir(), "sessions");
+  let entries: string[];
+  try { entries = readdirSync(sessionsDir); } catch { return undefined; }
+  for (const entry of entries) {
+    if (!entry.endsWith(".json")) continue;
+    const m = readJson(join(sessionsDir, entry));
+    if (m?.sessionId === sessionId) {
+      return typeof m.bridgeSessionId === "string" && m.bridgeSessionId.length > 0;
+    }
+  }
+  return undefined;
+}
+
+export function collectSystem(cwd?: string, sessionId?: string): SystemInfo {
   const total = totalmem();
   const used = total - freemem();
 
@@ -43,5 +82,7 @@ export function collectSystem(cwd?: string): SystemInfo {
     mcpConfigCount,
     hooksCount,
     rulesCount,
+    voiceEnabled: readVoiceEnabled(cwd),
+    remoteControlEnabled: readRemoteControl(sessionId),
   };
 }

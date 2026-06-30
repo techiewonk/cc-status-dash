@@ -163,7 +163,7 @@ test("registry has the full widget set", () => {
 });
 
 test("widget count snapshot (bump deliberately when adding widgets)", () => {
-  assert.equal(listWidgets().length, 111, "widget count changed — update docs (README/OPTIONS/COMPARISON) + this snapshot");
+  assert.equal(listWidgets().length, 114, "widget count changed — update docs (README/OPTIONS/COMPARISON) + this snapshot");
 });
 
 test("Phase 1 HUD widgets render from real data", () => {
@@ -199,6 +199,26 @@ test("activity parity: agent description, tool-counts overflow + mcp shortening,
   // separator always renders a rule
   const sepOut = getWidget("activity.separator")!.render(null, { length: 6 }, ctx({})).map((s) => s.text).join("");
   assert.equal(sepOut, "──────", `separator emits a rule, got ${sepOut}`);
+});
+
+test("cc-state widgets: vim-mode, voice-status, remote-control-status", () => {
+  const ctx = (input: StatuslineInput, data: ProviderData = {}): RenderContext => ({ input, data, config: { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme) } });
+  // vim-mode from stdin
+  const vm = getWidget("vim-mode")!;
+  assert.equal(vm.render(null, {}, ctx({ vim: { mode: "normal" } })).map((s) => s.text).join(""), "NORMAL");
+  assert.deepEqual(vm.render(null, {}, ctx({})), [], "vim-mode culls when no mode");
+  // voice-status from system
+  const vs = getWidget("voice-status")!;
+  assert.match(vs.render(null, { format: "text" }, ctx({}, { system: { voiceEnabled: true } })).map((s) => s.text).join(""), /on/);
+  assert.deepEqual(vs.render(null, {}, ctx({}, { system: {} })), [], "voice culls when undefined");
+  // remote-control from system
+  const rc = getWidget("remote-control-status")!;
+  assert.match(rc.render(null, {}, ctx({}, { system: { remoteControlEnabled: true } })).map((s) => s.text).join(""), /◉/);
+  assert.deepEqual(rc.render(null, {}, ctx({}, { system: {} })), [], "remote culls when undefined");
+  // thinking-effort fallback to configured default
+  const te = getWidget("thinking-effort")!;
+  assert.match(te.render(null, { default: "high" }, ctx({})).map((s) => s.text).join(""), /high/, "effort falls back to default");
+  assert.match(te.render(null, { showUnknown: true }, ctx({})).map((s) => s.text).join(""), /\?/, "effort shows ? when showUnknown");
 });
 
 test("cwd link wraps the path in an OSC-8 file:// hyperlink", () => {

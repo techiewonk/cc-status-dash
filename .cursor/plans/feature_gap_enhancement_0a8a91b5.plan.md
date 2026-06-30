@@ -15,11 +15,11 @@ todos:
     content: "Phase 1 MOSTLY DONE 2026-06-30: limit-reached, usageCompact, effort symbols (thinking-effort.symbols), provider-aware cost cull (cost.hideOnProvider), context tokens/both (context-percentage.value), hud-compact preset, activity.separator widget (108 widgets), activity-parity polish (activity.agents now shows [model]+description via transcript Task.description; activity.tool-counts +N more overflow + MCP-id leaf-shortening + nameMax; activity.tools running ◐ glyph). REMAINING: mergeGroups width-fallback."
     status: in_progress
   - id: hud-render
-    content: "Phase 1b PARTIAL 2026-07-01: shipped git.files per-file widget (gated git diff --numstat, capped 20 files, +N more overflow, separate -f disk cache), session-start-date widget, AND clickable cwd (cwd.link → OSC-8 file:// hyperlink via osc8()/fileUrl() helpers). REMAINING: OSC-8-safe autoWrap (don't split hyperlinks), adaptive bar width, colors.usageWarning semantic key."
-    status: in_progress
+    content: "Phase 1b DONE 2026-07-01: git.files per-file widget, session-start-date, clickable cwd (OSC-8 file://), OSC-8-safe maxWidth truncation (closeOpenHyperlink + atomic escape segments + visible-width measure), adaptive bar width (barWidthFor: 4/6/10 by COLUMNS, explicit barWidth opt), colors.usageWarning + usageCritical semantic keys (resolvePalette fallback to warning/critical)."
+    status: completed
   - id: cc-state-widgets
-    content: "Phase 2: voice-status, remote-control-status, vim-mode + system.ts config readers; thinking-effort fallback chain"
-    status: pending
+    content: "Phase 2 DONE 2026-07-01: vim-mode (stdin vim.mode), voice-status (system readVoiceEnabled across 4 layered settings files; format icon/text/both), remote-control-status (system readRemoteControl scans <config>/sessions/*.json by sessionId/bridgeSessionId), thinking-effort fallback chain (stdin → default opt → ? showUnknown). 114 widgets."
+    status: completed
   - id: option-depth
     content: "Phase 2: dim parens, merge no-padding, windowSeconds, compaction options, linkToIDE/linkToRepo, timer locale, hideNoGit flags, symbol overrides"
     status: pending

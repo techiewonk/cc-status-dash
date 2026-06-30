@@ -40,6 +40,7 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
   "context.bar": [
     { key: "mode", label: "Mode", kind: "enum", choices: ["remaining", "used"] },
     { key: "barStyle", label: "Bar style", kind: "enum", choices: BAR_STYLES },
+    { key: "barWidth", label: "Bar width (0=adaptive)", kind: "number" },
   ],
   "context-percentage-usable": [{ key: "autocompactBuffer", label: "Autocompact buffer", kind: "number" }],
   "context-percentage": [
@@ -47,7 +48,11 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "value", label: "Value", kind: "enum", choices: ["percent", "tokens", "both"] },
     { key: "barStyle", label: "Bar style", kind: "enum", choices: ["none", ...BAR_STYLES] },
   ],
-  "thinking-effort": [{ key: "symbols", label: "Glyph (not word)", kind: "toggle" }],
+  "thinking-effort": [
+    { key: "symbols", label: "Glyph (not word)", kind: "toggle" },
+    { key: "default", label: "Fallback level", kind: "enum", choices: ["none", "low", "medium", "high", "max"] },
+    { key: "showUnknown", label: "Show ? when unset", kind: "toggle" },
+  ],
   cost: [{ key: "hideOnProvider", label: "Hide on Bedrock/Vertex", kind: "toggle" }],
   "session-cost": [{ key: "hideOnProvider", label: "Hide on Bedrock/Vertex", kind: "toggle" }],
   "usage.block": [
@@ -71,6 +76,7 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "glyph", label: "Rule glyph", kind: "text" },
   ],
   advisor: [{ key: "override", label: "Override label", kind: "text" }],
+  "voice-status": [{ key: "format", label: "Format", kind: "enum", choices: ["icon", "text", "both"] }],
   "session-start-date": [{ key: "mode", label: "Mode", kind: "enum", choices: ["age", "date"] }],
   "added-dirs": [{ key: "max", label: "Max dirs shown", kind: "number" }],
   "session-usage": [

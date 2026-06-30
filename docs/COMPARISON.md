@@ -11,7 +11,7 @@ and where cc-status-dash now stands. (Source of truth: local clones `D:\ccstatus
 | Paradigm | per-widget items in a pipeline | global `display.*` toggles | both — preset **or** per-widget pipeline |
 | Interactive TUI | ✅ multi-screen Ink | ❌ | ✅ multi-screen Ink (`--tui`) |
 | In-Claude-Code config | ❌ | ✅ slash command (LLM) | ✅ slash command + `--configure` wizard |
-| Widgets | ~80 (incl. Jujutsu, Vim, Voice) | fixed element set | **111** |
+| Widgets | ~80 (incl. Jujutsu, Vim, Voice) | fixed element set | **114** |
 
 ## Universal per-widget styling options
 
@@ -65,18 +65,19 @@ Examples:
 
 ## Widget coverage
 
-**Only in ccstatusline (not us):** Jujutsu VCS (8 widgets), `VimMode`, `VoiceStatus`,
-`RemoteControlStatus`, `ExtraUsage*` (external usage), per-model weekly
-(`WeeklyOpusUsage`/`WeeklySonnetUsage`).
+**Only in ccstatusline (not us):** Jujutsu VCS (8 widgets), per-model weekly
+(`WeeklyOpusUsage`/`WeeklySonnetUsage`). `VimMode`, `VoiceStatus`,
+`RemoteControlStatus`, and `ExtraUsage*` (external usage) are now all supported
+(`vim-mode`, `voice-status`, `remote-control-status`, `external-usage`).
 
 **Only in cc-status-dash (not ccstatusline):** `burn-rate`, `budget`, `cost-projection`,
 `daily/weekly/monthly-cost`, `token-breakdown`, `tokens-per-min`, `message-count`,
 `total-api-time`, `last-response-time`, `config-counts`, `mcp-count`, `session-duration`,
-`cache-timer`, `provider`, and more (111 total).
+`cache-timer`, `provider`, and more (114 total).
 
 ## Complete per-widget option reference (cc-status-dash)
 
-**Every one of the 111 widgets** also accepts the 7 universal options
+**Every one of the 114 widgets** also accepts the 7 universal options
 (`color`, `bgColor`, `bold`, `dim`, `rawValue`, `merge`, `maxWidth`) — not repeated below.
 These **24 widgets** add their own options:
 
@@ -113,9 +114,10 @@ are editable in the `--tui` options screen (`o`).
 
 - `compaction-counter` `format`/`split-by-trigger`/`tokens-reclaimed` (we don't capture the
   per-trigger / reclaimed-tokens data, only the count).
-- Niche widget families we don't carry: Jujutsu, Vim, Voice, per-model weekly (all need data
-  sources the Claude Code payload doesn't expose). **External usage is now supported** via the
-  `external-usage` widget (reads a JSON file — `path`/`mode`/`barStyle`/`maxAgeMs`).
+- Niche widget families we don't carry: Jujutsu, per-model weekly (need data sources the
+  Claude Code payload doesn't expose). **Vim mode, Voice, Remote control, and External usage
+  are now supported** (`vim-mode` from stdin `vim.mode`; `voice-status`/`remote-control-status`
+  read Claude Code's layered settings + session manifests; `external-usage` reads a JSON file).
 
 Everything else is at parity: the universal styling options (`color`, `bgColor`, `bold`,
 `dim`, `rawValue`, `merge`, `maxWidth`), per-widget colors, percentage bars, `cwd` home
