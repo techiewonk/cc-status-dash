@@ -41,4 +41,5 @@ jobs:
         run: npm run test:node
 
       - name: Demo render smoke
+        shell: bash # `<` stdin redirect isn't supported by PowerShell (default on windows runners)
         run: node dist/index.js < sample-input.json
