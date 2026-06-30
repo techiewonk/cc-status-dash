@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { Config, GitInfo, RenderContext, StatuslineInput } from "../types.js";
+import { stripVTControlCharacters as strip } from "node:util";
+import type { Config, GitInfo, RenderContext, StatuslineInput, TranscriptInfo } from "../types.js";
 import { DEFAULT_CONFIG } from "../config/defaults.js";
 import { resolvePalette } from "../themes/index.js";
 import { renderBar } from "../render/bars.js";
@@ -67,6 +68,7 @@ test("per-widget color leaves the dim label intact", () => {
   });
   assert.ok(out.includes("[2m"), "label should still be dim");
   assert.ok(out.includes("38;2;161;178;195"), "value should be recolored");
+  assert.ok(strip(out).includes("Context"), "the label text itself must survive recoloring");
 });
 
 // ---- bar styles (claude-powerline parity: 10 total) ----
@@ -190,14 +192,52 @@ test("reset-timer timestamp option shows an exact clock time", () => {
 
 // ---- Batch D: color-depth downsampling + COLORTERM auto-detect ----
 
-test("colorDepth downsamples hex to 256 and to 16", () => {
-  const hex = "#7dcfff";
+test("colorDepth downsamples hex to the exact 256 and 16 codes", () => {
+  const hex = "#7dcfff"; // -> ansi256 117 -> ansi base 96 (brightCyan)
   const tc = createPainter(cfg({ colorDepth: "truecolor" })).paint("x", { color: hex });
-  assert.ok(tc.includes("38;2;"), `truecolor should be 24-bit: ${JSON.stringify(tc)}`);
+  assert.ok(tc.includes("38;2;125;207;255"), `truecolor: ${JSON.stringify(tc)}`);
   const c256 = createPainter(cfg({ colorDepth: "ansi256" })).paint("x", { color: hex });
-  assert.ok(c256.includes("38;5;") && !c256.includes("38;2;"), `256 mode: ${JSON.stringify(c256)}`);
+  assert.ok(c256.includes("38;5;117") && !c256.includes("38;2;"), `256 exact: ${JSON.stringify(c256)}`);
   const c16 = createPainter(cfg({ colorDepth: "ansi" })).paint("x", { color: hex });
-  assert.ok(!c16.includes("38;5;") && !c16.includes("38;2;"), `16 mode emits a base code: ${JSON.stringify(c16)}`);
+  assert.ok(c16.includes("[96m"), `16 must emit a base code, got ${JSON.stringify(c16)}`);
+  assert.ok(!c16.includes("38;5;") && !c16.includes("38;2;"));
+});
+
+test("bgColor hex downsamples for 256 and 16", () => {
+  const hex = "#7dcfff";
+  assert.ok(createPainter(cfg({ colorDepth: "ansi256" })).paint("x", { bgColor: hex }).includes("48;5;117"));
+  const bg16 = createPainter(cfg({ colorDepth: "ansi" })).paint("x", { bgColor: hex });
+  assert.ok(/\[(4[0-7]|10[0-7])m/.test(bg16), `16 bg base code: ${JSON.stringify(bg16)}`);
+});
+
+test("activity.tool-counts colors the running tool 'agent' and the rest 'doneTool'", () => {
+  const transcript: TranscriptInfo = {
+    recentTools: [], toolCounts: [{ name: "Bash", count: 3, running: true }, { name: "Edit", count: 1, running: false }],
+    agents: [], todos: { total: 0, completed: 0 }, skills: [], mcpServers: [],
+  };
+  const ctx: RenderContext = { input: INPUT, data: { transcript }, config: cfg({}) };
+  const wdg = getWidget("activity.tool-counts")!;
+  const segs = wdg.render(wdg.collect(ctx), {}, ctx);
+  assert.equal(segs.find((s) => s.text.includes("Bash"))?.color, "agent");
+  assert.equal(segs.find((s) => s.text.includes("Edit"))?.color, "doneTool");
+});
+
+test("a bad timezone in a timer widget never crashes the render", () => {
+  const input: StatuslineInput = { rate_limits: { five_hour: { used_percentage: 10, resets_at: Date.now() + 3_600_000 } } };
+  const out = render({
+    input, data: {},
+    config: cfg({ lines: [{ style: "inline", widgets: [{ id: "model" }, { id: "reset-timer", timestamp: true, timezone: "Not/AZone" }] }] }),
+  });
+  assert.equal(typeof out, "string");
+  assert.ok(strip(out).includes("Claude"), "model still renders; bad-tz timer is culled, not fatal");
+});
+
+test("has1M matches only explicit forms (no bare '1m' slug)", () => {
+  const badge = getWidget("context-1m")!;
+  const mk = (id: string, dn: string): RenderContext => ({ input: { model: { id, display_name: dn } }, data: {}, config: cfg({}) });
+  assert.ok(badge.render(null, {}, mk("claude-opus-4-8[1m]", "Opus")).length > 0);
+  assert.ok(badge.render(null, {}, mk("x", "Opus (1M context)")).length > 0);
+  assert.deepEqual(badge.render(null, {}, mk("claude-sonnet-1m-fast", "Sonnet")), [], "bare '1m' slug must not match");
 });
 
 test("auto depth respects COLORTERM", () => {
@@ -219,7 +259,7 @@ test("auto depth respects COLORTERM", () => {
 test("cache-timer ttlSeconds counts down remaining cache life", () => {
   const ctx: RenderContext = {
     input: INPUT,
-    data: { transcript: { recentTools: [], agents: [], todos: { total: 0, completed: 0 }, skills: [], mcpServers: [], msSinceLastUser: 60_000 } },
+    data: { transcript: { recentTools: [], toolCounts: [], agents: [], todos: { total: 0, completed: 0 }, skills: [], mcpServers: [], msSinceLastUser: 60_000 } },
     config: cfg({}),
   };
   const w = getWidget("cache-timer")!;

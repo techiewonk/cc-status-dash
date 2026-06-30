@@ -130,4 +130,6 @@ editor), @types/node** — most width/color/glob/proxy/plural/test needs are cov
 - ✅ **Tests**: `src/__tests__/mutations.test.ts` via `node:test` (run `npm run test:node`, or `bun test`). 96 passing.
 - ✅ **Bun-first build**: `bun build --target=node`; `build:node` (tsc) fallback.
 - ✅ **Biome** configured (`biome.json`, `npm run lint` / `npm run format`) — replaces the ESLint cluster; `bun add -d @biomejs/biome` to enable.
-- 🗺️ Next (need a Bun session to install): **valibot** config schema, **@clack/prompts** wizard, **Ink** advanced editor, **VHS** demo.
+- ✅ **valibot** config validation (`src/config/schema.ts`): partial-config schema (loose objects keep per-widget options), `CURRENT_CONFIG_VERSION` + `migrateConfig` scaffold, `validatePartialConfig`. Wired into `config/load.ts` (invalid files warn to **stderr** and fall back — never throws into render) and surfaced via `--validate`. Covered by `src/__tests__/schema.test.ts` (10 tests). Recorded in `package.json` (`valibot` as a runtime dep so the non-bundled `tsc` fallback resolves it).
+- ✅ **Deps recorded**: ink/react/react-dom/@clack/prompts/@types/* + typescript/biome moved into `package.json` devDependencies (were ghost-installed in `node_modules` only).
+- 🗺️ Next: **@clack/prompts** preset wizard, **Ink** advanced live-preview editor (needs a real terminal to verify), **VHS** demo.

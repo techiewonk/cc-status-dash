@@ -17,9 +17,11 @@ export function collectProviderData(input: StatuslineInput, config: Config): Pro
   const needed = neededSources(config);
   const data: ProviderData = {};
   const cwd = input.workspace?.current_dir ?? input.cwd ?? process.cwd();
-  if (needed.has("git")) data.git = collectGit(cwd);
-  if (needed.has("transcript")) data.transcript = collectTranscript(input.transcript_path);
-  if (needed.has("system")) data.system = collectSystem(cwd);
-  if (needed.has("stats")) data.stats = collectStats(input);
+  // Isolate each provider: a throw in one data source must not wipe the whole
+  // statusline (it just leaves that source undefined; widgets already null-check).
+  try { if (needed.has("git")) data.git = collectGit(cwd); } catch { /* ignore */ }
+  try { if (needed.has("transcript")) data.transcript = collectTranscript(input.transcript_path); } catch { /* ignore */ }
+  try { if (needed.has("system")) data.system = collectSystem(cwd); } catch { /* ignore */ }
+  try { if (needed.has("stats")) data.stats = collectStats(input); } catch { /* ignore */ }
   return data;
 }

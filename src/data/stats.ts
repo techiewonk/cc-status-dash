@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import type { StatsInfo, StatuslineInput } from "../types.js";
@@ -23,23 +23,40 @@ const MAX_SAMPLES = 40;
 const MAX_SESSIONS = 200;
 
 function statsPath(): string {
-  const base = process.env.XDG_STATE_HOME ?? join(homedir(), ".local", "state");
+  const base = process.env.XDG_STATE_HOME
+    ?? (process.platform === "win32" && process.env.LOCALAPPDATA
+      ? process.env.LOCALAPPDATA
+      : join(homedir(), ".local", "state"));
   return join(base, "cc-status-dash", "stats.json");
+}
+
+/** Local-calendar date key so daily/monthly buckets roll over at the user's midnight, not UTC. */
+function localDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function load(): StatsFile {
   try {
     const p = statsPath();
-    if (existsSync(p)) return JSON.parse(readFileSync(p, "utf8")) as StatsFile;
+    if (existsSync(p)) {
+      const parsed = JSON.parse(readFileSync(p, "utf8")) as unknown;
+      // Validate shape — a parseable-but-malformed file must not throw downstream.
+      if (parsed && typeof parsed === "object" && typeof (parsed as StatsFile).sessions === "object" && (parsed as StatsFile).sessions) {
+        return parsed as StatsFile;
+      }
+    }
   } catch { /* ignore */ }
   return { sessions: {} };
 }
 
+/** Atomic write (tmp + rename) so concurrent panes never read a half-written file. */
 function save(data: StatsFile): void {
   try {
     const p = statsPath();
     mkdirSync(dirname(p), { recursive: true });
-    writeFileSync(p, JSON.stringify(data));
+    const tmp = `${p}.${process.pid}.tmp`;
+    writeFileSync(tmp, JSON.stringify(data));
+    renameSync(tmp, p);
   } catch { /* ignore */ }
 }
 
@@ -54,22 +71,27 @@ function tokensOf(input: StatuslineInput) {
 export function collectStats(input: StatuslineInput, windowSec = 60): StatsInfo {
   const data = load();
   const now = Date.now();
-  const id = input.session_id ?? "default";
+  // Guard against prototype-polluting session ids used as object keys.
+  const rawId = input.session_id ?? "default";
+  const id = rawId === "__proto__" || rawId === "constructor" || rawId === "prototype" ? "default" : rawId;
   const cost = input.cost?.total_cost_usd ?? 0;
   const t = tokensOf(input);
-  const d = new Date();
-  const date = d.toISOString().slice(0, 10);
+  const date = localDate(new Date());
   const month = date.slice(0, 7);
 
   let s = data.sessions[id];
+  const isNew = !s;
   if (!s) { s = { date, month, startTs: now, lastTs: now, cost, messages: 0, samples: [] }; data.sessions[id] = s; }
+  if (!Array.isArray(s.samples)) s.samples = []; // heal a malformed persisted session
   s.lastTs = now;
   s.cost = cost;
   s.date = date; s.month = month;
+  let pushed = false;
   if (s.samples.length === 0 || now - s.samples[s.samples.length - 1].ts > 1000) {
     s.samples.push({ ts: now, total: t.total, input: t.input, output: t.output });
     if (s.samples.length > MAX_SAMPLES) s.samples = s.samples.slice(-MAX_SAMPLES);
     s.messages++;
+    pushed = true;
   }
 
   // Prune old sessions to keep the file small.
@@ -80,10 +102,11 @@ export function collectStats(input: StatuslineInput, windowSec = 60): StatsInfo 
       .slice(0, ids.length - MAX_SESSIONS)
       .forEach(([k]) => delete data.sessions[k]);
   }
-  save(data);
+  // Only rewrite the shared file when something meaningful changed (cuts ~5/6 of writes at 300ms cadence).
+  if (isNew || pushed) save(data);
 
   // Aggregate cost across sessions.
-  const weekAgo = new Date(now - 7 * 86400_000).toISOString().slice(0, 10);
+  const weekAgo = localDate(new Date(now - 7 * 86400_000));
   let dailyCost = 0, weeklyCost = 0, monthlyCost = 0;
   for (const sess of Object.values(data.sessions)) {
     if (sess.date === date) dailyCost += sess.cost;

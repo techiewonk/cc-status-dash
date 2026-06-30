@@ -39,6 +39,8 @@ test("config resolution honors the full location precedence ladder", () => {
     process.env.USERPROFILE = home; // os.homedir() on Windows reads USERPROFILE
     delete process.env.CC_STATUS_DASH_THEME;
     delete process.env.NO_COLOR;
+    delete process.env.CLAUDE_CONFIG_DIR; // start hermetic: ambient values must not leak into the ladder
+    delete process.env.XDG_CONFIG_HOME;
     process.chdir(proj);
 
     const xdgFile = join(xdg, "cc-status-dash", "config.json");
@@ -95,6 +97,11 @@ test("config resolution honors the full location precedence ladder", () => {
     }
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("an unknown preset id never blanks the lines", () => {
+  const cfg = loadConfig({ preset: "definitely-not-a-preset" });
+  assert.ok(Array.isArray(cfg.lines) && cfg.lines.length >= 1, "unknown preset must keep usable default lines");
 });
 
 test("invalid config files are skipped, not fatal", () => {

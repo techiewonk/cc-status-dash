@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import { basename } from "node:path";
 import type { DataSource, RenderContext, Segment, Widget, WidgetCategory, WidgetOptions } from "../types.js";
 import { renderBar, thresholdColor, type BarStyle } from "../render/bars.js";
+import { clean as san } from "../data/sanitize.js";
 
 // ---------------- helpers ----------------
 
@@ -23,9 +24,18 @@ function fmtDuration(ms: number): string {
   if (m > 0) return `${m}m`;
   return `${s}s`;
 }
+// Claude Code's rate_limits.*.resets_at is Unix epoch **seconds** (10-digit).
+// Normalize defensively: treat <1e12 as seconds (→×1000), accept ms and ISO too.
+function epochMs(v: number | string | null | undefined): number {
+  if (v == null) return Number.NaN;
+  if (typeof v === "number") return v < 1e12 ? v * 1000 : v;
+  return Date.parse(v);
+}
+const WINDOW_MS = { five_hour: 5 * 3600 * 1000, seven_day: 7 * 24 * 3600 * 1000 } as const;
+
 function fmtCountdown(resetsAt: number | string | null | undefined): string | null {
   if (resetsAt == null) return null;
-  const ms = (typeof resetsAt === "number" ? resetsAt : Date.parse(resetsAt)) - Date.now();
+  const ms = epochMs(resetsAt) - Date.now();
   if (!Number.isFinite(ms) || ms <= 0) return null;
   return fmtDuration(ms);
 }
@@ -44,7 +54,8 @@ const DEFAULT_MODEL_LIMIT = 200_000;
 /** True when the model name advertises a 1M context (`[1m]`, `(1M context)`, …). */
 function has1M(ctx: RenderContext): boolean {
   const name = `${ctx.input.model?.id ?? ""} ${ctx.input.model?.display_name ?? ""}`;
-  return /\[1m\]|1m context|\b1m\b/i.test(name);
+  // Explicit forms only — avoid a bare "1m" that could match unrelated id slugs.
+  return /\[1m\]|1m[ -]context/i.test(name);
 }
 
 function modelLimit(ctx: RenderContext): number | undefined {
@@ -109,7 +120,7 @@ const add = (x: Widget) => { ALL.push(x); };
 // ---------------- model / session ----------------
 
 add(w("model", "model", "Model", ["stdin"], (_d, o, ctx) => {
-  let text = `${sym("✱", "M", ctx)} ${modelText(ctx, o.format)}`;
+  let text = `${sym("✱", "M", ctx)} ${san(modelText(ctx, o.format))}`;
   if (o.show1M && has1M(ctx)) text += " 1M"; // append a 1M-context badge when present
   return [{ text, color: "model", bold: true }];
 }));
@@ -122,8 +133,8 @@ add(w("output-style", "system", "Output style", ["stdin"], (_d, _o, ctx) => {
   const name = typeof os === "string" ? os : os?.name;
   return lv("style", name, "label", ctx);
 }));
-add(w("session-name", "system", "Session name", ["transcript"], (_d, _o, ctx) =>
-  lv(null, ctx.data.transcript?.sessionName, "model", ctx)));
+add(w("session-name", "system", "Session name", ["stdin", "transcript"], (_d, _o, ctx) =>
+  lv(null, san(ctx.input.session_name) ?? ctx.data.transcript?.sessionName, "model", ctx)));
 add(w("claude-session-id", "system", "Session id", ["stdin"], (_d, _o, ctx) =>
   lv(sym("⌗", "#", ctx), ctx.input.session_id?.slice(0, 8), "label", ctx)));
 add(w("thinking-effort", "model", "Thinking effort", ["stdin"], (_d, _o, ctx) => {
@@ -211,8 +222,8 @@ const usageWindow = (id: string, label: string, key: "five_hour" | "seven_day", 
     const color = pct >= critAt ? "critical" : pct >= 60 ? "warning" : "usage";
     const segs = lv(label, `${pct}%`, color, ctx);
     if (opts.showPace && win.resets_at != null) {
-      const remMs = (typeof win.resets_at === "number" ? win.resets_at : Date.parse(String(win.resets_at))) - Date.now();
-      const WINDOW = (key === "five_hour" ? 5 * 3600 : 7 * 24 * 3600) * 1000;
+      const remMs = (epochMs(win.resets_at)) - Date.now();
+      const WINDOW = WINDOW_MS[key];
       const elapsedPct = ((WINDOW - remMs) / WINDOW) * 100;
       const delta = Math.round(pct - elapsedPct);
       if (Number.isFinite(delta)) {
@@ -235,7 +246,7 @@ const timerWidget = (id: string, label: string, key: "five_hour" | "seven_day", 
       const cd = fmtCountdown(win.resets_at) ?? undefined;
       // Optional exact reset timestamp (ccstatusline parity): 12/24h + IANA tz.
       if (opts.timestamp) {
-        const at = new Date(typeof win.resets_at === "number" ? win.resets_at : Date.parse(String(win.resets_at)));
+        const at = new Date(epochMs(win.resets_at));
         const t = at.toLocaleTimeString([], {
           hour: "2-digit", minute: "2-digit",
           hour12: opts.hour12 === true,
@@ -245,16 +256,20 @@ const timerWidget = (id: string, label: string, key: "five_hour" | "seven_day", 
       }
       return lv(sym("⏱", label, ctx), cd, "label", ctx);
     }
-    const remMs = (typeof win.resets_at === "number" ? win.resets_at : Date.parse(String(win.resets_at))) - Date.now();
-    const WINDOW = (key === "five_hour" ? 5 * 3600 : 7 * 24 * 3600) * 1000;
-    return lv(sym("⏱", label, ctx), fmtDuration(WINDOW - remMs), "label", ctx);
+    const remMs = (epochMs(win.resets_at)) - Date.now();
+    const WINDOW = WINDOW_MS[key];
+    return lv(sym("⏱", label, ctx), fmtDuration(Math.max(0, WINDOW - remMs)), "label", ctx);
   }));
 timerWidget("block-timer", "Block", "five_hour", true);
 timerWidget("reset-timer", "Resets", "five_hour", false);
 timerWidget("weekly-reset-timer", "7d resets", "seven_day", false);
 
-add(w("session-clock", "system", "Clock", ["stdin"], (_d, _o, ctx) =>
-  lv(null, new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), "label", ctx)));
+add(w("session-clock", "system", "Clock", ["stdin"], (_d, o, ctx) =>
+  lv(null, new Date().toLocaleTimeString([], {
+    hour: "2-digit", minute: "2-digit",
+    hour12: o.hour12 === true,
+    timeZone: typeof o.timezone === "string" ? o.timezone : undefined,
+  }), "label", ctx)));
 
 // ---------------- git ----------------
 
@@ -273,8 +288,9 @@ add(w("git.branch", "git", "Git branch", ["git"], (_d, opts, ctx) => {
   if (opts.showDirty && g.dirty) text += " *";
   if (opts.showAheadBehind) { if (g.ahead) text += ` ${sym("↑", "^", ctx)}${g.ahead}`; if (g.behind) text += ` ${sym("↓", "v", ctx)}${g.behind}`; }
   if (opts.showDiff) { if (g.insertions) text += ` +${g.insertions}`; if (g.deletions) text += ` -${g.deletions}`; }
-  if (opts.link && g.originOwner && g.originRepo && g.branch) {
-    const url = `https://github.com/${g.originOwner}/${g.originRepo}/tree/${g.branch}`;
+  if (opts.link && g.originOwner && g.originRepo && g.branch
+      && /^[w.-]+$/.test(g.originOwner) && /^[w.-]+$/.test(g.originRepo)) {
+    const url = `https://github.com/${g.originOwner}/${g.originRepo}/tree/${encodeURIComponent(g.branch)}`;
     text = `\u001b]8;;${url}\u0007${text}\u001b]8;;\u0007`;
   }
   return [{ text, color: "gitBranch" }];
@@ -340,13 +356,14 @@ gitText("worktree-mode", "Worktree mode", "label", (g) => (g.worktree?.mode ? "w
 // ---------------- filesystem / system ----------------
 
 const cwdWidget = (id: string) => add(w(id, "system", "Working directory", ["stdin"], (_d, opts, ctx) => {
-  const data = ctx.input.workspace?.current_dir ?? ctx.input.cwd ?? process.cwd();
+  const data = san(ctx.input.workspace?.current_dir ?? ctx.input.cwd ?? process.cwd());
   const parts = data.replace(/[\\/]+$/, "").split(/[\\/]/).filter(Boolean);
   const style = (opts.style as string) ?? "segments";
+  const isDrive = (p: string) => /^[A-Za-z]:$/.test(p); // preserve a Windows drive letter
   let out: string;
   if (style === "full") out = data;
   else if (style === "basename") out = parts[parts.length - 1] ?? data;
-  else if (style === "fish") out = parts.map((p, i) => (i < parts.length - 1 ? p.slice(0, 1) : p)).join("/");
+  else if (style === "fish") out = parts.map((p, i) => (i < parts.length - 1 && !isDrive(p) ? p.slice(0, 1) : p)).join("/");
   else out = parts.slice(-Number(opts.segments ?? 1)).join("/") || data;
   return [{ text: out, color: "cwd" }];
 }));
@@ -375,15 +392,15 @@ add(w("custom-command", "custom", "Custom command", [], (_d, opts, _ctx) => {
   const cmd = opts.command as string | undefined;
   if (!cmd) return [];
   try {
-    const out = execSync(cmd, { timeout: 300, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8" }).trim();
+    const out = execSync(cmd, { timeout: 300, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8", windowsHide: true }).trim();
     return out ? [{ text: out, color: (opts.color as string) ?? "label" }] : [];
   } catch { return []; }
 }));
 add(w("link", "custom", "Link (OSC8)", [], (_d, opts, _ctx) => {
-  const url = opts.url as string | undefined;
-  const text = (opts.label as string | undefined) ?? url;
+  const url = san(opts.url as string | undefined);
+  const text = san((opts.label as string | undefined) ?? url) ?? url;
   if (!url || !text) return [];
-  return [{ text: `]8;;${url}${text}]8;;`, color: (opts.color as string) ?? "gitBranch" }];
+  return [{ text: `]8;;${encodeURI(url)}${text}]8;;`, color: (opts.color as string) ?? "gitBranch" }];
 }));
 
 // ---------------- HUD activity ----------------
@@ -394,9 +411,25 @@ add(w("activity.tools", "activity", "Tool activity", ["transcript"], (_d, _o, ct
   const check = sym("✓", "ok", ctx);
   const out: Segment[] = [];
   tools.slice(0, 3).forEach((t, i) => {
-    if (i > 0) out.push({ text: " │ ", color: "label" });
+    if (i > 0) out.push({ text: sym(" │ ", " | ", ctx), color: "label" });
     out.push({ text: `${check} ${t.name}`, color: "doneTool" });
     if (t.target) out.push({ text: ` ${t.target}`, color: "label" });
+  });
+  return out;
+}));
+// Claude HUD style aggregated tool tallies: `◐ Bash ×12 │ ✓ Edit ×5 │ ✓ Read ×2`.
+// The in-flight tool (if any) sorts first and gets the running glyph.
+add(w("activity.tool-counts", "activity", "Tool counts", ["transcript"], (_d, opts, ctx) => {
+  const tc = ctx.data.transcript?.toolCounts ?? [];
+  if (!tc.length) return [];
+  const run = sym("◐", "*", ctx);
+  const done = sym("✓", "ok", ctx);
+  const max = typeof opts.max === "number" ? opts.max : 5;
+  const out: Segment[] = [];
+  tc.slice(0, max).forEach((t, i) => {
+    if (i > 0) out.push({ text: sym(" │ ", " | ", ctx), color: "label" });
+    out.push({ text: `${t.running ? run : done} ${t.name}`, color: t.running ? "agent" : "doneTool" });
+    if (t.count > 1) out.push({ text: ` ×${t.count}`, color: "label" });
   });
   return out;
 }));
@@ -406,8 +439,9 @@ add(w("activity.agents", "activity", "Agent activity", ["transcript"], (_d, _o, 
   const out: Segment[] = [];
   agents.forEach((a, i) => {
     if (i > 0) out.push({ text: "  " });
-    out.push({ text: `${sym("◐", ">", ctx)} ${a.name}`, color: "agent" });
-    if (a.model) out.push({ text: `[${a.model}]`, color: "label" });
+    const running = a.status !== "done";
+    out.push({ text: `${sym(running ? "◐" : "✓", running ? ">" : "ok", ctx)} ${a.name}`, color: "agent" });
+    if (a.elapsedSec) out.push({ text: ` (${fmtDuration(a.elapsedSec * 1000)})`, color: "label" });
   });
   return out;
 }));
@@ -499,7 +533,7 @@ add(w("burn-rate", "usage", "Burn rate ($/hr)", ["stdin"], (_d, opts, ctx) => {
     // the block began), so it "resets" each window instead of averaging forever.
     const win = ctx.input.rate_limits?.five_hour;
     if (win?.resets_at) {
-      const remMs = (typeof win.resets_at === "number" ? win.resets_at : Date.parse(String(win.resets_at))) - Date.now();
+      const remMs = (epochMs(win.resets_at)) - Date.now();
       const elapsed = 5 * 3600 * 1000 - remMs;
       if (elapsed > 0) ms = elapsed;
     }
@@ -561,7 +595,7 @@ add(w("cost-projection", "usage", "Cost projection (block)", ["stats", "rate_lim
   const cost = ctx.data.stats?.sessionCost;
   const win = ctx.input.rate_limits?.five_hour;
   if (!cost || !win?.resets_at) return [];
-  const remMs = (typeof win.resets_at === "number" ? win.resets_at : Date.parse(String(win.resets_at))) - Date.now();
+  const remMs = (epochMs(win.resets_at)) - Date.now();
   const WINDOW = 5 * 3600 * 1000;
   const elapsedFrac = (WINDOW - remMs) / WINDOW;
   if (elapsedFrac <= 0.02) return [];
@@ -573,14 +607,14 @@ add(w("git-pr", "git", "Pull request (gh/glab)", ["git"], (_d, _o, ctx) => {
   const g = ctx.data.git;
   if (!g?.isRepo) return [];
   const cwd = ctx.input.workspace?.current_dir ?? ctx.input.cwd ?? process.cwd();
-  const opts: import("node:child_process").ExecSyncOptionsWithStringEncoding = { cwd, timeout: 1200, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8" };
+  const opts: import("node:child_process").ExecSyncOptionsWithStringEncoding = { cwd, timeout: 800, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8", windowsHide: true };
   try {
     const j = JSON.parse(execSync("gh pr view --json number,title,state", opts).trim());
-    return [{ text: `${sym("⎇", "PR", ctx)} ${String(j.state).toLowerCase()} #${j.number} ${j.title}`.trim(), color: "gitBranch" }];
+    return [{ text: `${sym("⎇", "PR", ctx)} ${String(j.state).toLowerCase()} #${j.number} ${san(String(j.title ?? ""))}`.trim(), color: "gitBranch" }];
   } catch { /* try glab */ }
   try {
     const j = JSON.parse(execSync("glab mr view -F json", opts).trim());
-    return j?.iid ? [{ text: `${sym("⎇", "MR", ctx)} !${j.iid} ${j.title ?? ""}`.trim(), color: "gitBranch" }] : [];
+    return j?.iid ? [{ text: `${sym("⎇", "MR", ctx)} !${j.iid} ${san(String(j.title ?? ""))}`.trim(), color: "gitBranch" }] : [];
   } catch { return []; }
 }));
 add(w("total-api-time", "activity", "Total API time", ["stdin"], (_d, _o, ctx) => {
@@ -610,7 +644,7 @@ add(w("last-response-time", "activity", "Last response time", ["transcript"], (_
 // ---------------- tokens/min ----------------
 add(w("tokens-per-min", "tokens", "Tokens per minute", ["stats"], (_d, _o, ctx) => {
   const v = ctx.data.stats?.tokenSpeed.total;
-  return v ? lv("tok/min", String(v * 60), "usage", ctx) : [];
+  return v ? lv("tok/min", fmtTokens(Math.round(v * 60)), "usage", ctx) : [];
 }));
 // ---------------- registry ----------------
 

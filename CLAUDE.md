@@ -6,7 +6,7 @@ Guidance for Claude Code (and humans) working in this repo.
 A feature-rich **statusline + HUD** for Claude Code, in TypeScript. It fuses
 ccstatusline's widget-pipeline config with Claude HUD's clean look and live
 tools/agents/todos activity, plus pace-aware usage and a persistent stats store.
-**100 widgets**, 5 themes, 25 presets (1–5 layers), 3 render styles.
+**101 widgets**, 5 themes, 25 presets (1–5 layers), 3 render styles.
 
 Tagline: *ccstatusline's brain, Claude HUD's face.*
 
@@ -102,7 +102,7 @@ Then `npm run build` and `node dist/index.js --list-widgets | grep my-widget`. R
 
 ## stdin schema gotchas (grounded in real Claude Code payloads)
 - Context metrics live under `context_window` (NOT `context`): `used_percentage`, `context_window_size`, `current_usage.{input,output,cache_*}_tokens`.
-- `rate_limits.five_hour/seven_day`: `used_percentage` + `resets_at` (epoch **ms**, sometimes ISO string).
+- `rate_limits.five_hour/seven_day`: `used_percentage` + `resets_at` (epoch **seconds** per CC docs; `epochMs()` normalizes seconds/ms/ISO — never subtract it from `Date.now()` raw).
 - `effort` may be a bare string OR `{ level }`.
 - `cost`: `total_cost_usd`, `total_duration_ms`, `total_api_duration_ms`, `total_lines_added/removed`.
 

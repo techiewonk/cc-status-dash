@@ -8,6 +8,7 @@ export interface StatuslineInput {
   workspace?: { current_dir?: string; project_dir?: string; git_worktree?: string } | null;
   cwd?: string;
   session_id?: string;
+  session_name?: string;
   version?: string;
   output_style?: { name?: string } | string;
   transcript_path?: string;
@@ -39,7 +40,7 @@ export interface StatuslineInput {
 
 export interface RateLimitWindow {
   used_percentage?: number | null;
-  resets_at?: number | string | null; // epoch ms (usually) or ISO string
+  resets_at?: number | string | null; // epoch SECONDS (Claude Code) — normalized via epochMs(); ms/ISO also accepted
 }
 
 export type DataSource = "stdin" | "git" | "transcript" | "rate_limits" | "system" | "stats";
@@ -109,6 +110,8 @@ export interface GitInfo {
 
 export interface TranscriptInfo {
   recentTools: { name: string; target?: string; done: boolean }[];
+  /** Per-tool tallies (Claude HUD style): `Bash ×12`, with the in-flight tool flagged. */
+  toolCounts: { name: string; count: number; running: boolean }[];
   agents: { name: string; model?: string; status?: string; elapsedSec?: number }[];
   todos: { total: number; completed: number; current?: string };
   skills: string[];

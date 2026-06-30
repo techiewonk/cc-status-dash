@@ -41,6 +41,7 @@ const DATA: ProviderData = {
   },
   transcript: {
     recentTools: [{ name: "Edit", target: "auth.ts", done: true }, { name: "Read", done: true }],
+    toolCounts: [{ name: "Bash", count: 12, running: true }, { name: "Edit", count: 5, running: false }, { name: "Read", count: 2, running: false }],
     agents: [{ name: "explore", model: "haiku" }], todos: { total: 5, completed: 2, current: "Fix bug" },
     skills: ["pdf", "xlsx"], mcpServers: ["slack", "github"], sessionName: "my-session",
     sessionTokens: { input: 88000, output: 4000, cacheCreation: 500, cacheRead: 1000 },
@@ -68,6 +69,10 @@ for (const preset of PRESET_CATALOG) {
       assert.equal(typeof out, "string");
       const visible = strip(out).split("\n").filter((l) => l.trim().length > 0);
       assert.ok(visible.length <= preset.lineCount, `${preset.id}/${style}: ${visible.length} > ${preset.lineCount} lines`);
+      // With the fully-populated payload, every preset must produce real content —
+      // catches a regression where a preset culls to nothing.
+      assert.ok(visible.length >= 1, `${preset.id}/${style}: rendered nothing`);
+      assert.ok(/Opus|Context|Bash|5h|7d|\$/.test(strip(out)), `${preset.id}/${style}: no recognizable content`);
     });
   }
 }

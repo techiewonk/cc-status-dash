@@ -9,8 +9,10 @@
   },
   "main": "dist/index.js",
   "scripts": {
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "bun build src/index.ts --target=node --outdir=dist --splitting --external react-devtools-core",
     "build:node": "tsc -p tsconfig.json",
+    "prepack": "npm run clean && npm run build",
     "dev": "bun build src/index.ts --target=node --outdir=dist --splitting --external react-devtools-core --watch",
     "start": "bun run src/index.ts",
     "demo": "bun run src/index.ts < sample-input.json",
@@ -41,5 +43,10 @@
   },
   "keywords": ["claude-code", "statusline", "hud", "powerline", "cli", "terminal", "bun"],
   "license": "MIT",
-  "files": ["dist", "commands", ".claude-plugin", "README.md"]
+  "author": "Hemprasad Badgujar",
+  "repository": { "type": "git", "url": "git+https://github.com/techiewonk/cc-status-dash.git" },
+  "homepage": "https://github.com/techiewonk/cc-status-dash#readme",
+  "bugs": { "url": "https://github.com/techiewonk/cc-status-dash/issues" },
+  "publishConfig": { "access": "public" },
+  "files": ["dist", "commands", ".claude-plugin", "README.md", "LICENSE"]
 }

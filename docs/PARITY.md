@@ -4,13 +4,13 @@ Maps the complete union feature catalog (all 7 surveyed statuslines) to cc-statu
 
 **Legend:** ✅ implemented · 🟡 partial · ⚙️ automatic/config-driven · 🗺️ roadmap · ⛔ out-of-scope (reason)
 
-Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
+Run `npx cc-status-dash --list-widgets` to see all widget ids (101 registered).
 
 ## Model & session
 | Feature | Status | Where |
 |---|---|---|
 | Model name + abbreviation (strips `Claude`, `(1M context)`) | ✅ | `model` |
-| Multiple model formats (abbr/full/name/version) | 🟡 | `model` (abbr); `format` option roadmap |
+| Multiple model formats (abbr/full/name/version) | ✅ | `model` `format: abbr\|name\|id\|version` |
 | Provider/auth label (Bedrock/Vertex/API) | ✅ | `provider` |
 | Session name from `/rename` | ✅ | `session-name` |
 | Session ID | ✅ | `claude-session-id` |
@@ -47,9 +47,9 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Burn rate ($/hr) | ✅ | `burn-rate` (tok/min roadmap) |
 | Cache efficiency / hit ratio | ✅ | `cache-hit-rate` |
 | Cost source: official vs calculated | ⚙️ | uses stdin official cost; calculated roadmap |
-| Block reset exact timestamp (tz/12-24h) | 🟡 | countdown done; timestamp/tz roadmap |
+| Block reset exact timestamp (tz/12-24h) | ✅ | timer widgets `timestamp`/`hour12`/`timezone` |
 | Daily / weekly / monthly cost | ✅ | `daily-cost`, `weekly-cost`, `monthly-cost` (stats store) |
-| Burn-rate modes (wall/active/auto-reset) | 🟡 | `burn-rate` `mode: wall|active`; auto-reset roadmap |
+| Burn-rate modes (wall/active/auto-reset) | ✅ | `burn-rate` `mode: wall\|active\|auto-reset` |
 | Cost projections / estimates | ✅ | `cost-projection` (block) |
 | Per-model weekly usage (sonnet/opus) | 🗺️ | roadmap (not in stdin; needs API) |
 | Usage API fallback (cached/async) | 🗺️ | roadmap |
@@ -75,7 +75,7 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Is-fork flag | ✅ | `git-is-fork` |
 | Ongoing operation (MERGE/REBASE/…) | ✅ | `git-operation` |
 | Worktree mode / name / branch | ✅ | `worktree-mode/-name/-branch`, `git-worktree` |
-| Worktree original branch | 🟡 | branch captured; original-branch roadmap |
+| Worktree original branch | ✅ | `worktree-original-branch` (reads main worktree HEAD) |
 | Clean-status widget | ✅ | `git-clean-status`, `git-status` |
 | Commit count | ✅ | `git-commit-count` |
 | Submodule status | ✅ | `git-submodules` |
@@ -123,7 +123,7 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 |---|---|---|
 | Multi-line status lines | ✅ | up to 5 layers |
 | Powerline mode (arrows) | ✅ | `style: powerline` (caps/custom fonts roadmap) |
-| Progress-bar styles | ✅ | blocks/bar/line/dots (more roadmap) |
+| Progress-bar styles | ✅ | 10 styles: blocks/bar/line/dots/ball/squares/geometric/filled/capped/blocks-line |
 | Minimalist / raw-value mode | ✅ | `minimalist` |
 | Padding control | ✅ | `padding` |
 | Nerd Font + ASCII fallback | ✅ | `charset` |
@@ -142,9 +142,10 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Custom themes / colors | ✅ | `colors` overrides (theme < custom) |
 | Color depth 16 / 256 / truecolor | ✅ | color layer (hex, 256-index, named) |
 | Threshold-based colors | ✅ | context/usage warning→critical |
-| NO_COLOR / FORCE_COLOR | ✅ | color layer (COLORTERM roadmap) |
-| Per-widget fg/bg/bold | 🟡 | theme keys + global bold; explicit per-widget override roadmap |
-| Compatibility modes (auto/ansi/256/truecolor) | 🟡 | `colorDepth` |
+| NO_COLOR / FORCE_COLOR / COLORTERM | ✅ | color layer (auto depth sniffs COLORTERM/FORCE_COLOR/TERM) |
+| Per-widget fg/bg/bold/dim | ✅ | `color`/`bgColor`/`bold`/`dim` on any widget config (value recolored, dim label preserved) |
+| Per-widget gradients (fg) | 🗺️ | roadmap (ccstatusline newer feature) |
+| Compatibility modes (auto/ansi/256/truecolor) | ✅ | `colorDepth` + hex/256 downsampling to honor depth |
 | Web visual configurator | ⛔ | out-of-scope (separate site) |
 
 ## Configuration & UX
@@ -155,10 +156,10 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Priority chain (CLI > env > project > user > XDG > defaults) | ✅ | `config/load.ts` |
 | `--config` custom path | ✅ | CLI flag |
 | Write `refreshInterval` to CC settings | ✅ | `/setup` |
-| Preset picker | 🟡 | presets + commands; interactive wizard roadmap |
+| Preset picker / guided wizard | ✅ | `--configure` @clack/prompts wizard (density→preset→theme→style→save) |
 | Zero-config defaults | ✅ | essential preset |
-| Ink TUI w/ live preview | 🗺️ | roadmap (UI mockup designed) |
-| Fuzzy widget picker / clone / wrap-around nav | 🗺️ | roadmap (TUI) |
+| Ink TUI w/ live preview | ✅ | `--tui`/`--edit` (`src/tui/`); live preview, add/del/clone/reorder, line/style/theme/preset, save |
+| Fuzzy widget picker / clone | ✅ | `tui/picker.ts` (subsequence-ranked) + `cloneWidget`; nav clamps (wrap-around roadmap) |
 | `CLAUDE_CONFIG_DIR` support | ✅ | config path + claude-config reads honor it |
 
 ## Platform / engineering
@@ -178,3 +179,25 @@ Run `npx cc-status-dash --list-widgets` to see all widget ids (83 registered).
 | Single compiled binary / single bash file | ⛔ | n/a (TypeScript by design) |
 | Claude Code patcher | ⛔ | out-of-scope (CCometixLine) |
 | Localizations | ⛔ | out-of-scope |
+
+## Newly surveyed upstream features (June 2026 refresh)
+Found in a fresh README pass (ccstatusline v2.2.22, Claude HUD, claude-powerline, CCometixLine) — not previously in the matrix.
+| Feature | Source | Status | Where / plan |
+|---|---|---|---|
+| Per-widget value color / bg / bold / dim | ccstatusline, powerline, HUD | ✅ | `color`/`bgColor`/`bold`/`dim` widget options |
+| 10 progress-bar styles | claude-powerline | ✅ | `bars.ts` (was 4, now 10) |
+| Model format abbr/name/id/version | claudia | ✅ | `model` `format` |
+| Token rounding (999950→1.0M) | ccstatusline | ✅ | `fmtTokens` |
+| Per-widget foreground gradients | ccstatusline | 🗺️ | needs gradient color layer |
+| Extra-usage utilization / remaining | ccstatusline | 🗺️ | overage widgets (needs usage API) |
+| Prompt-cache countdown (Pro 300s / Max 3600s TTL) | Claude HUD | ✅ | `cache-timer` `ttlSeconds` (counts down remaining) |
+| Added-directories (`/add-dir`) display | Claude HUD | 🗺️ | new widget |
+| Push warning/critical thresholds (ahead/behind color) | Claude HUD | ✅ | `git-ahead-behind` `pushWarnThreshold`/`pushCritThreshold` |
+| transparent / none backgrounds | claude-powerline | ✅ | `bgColor: none\|transparent` |
+| COLORTERM detection | claude-powerline | ✅ | `effectiveDepth` (auto) + truecolor→256→16 downsampling |
+| Burn-rate auto-reset mode | claudia | ✅ | `burn-rate` `mode: auto-reset` |
+| Block-reset exact timestamp (12/24h, tz) | ccstatusline | ✅ | timer `timestamp`/`hour12`/`timezone` |
+| Worktree original branch | ccstatusline, powerline | ✅ | `worktree-original-branch` |
+| Advisor model (`/advisor`) | Claude HUD | 🗺️ | new widget (needs CC state) |
+| Output-style display | Claude HUD | ✅ | `output-style` |
+| CSS-grid TUI-panel layout | claude-powerline | 🗺️ | premium layout mode |

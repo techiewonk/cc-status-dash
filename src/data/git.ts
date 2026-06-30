@@ -1,15 +1,44 @@
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { basename, isAbsolute, join } from "node:path";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { createHash } from "node:crypto";
+import { basename, dirname, isAbsolute, join } from "node:path";
 import type { GitInfo } from "../types.js";
+import { clean as san } from "./sanitize.js";
 
 // Git provider. Fast porcelain commands with a short timeout so the render path
-// never blocks. Covers the full ccstatusline git widget set.
+// never blocks. Covers the full ccstatusline git widget set. Results are cached to
+// disk with a short TTL so the ~300ms render cadence doesn't re-spawn git every time.
+
+const GIT_CACHE_TTL_MS = 2000;
+
+function gitCacheFile(cwd: string): string {
+  const base = process.env.XDG_CACHE_HOME ?? join(tmpdir(), "cc-status-dash");
+  return join(base, `git-${createHash("sha1").update(cwd).digest("hex").slice(0, 16)}.json`);
+}
+function readGitCache(file: string): GitInfo | null {
+  try {
+    const { ts, data } = JSON.parse(readFileSync(file, "utf8")) as { ts: number; data: GitInfo };
+    if (typeof ts === "number" && Date.now() - ts < GIT_CACHE_TTL_MS) return data;
+  } catch { /* miss */ }
+  return null;
+}
+function writeGitCache(file: string, data: GitInfo): void {
+  try {
+    mkdirSync(dirname(file), { recursive: true });
+    const tmp = `${file}.${process.pid}.tmp`;
+    writeFileSync(tmp, JSON.stringify({ ts: Date.now(), data }));
+    renameSync(tmp, file);
+  } catch { /* best-effort */ }
+}
 
 function git(args: string[], cwd: string): string | null {
   try {
-    return execFileSync("git", args, {
-      cwd, timeout: 300, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8",
+    // --no-optional-locks: read-only commands won't take index.lock, so the
+    // statusline never contends with the user's foreground git. windowsHide:
+    // no console flash on Windows.
+    return execFileSync("git", ["--no-optional-locks", ...args], {
+      cwd, timeout: 300, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8", windowsHide: true,
     }).trim();
   } catch {
     return null;
@@ -23,11 +52,26 @@ function parseRemote(url: string | null): { owner?: string; repo?: string } {
 }
 
 export function collectGit(cwd: string): GitInfo {
-  if (git(["rev-parse", "--is-inside-work-tree"], cwd) !== "true") return { isRepo: false };
+  const cf = gitCacheFile(cwd);
+  const cached = readGitCache(cf);
+  if (cached) return cached;
+  const fresh = computeGit(cwd);
+  writeGitCache(cf, fresh);
+  return fresh;
+}
 
-  const branch = git(["rev-parse", "--abbrev-ref", "HEAD"], cwd) ?? undefined;
+function computeGit(cwd: string): GitInfo {
+  // One coalesced rev-parse instead of 5 separate spawns. (--short HEAD is kept
+  // separate because it errors on an unborn HEAD, which would abort the batch.)
+  const rp = git(["rev-parse", "--is-inside-work-tree", "--show-toplevel", "--git-dir", "--git-common-dir", "--abbrev-ref", "HEAD"], cwd);
+  if (!rp) return { isRepo: false };
+  const lines = rp.split("\n");
+  if (lines[0] !== "true") return { isRepo: false };
+  const rootDir = lines[1] || undefined;
+  const gitDir = lines[2] || ".git";
+  const commonDir = lines[3] || "";
+  const branch = lines[4] || undefined;
   const sha = git(["rev-parse", "--short", "HEAD"], cwd) ?? undefined;
-  const rootDir = git(["rev-parse", "--show-toplevel"], cwd) ?? undefined;
   const status = git(["status", "--porcelain", "--branch"], cwd) ?? "";
 
   let staged = 0, unstaged = 0, untracked = 0, conflicts = 0, ahead = 0, behind = 0;
@@ -66,7 +110,6 @@ export function collectGit(cwd: string): GitInfo {
   const commitCountStr = git(["rev-list", "--count", "HEAD"], cwd);
   const commitCount = commitCountStr ? Number(commitCountStr) : undefined;
 
-  const gitDir = git(["rev-parse", "--git-dir"], cwd) ?? ".git";
   const gdBase = isAbsolute(gitDir) ? gitDir : join(cwd, gitDir);
   const has = (p: string) => existsSync(join(gdBase, p));
   let operation: string | undefined;
@@ -80,7 +123,6 @@ export function collectGit(cwd: string): GitInfo {
   const upstream = parseRemote(upstreamUrl);
   const isFork = !!upstreamUrl;
 
-  const commonDir = git(["rev-parse", "--git-common-dir"], cwd) ?? "";
   const inWorktree = gitDir !== commonDir && gitDir.includes("worktrees");
   let originalBranch: string | undefined;
   if (inWorktree && commonDir) {
@@ -94,10 +136,13 @@ export function collectGit(cwd: string): GitInfo {
     : { mode: false };
 
   return {
-    isRepo: true, branch, dirty, clean: !dirty, ahead, behind,
-    staged, unstaged, untracked, conflicts, insertions, deletions, sha, rootDir,
-    originOwner: origin.owner, originRepo: origin.repo,
-    upstreamOwner: upstream.owner, upstreamRepo: upstream.repo, isFork,
-    stash, tag, secondsSinceCommit, submodules, commitCount, operation, worktree,
+    isRepo: true, branch: san(branch), dirty, clean: !dirty, ahead, behind,
+    staged, unstaged, untracked, conflicts, insertions, deletions, sha: san(sha), rootDir: san(rootDir),
+    originOwner: san(origin.owner), originRepo: san(origin.repo),
+    upstreamOwner: san(upstream.owner), upstreamRepo: san(upstream.repo), isFork,
+    stash, tag: san(tag), secondsSinceCommit, submodules, commitCount, operation: san(operation),
+    worktree: worktree.mode
+      ? { mode: true, name: san(worktree.name), branch: san(worktree.branch), originalBranch: san(worktree.originalBranch) }
+      : worktree,
   };
 }

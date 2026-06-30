@@ -27,7 +27,7 @@ const NAMED: Record<string, number> = {
 function colorsEnabled(depth: ColorDepth): boolean {
   if (depth === "none") return false;
   if (process.env.NO_COLOR) return false;
-  if (process.env.FORCE_COLOR && process.env.FORCE_COLOR !== "0") return true;
+  if (process.env.FORCE_COLOR === "0") return false; // chalk/supports-color convention: force-disable
   return true;
 }
 
@@ -126,8 +126,6 @@ function hexToRgb(hex: string): [number, number, number] {
 
 export interface Painter {
   paint(text: string, opts: { color?: string; bgColor?: string; bold?: boolean }): string;
-  /** Raw fg color of a resolved key, for renderers that need separator colors. */
-  rawFg(key?: string): string;
 }
 
 export function createPainter(config: Config): Painter {
@@ -143,11 +141,6 @@ export function createPainter(config: Config): Painter {
       if (fg) codes += fg;
       if (bg) codes += bg;
       return codes ? `${codes}${text}${RESET}` : text;
-    },
-    rawFg(key) {
-      if (!enabled) return "";
-      const fg = fgCode(resolveColorKey(key, config) ?? "", depth);
-      return fg ?? "";
     },
   };
 }

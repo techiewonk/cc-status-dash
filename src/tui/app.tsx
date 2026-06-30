@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import { stripVTControlCharacters as strip } from "node:util";
-import { writeFileSync } from "node:fs";
 import type { Config, RenderContext, StatuslineInput } from "../types.js";
 import { render as renderLine } from "../render/renderer.js";
 import { listWidgets } from "../widgets/index.js";
 import { listThemes } from "../themes/index.js";
+import { PRESET_CATALOG } from "../config/defaults.js";
 import { initialState, reduce, type Action, type EditorState } from "./reducer.js";
 import { fuzzyFilter, type PickItem } from "./picker.js";
-import { serializeConfig } from "../config/wizard.js";
+import { writeConfig } from "../config/wizard.js";
 
 // Ink live-preview config editor. All edits go through the pure `reduce`; this
 // component is just keys-in / frame-out, so the logic stays testable headlessly
@@ -54,7 +54,7 @@ export function App({ initial, savePath, onSaved }: AppProps) {
         return setPicker({ open: false, query: "", index: 0 });
       }
       if (key.upArrow) return setPicker((p) => ({ ...p, index: Math.max(0, p.index - 1) }));
-      if (key.downArrow) return setPicker((p) => ({ ...p, index: Math.min(results.length - 1, p.index + 1) }));
+      if (key.downArrow) return setPicker((p) => ({ ...p, index: Math.max(0, Math.min(results.length - 1, p.index + 1)) }));
       if (key.backspace || key.delete) return setPicker((p) => ({ ...p, query: p.query.slice(0, -1), index: 0 }));
       if (input) setPicker((p) => ({ ...p, query: p.query + input, index: 0 }));
       return;
@@ -73,10 +73,17 @@ export function App({ initial, savePath, onSaved }: AppProps) {
     if (input === "x") return dispatch({ type: "removeLine" });
     if (input === "s") return dispatch({ type: "cycleStyle" });
     if (input === "t") return dispatch({ type: "cycleTheme", themes });
+    if (input === "p") {
+      const ids = PRESET_CATALOG.map((pp) => pp.id);
+      const next = ids[(ids.indexOf(state.config.preset) + 1) % ids.length];
+      dispatch({ type: "setPreset", id: next });
+      setStatus(`preset ${next}`);
+      return;
+    }
     if (input === "w") {
-      writeFileSync(savePath, serializeConfig(state.config), "utf8");
-      setStatus(`saved ${savePath}`);
-      onSaved?.(savePath);
+      const res = writeConfig(savePath, state.config);
+      setStatus(res.ok ? `saved ${savePath}` : `save failed: ${res.error}`);
+      if (res.ok) onSaved?.(savePath);
     }
   });
 
@@ -131,7 +138,7 @@ export function App({ initial, savePath, onSaved }: AppProps) {
           {results.length === 0 ? <Text dimColor>no matches</Text> : null}
         </Box>
       ) : (
-        <Text dimColor>↑↓←→ move · a add · d del · k clone · [ ] reorder · n/x line · s style · t theme · w save · q quit</Text>
+        <Text dimColor>↑↓←→ move · a add · d del · k clone · [ ] reorder · n/x line · s style · t theme · p preset · w save · q quit</Text>
       )}
       {status ? <Text color="green">{status}</Text> : null}
     </Box>

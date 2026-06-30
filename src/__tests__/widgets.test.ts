@@ -38,6 +38,7 @@ const DATA: ProviderData = {
   },
   transcript: {
     recentTools: [{ name: "Edit", target: "auth.ts", done: true }, { name: "Read", done: true }],
+    toolCounts: [{ name: "Bash", count: 12, running: true }, { name: "Edit", count: 5, running: false }, { name: "Read", count: 2, running: false }],
     agents: [{ name: "explore", model: "haiku" }], todos: { total: 5, completed: 2, current: "Fix bug" },
     skills: ["pdf", "xlsx"], mcpServers: ["slack", "github"], sessionName: "my-session",
     sessionTokens: { input: 88000, output: 4000, cacheCreation: 500, cacheRead: 1000 },
@@ -127,6 +128,8 @@ const CASES: [string, Record<string, unknown>, string][] = [
   ["env", { variable: "CCSD_TEST_VAR" }, "hello"],
   ["session-clock", {}, ":"],
   ["activity.tools", {}, "Edit"],
+  ["activity.tool-counts", {}, "Bash"],
+  ["activity.tool-counts", {}, "×12"],
   ["activity.agents", {}, "explore"],
   ["activity.todos", {}, "2/5"],
   ["skills", { mode: "count" }, "2"],

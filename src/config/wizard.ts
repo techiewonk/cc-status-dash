@@ -1,6 +1,6 @@
-import { writeFileSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, existsSync, renameSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { Config, LineStyle } from "../types.js";
 import { DEFAULT_CONFIG, presetsByLineCount } from "./defaults.js";
 import { applyPreset, setGlobal, setLineStyle, setTheme } from "./mutations.js";
@@ -34,16 +34,25 @@ export function buildWizardConfig(choices: WizardChoices): Config {
   return cfg;
 }
 
-/** Serialize only the meaningful fields so the saved file stays small + readable. */
-export function serializeConfig(cfg: Config): string {
-  const out = {
-    version: CURRENT_CONFIG_VERSION,
-    preset: cfg.preset,
-    theme: cfg.theme,
-    charset: cfg.charset,
-    minimalist: cfg.minimalist,
-    lines: cfg.lines,
-  };
+/**
+ * Serialize the editor-managed fields, merged over any existing file contents so
+ * hand-edited fields the editor doesn't manage (e.g. custom `colors`) survive.
+ */
+export function serializeConfig(cfg: Config, existing?: Record<string, unknown>): string {
+  const out: Record<string, unknown> = { ...(existing ?? {}) };
+  out.version = CURRENT_CONFIG_VERSION;
+  out.preset = cfg.preset;
+  out.theme = cfg.theme;
+  out.charset = cfg.charset;
+  out.minimalist = cfg.minimalist;
+  out.globalBold = cfg.globalBold;
+  out.padding = cfg.padding;
+  out.autoWrap = cfg.autoWrap;
+  out.separator = cfg.separator;
+  out.colorDepth = cfg.colorDepth;
+  out.lines = cfg.lines;
+  if (cfg.refreshInterval !== undefined) out.refreshInterval = cfg.refreshInterval;
+  if (cfg.modelContextLimits) out.modelContextLimits = cfg.modelContextLimits;
   return JSON.stringify(out, null, 2) + "\n";
 }
 
@@ -51,6 +60,29 @@ export function configTargetPath(scope: "user" | "project"): string {
   return scope === "user"
     ? join(homedir(), ".claude", "cc-status-dash.json")
     : join(process.cwd(), ".cc-status-dash.json");
+}
+
+/**
+ * Write a config to disk: creates the parent dir, preserves unmanaged fields from
+ * any existing file, and never throws (returns an error string instead).
+ */
+export function writeConfig(path: string, cfg: Config): { ok: true } | { ok: false; error: string } {
+  try {
+    let existing: Record<string, unknown> | undefined;
+    try {
+      if (existsSync(path)) existing = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+    } catch {
+      /* ignore a corrupt existing file — we'll overwrite it */
+    }
+    mkdirSync(dirname(path), { recursive: true });
+    // Atomic write so a concurrent render never reads a half-written config.
+    const tmp = `${path}.${process.pid}.tmp`;
+    writeFileSync(tmp, serializeConfig(cfg, existing), "utf8");
+    renameSync(tmp, path);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
 }
 
 /** Interactive wizard. Returns the written path, or null if cancelled. */
@@ -109,7 +141,11 @@ export async function runWizard(): Promise<string | null> {
     minimalist: minimalist as boolean,
   });
   const path = configTargetPath(scope as "user" | "project");
-  writeFileSync(path, serializeConfig(cfg), "utf8");
+  const res = writeConfig(path, cfg);
+  if (!res.ok) {
+    p.cancel(`Failed to save ${path}: ${res.error}`);
+    return null;
+  }
   p.outro(`Saved ${path} — it reloads on the next render (no restart needed).`);
   return path;
 }

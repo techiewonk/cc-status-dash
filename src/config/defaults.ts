@@ -104,13 +104,13 @@ const vibeLine = (): LineConfig => ({
 const activity = (): LineConfig => ({
   style: "inline",
   showWhen: "activity",
-  widgets: [{ id: "activity.tools" }, { id: "activity.agents" }, { id: "activity.todos" }],
+  widgets: [{ id: "activity.tool-counts" }, { id: "activity.agents" }, { id: "activity.todos" }],
 });
 
 const activityTools = (): LineConfig => ({
   style: "inline",
   showWhen: "activity",
-  widgets: [{ id: "activity.tools" }],
+  widgets: [{ id: "activity.tool-counts" }],
 });
 
 const activityAgentsTodos = (): LineConfig => ({
@@ -155,7 +155,7 @@ export const PRESET_CATALOG: PresetDef[] = [
   { id: "max", name: "Max", lineCount: 5, description: "identity / context+cost / 5h / 7d+cost / activity", lines: [idPL(true), ctxCost(), usage5h(), weeklyCost(), activity()] },
   { id: "max-usage", name: "Max (usage)", lineCount: 5, description: "identity / context / 5h / 7d / activity", lines: [idPL(true), ctx(), usage5h(), { style: "inline", widgets: [{ id: "usage.weekly", threshold: 0 }] }, activity()] },
   { id: "max-monitor", name: "Max (monitor)", lineCount: 5, description: "identity / context / usage / tools / agents+todos", lines: [idPL(true), ctx(), usagePair(), activityTools(), activityAgentsTodos()] },
-  { id: "max-cost", name: "Max (cost)", lineCount: 5, description: "identity / context / cost / 7d / activity", lines: [idPL(false), ctx(), ctxCost(), weeklyCost(), activity()] },
+  { id: "max-cost", name: "Max (cost)", lineCount: 5, description: "identity / context / cost / 7d / activity", lines: [idPL(false), ctx(), { style: "inline", widgets: [{ id: "cost" }, { id: "burn-rate" }] }, weeklyCost(), activity()] },
 
   // ---- extra flavors ----
   // 1 line

@@ -6,14 +6,14 @@ A feature-rich statusline **and** HUD dashboard for Claude Code.
 
 It combines the two most popular Claude Code statusline tools:
 
-- **Config pattern from [ccstatusline](https://github.com/sirmalloc/ccstatusline)** — a widget pipeline: ordered `widgets[]` per line, each with its own options; multiple lines; one JSON config; an Ink TUI editor (planned) with a fuzzy widget picker.
+- **Config pattern from [ccstatusline](https://github.com/sirmalloc/ccstatusline)** — a widget pipeline: ordered `widgets[]` per line, each with its own options; multiple lines; one JSON config; an Ink TUI editor (`--tui`) with a fuzzy widget picker.
 - **Theme / clean look from [Claude HUD](https://github.com/jarrodwatts/claude-hud)** — a restrained default palette, preset-first onboarding, context-health framing, and live tool / agent / todo activity lines.
 
 Plus the best ideas from the wider ecosystem: **pace delta** (burn vs. time-left) from claude-pace, multiple bar styles from claude-powerline, and a 4-layer dashboard layout.
 
 ## Status
 
-Scaffold (v0.1.0) with 98 widgets across model, context, tokens, usage, git, system, activity, and custom categories. See [docs/PARITY.md](docs/PARITY.md) for the full feature-by-feature parity matrix against all 7 surveyed statuslines. The render pipeline, widget registry, themes, config loading, and several widgets work today. The Ink TUI, full git/usage widget set, and SQLite stats are on the roadmap (see `docs/ANALYSIS.md`).
+Scaffold (v0.1.0) with 101 widgets across model, context, tokens, usage, git, system, activity, and custom categories. See [docs/PARITY.md](docs/PARITY.md) for the full feature-by-feature parity matrix against all 7 surveyed statuslines. The render pipeline, widget registry, themes, config loading, and several widgets work today. The Ink TUI (`--tui`), @clack preset wizard (`--configure`), full git/usage widget set, valibot-validated config, and persistent stats all work today; SQLite stats / cloud sync are out of scope. Note: the package is not yet published to npm, so until then use the local build (`node /path/to/dist/index.js`) rather than `bunx cc-status-dash@latest`.
 
 ## Install
 
@@ -49,7 +49,7 @@ No Bun? Use the Node-compatible build (`npx cc-status-dash@latest` or `node /abs
 bun install
 bun run build                     # bun build src/index.ts --target=node -> dist/index.js
 bun run demo                      # renders sample-input.json
-bun run src/index.ts --list-widgets   # 98 widgets
+bun run src/index.ts --list-widgets   # 101 widgets
 
 # Node fallback (no Bun)
 npm install && npm run build:node # tsc -> dist/

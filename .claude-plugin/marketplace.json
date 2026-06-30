@@ -1,11 +1,11 @@
 {
   "name": "cc-status-dash",
-  "owner": "cc-status-dash",
+  "owner": "techiewonk",
   "plugins": [
     {
       "name": "cc-status-dash",
       "source": "./",
-      "description": "Statusline + HUD dashboard for Claude Code (widget config + clean theme + live activity + 4-layer dashboard)."
+      "description": "Statusline + HUD dashboard for Claude Code (widget config + clean theme + live activity + 5-layer dashboard)."
     }
   ]
 }

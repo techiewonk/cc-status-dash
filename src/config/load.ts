@@ -10,16 +10,38 @@ import { validatePartialConfig } from "./schema.js";
 //   defaults < XDG < ~/.claude/cc-status-dash.json < ./.cc-status-dash.json < env < CLI
 // This mirrors claude-powerline's layered precedence.
 
-function candidatePaths(cliPath?: string): string[] {
-  const paths: string[] = [];
+interface Candidate {
+  path: string;
+  trusted: boolean;
+}
+
+function candidatePaths(cliPath?: string): Candidate[] {
+  const paths: Candidate[] = [];
   const xdg = process.env.XDG_CONFIG_HOME;
-  if (xdg) paths.push(join(xdg, "cc-status-dash", "config.json"));
+  if (xdg) paths.push({ path: join(xdg, "cc-status-dash", "config.json"), trusted: true });
   const ccDir = process.env.CLAUDE_CONFIG_DIR;
-  if (ccDir) paths.push(join(ccDir, "cc-status-dash.json"));
-  paths.push(join(homedir(), ".claude", "cc-status-dash.json"));
-  paths.push(join(process.cwd(), ".cc-status-dash.json"));
-  if (cliPath) paths.push(cliPath);
+  if (ccDir) paths.push({ path: join(ccDir, "cc-status-dash.json"), trusted: true });
+  paths.push({ path: join(homedir(), ".claude", "cc-status-dash.json"), trusted: true });
+  // Project-local config is read from the repo you open — UNTRUSTED.
+  paths.push({ path: join(process.cwd(), ".cc-status-dash.json"), trusted: false });
+  if (cliPath) paths.push({ path: cliPath, trusted: true }); // explicitly passed by the user
   return paths;
+}
+
+// Widgets that execute shell commands or surface env vars must never come from an
+// untrusted (repo-local) config — that would be RCE / secret-exfiltration just from
+// opening a malicious repository.
+const UNSAFE_FROM_UNTRUSTED = new Set(["custom-command", "git-pr", "env"]);
+
+function stripUnsafeWidgets(partial: Partial<Config>): Partial<Config> {
+  if (!partial.lines) return partial;
+  return {
+    ...partial,
+    lines: partial.lines.map((l) => ({
+      ...l,
+      widgets: l.widgets.filter((wc) => !UNSAFE_FROM_UNTRUSTED.has(wc.id)),
+    })),
+  };
 }
 
 /** Warn to stderr only — stdout is reserved for the rendered statusline. */
@@ -37,7 +59,7 @@ function readJson(path: string): Partial<Config> | null {
     if (!existsSync(path)) return null;
     raw = JSON.parse(readFileSync(path, "utf8"));
   } catch {
-    // Invalid JSON silently falls back (Claude HUD behavior).
+    warn(`ignoring config ${path}: invalid JSON`);
     return null;
   }
   // Validate shape/types; on failure warn (to stderr) and fall back to skipping
@@ -64,9 +86,12 @@ function merge(base: Config, partial: Partial<Config>): Config {
     ...partial,
     colors: { ...base.colors, ...(partial.colors ?? {}) },
   };
-  // If a preset is named and no explicit lines were provided, expand it.
+  // If a preset is named and no explicit lines were provided, expand it — but
+  // only if it's a real preset id (an unknown id must not blank `lines`).
   if (partial.preset && partial.preset !== "custom" && !partial.lines) {
-    merged.lines = PRESET_LINES[partial.preset];
+    const pl = PRESET_LINES[partial.preset];
+    if (pl) merged.lines = pl;
+    else merged.preset = base.preset; // unknown preset → keep base lines/preset
   }
   return merged;
 }
@@ -91,7 +116,7 @@ export interface ConfigFileReport {
  */
 export function validateConfigFiles(cliPath?: string): ConfigFileReport[] {
   const reports: ConfigFileReport[] = [];
-  for (const path of candidatePaths(cliPath)) {
+  for (const { path } of candidatePaths(cliPath)) {
     if (!existsSync(path)) continue;
     let raw: unknown;
     try {
@@ -111,9 +136,10 @@ export function loadConfig(flags: CliFlags = {}): Config {
   // Accumulate only the user's explicit color overrides, so we can apply them
   // on top of whichever theme ends up selected (theme < custom colors).
   const userColors: ThemeColors = {};
-  for (const path of candidatePaths(flags.config)) {
-    const partial = readJson(path);
+  for (const { path, trusted } of candidatePaths(flags.config)) {
+    let partial = readJson(path);
     if (partial) {
+      if (!trusted) partial = stripUnsafeWidgets(partial); // drop command/env widgets from repo-local config
       if (partial.colors) Object.assign(userColors, partial.colors);
       cfg = merge(cfg, partial);
     }

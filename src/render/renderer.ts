@@ -7,16 +7,46 @@ import { createPainter, type Painter } from "./colors.js";
 // Line styles: inline / powerline / capsule. Global options honored:
 // globalBold, padding, minimalist (in widgets), widget merge, and auto-wrap.
 
-const POWERLINE_SEP = "";
-const POWERLINE_SEP_TEXT = "";
-const CAP_LEFT = "";
-const CAP_RIGHT = "";
+// Powerline / capsule glyphs as \u escapes so they survive editor encoding round-trips
+// (they were previously stripped to empty strings, blanking arrows/caps).
+const POWERLINE_SEP = ""; // right-pointing powerline arrow
+const POWERLINE_SEP_TEXT = ">"; // ASCII fallback for charset:"text"
+const CAP_LEFT = ""; // left rounded cap
+const CAP_RIGHT = ""; // right rounded cap
 
 interface BuiltWidget { segments: Segment[]; merge: boolean; }
 
+/** Terminal cell width of a single code point: 0 (combining/zero-width), 2 (wide/CJK/emoji), else 1. */
+function charWidth(cp: number): number {
+  if (cp === 0) return 0;
+  if (
+    (cp >= 0x0300 && cp <= 0x036f) || // combining diacritics
+    (cp >= 0x1ab0 && cp <= 0x1aff) || (cp >= 0x1dc0 && cp <= 0x1dff) ||
+    (cp >= 0x20d0 && cp <= 0x20ff) || // combining marks for symbols
+    (cp >= 0x200b && cp <= 0x200f) || cp === 0x200d || // zero-width (+ZWJ)
+    (cp >= 0xfe00 && cp <= 0xfe0f) || cp === 0xfeff // variation selectors / BOM
+  ) return 0;
+  if (
+    (cp >= 0x1100 && cp <= 0x115f) || // Hangul Jamo
+    (cp >= 0x2e80 && cp <= 0xa4cf && cp !== 0x303f) || // CJK … Yi
+    (cp >= 0xac00 && cp <= 0xd7a3) || // Hangul syllables
+    (cp >= 0xf900 && cp <= 0xfaff) || (cp >= 0xfe30 && cp <= 0xfe4f) || // CJK compat
+    (cp >= 0xff00 && cp <= 0xff60) || (cp >= 0xffe0 && cp <= 0xffe6) || // fullwidth
+    (cp >= 0x1f000 && cp <= 0x1faff) || // emoji & symbols
+    (cp >= 0x20000 && cp <= 0x3fffd) // CJK ext B+
+  ) return 2;
+  return 1;
+}
+/** Display column width (not UTF-16 length) of an already-rendered string. */
+export function displayWidth(s: string): number {
+  let w = 0;
+  for (const ch of s) w += charWidth(ch.codePointAt(0) ?? 0);
+  return w;
+}
 function plainLen(s: string): number {
-  // Node built-in: strips ANSI/VT (incl. OSC8 hyperlinks) — replaces a hand regex.
-  return stripVTControlCharacters(s).length;
+  // Strip ANSI/VT/OSC8 (Node built-in), then measure real terminal columns so
+  // wide (CJK/emoji) and zero-width chars don't misalign auto-wrap.
+  return displayWidth(stripVTControlCharacters(s));
 }
 
 /**
@@ -51,11 +81,19 @@ function buildLineWidgets(line: LineConfig, ctx: RenderContext): BuiltWidget[] {
   for (const wc of line.widgets) {
     const widget = getWidget(wc.id);
     if (!widget) continue;
-    let segments = widget.render(widget.collect(ctx), wc, ctx);
+    // A single misconfigured widget (e.g. a bad `timezone`, or a throwing
+    // custom-command) must never collapse the whole statusline — cull it instead.
+    let segments: Segment[];
+    try {
+      segments = widget.render(widget.collect(ctx), wc, ctx);
+    } catch {
+      continue;
+    }
     if (segments.length === 0) continue;
+    // Pad first so a per-widget bgColor/bold covers the padding too (no unstyled gaps).
+    if (pad) segments = [{ text: pad }, ...segments, { text: pad }];
     if (ctx.config.globalBold) segments = segments.map((s) => ({ ...s, bold: true }));
     segments = applyWidgetStyle(segments, wc);
-    if (pad) segments = [{ text: pad }, ...segments, { text: pad }];
     built.push({ segments, merge: wc.merge === true });
   }
   return built;
@@ -121,7 +159,7 @@ export function render(ctx: RenderContext): string {
     out.push(
       line.style === "powerline" ? renderPowerline(built, painter, ctx)
       : line.style === "capsule" ? renderCapsule(built, painter, ctx)
-      : renderInline(built, painter, config.separator, config.autoWrap),
+      : renderInline(built, painter, config.charset === "text" && config.separator === "│" ? "|" : config.separator, config.autoWrap),
     );
   }
   return out.join("\n");
