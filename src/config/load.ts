@@ -15,13 +15,22 @@ interface Candidate {
   trusted: boolean;
 }
 
+// Mirror os.homedir()'s platform source-of-truth (USERPROFILE on Windows, HOME on
+// POSIX) but read it at call time. os.homedir() snapshots the env at process startup
+// on POSIX, so an explicitly-set HOME would otherwise be ignored — which both breaks
+// hermetic tests on Linux and silently disregards a user's overridden home.
+function userHome(): string {
+  const fromEnv = process.platform === "win32" ? process.env.USERPROFILE : process.env.HOME;
+  return fromEnv || homedir();
+}
+
 function candidatePaths(cliPath?: string): Candidate[] {
   const paths: Candidate[] = [];
   const xdg = process.env.XDG_CONFIG_HOME;
   if (xdg) paths.push({ path: join(xdg, "cc-status-dash", "config.json"), trusted: true });
   const ccDir = process.env.CLAUDE_CONFIG_DIR;
   if (ccDir) paths.push({ path: join(ccDir, "cc-status-dash.json"), trusted: true });
-  paths.push({ path: join(homedir(), ".claude", "cc-status-dash.json"), trusted: true });
+  paths.push({ path: join(userHome(), ".claude", "cc-status-dash.json"), trusted: true });
   // Project-local config is read from the repo you open — UNTRUSTED.
   paths.push({ path: join(process.cwd(), ".cc-status-dash.json"), trusted: false });
   if (cliPath) paths.push({ path: cliPath, trusted: true }); // explicitly passed by the user
