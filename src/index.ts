@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { loadConfig, validateConfigFiles, type CliFlags } from "./config/load.js";
+import { loadConfig, validateConfigFiles, getInvalidConfigFiles, type CliFlags } from "./config/load.js";
 import { collectProviderData } from "./data/providers.js";
 import { render } from "./render/renderer.js";
 import { listThemes } from "./themes/index.js";
@@ -53,12 +53,23 @@ function runValidate(cliPath?: string): void {
 
 async function readStdin(): Promise<string> {
   if (process.stdin.isTTY) return "";
+  // Bound the read: a runaway/huge payload must never make the statusline hang or
+  // balloon memory. 256 KB is far above any real Claude Code status payload.
+  const MAX_BYTES = 256 * 1024;
   const chunks: Buffer[] = [];
-  for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+  let total = 0;
+  for await (const chunk of process.stdin) {
+    const b = chunk as Buffer;
+    chunks.push(b);
+    total += b.length;
+    if (total >= MAX_BYTES) break;
+  }
   return Buffer.concat(chunks).toString("utf8");
 }
 
 async function main(): Promise<void> {
+  // Kill switch (Claude HUD CLAUDE_HUD_DISABLE parity): emit nothing and exit.
+  if (process.env.CC_STATUS_DASH_DISABLE) return;
   const flags = parseFlags(process.argv.slice(2));
 
   if (flags.listThemes) {
@@ -121,7 +132,12 @@ async function main(): Promise<void> {
   }
 
   const data = collectProviderData(input, config);
-  const out = render({ input, config, data });
+  let out = render({ input, config, data });
+  // Hot-path badge: a config file that existed but failed to parse/validate was
+  // silently skipped (defaults used) — surface it so the user isn't left confused.
+  if (getInvalidConfigFiles().length > 0) {
+    out = `${config.charset === "text" ? "[!cfg] " : "⚠ "}${out}`;
+  }
   process.stdout.write(out + "\n");
 }
 

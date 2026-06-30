@@ -24,8 +24,8 @@ todos:
     content: "Phase 2: dim parens, merge no-padding, windowSeconds, compaction options, linkToIDE/linkToRepo, timer locale, hideNoGit flags, symbol overrides"
     status: pending
   - id: resilience-perf
-    content: "Phase 2b: invalid-config hot-path badge, block-cache JSONL, separator collapse, CCSTATUSLINE_WIDTH env, bounded stdin read, CLAUDE_STATUS_DASH_DISABLE kill switch"
-    status: pending
+    content: "Phase 2b MOSTLY DONE 2026-06-30: shipped invalid-config hot-path badge (⚠ prefix + getInvalidConfigFiles), bounded stdin read (256KB cap), CC_STATUS_DASH_DISABLE kill switch, CC_STATUS_DASH_WIDTH alias. Separator collapse already correct (empty widgets culled before join). REMAINING: block-cache for JSONL metrics (perf)."
+    status: in_progress
   - id: layout-powerline
     content: "Phase 3: flexMode, flex-separator, powerline caps, auto-align, gradients, inheritSeparatorColors, global FG/BG override, TUI wrap-around + refreshInterval sync + install screen"
     status: pending

@@ -62,6 +62,14 @@ function warn(msg: string): void {
   }
 }
 
+// Config files that existed but failed to parse/validate during the last loadConfig().
+// Surfaced as a hot-path badge by index.ts so a corrupt file isn't silently ignored.
+let invalidConfigFiles: string[] = [];
+/** Paths of config files skipped (bad JSON / failed validation) in the last load. */
+export function getInvalidConfigFiles(): string[] {
+  return invalidConfigFiles;
+}
+
 function readJson(path: string): Partial<Config> | null {
   let raw: unknown;
   try {
@@ -69,6 +77,7 @@ function readJson(path: string): Partial<Config> | null {
     raw = JSON.parse(readFileSync(path, "utf8"));
   } catch {
     warn(`ignoring config ${path}: invalid JSON`);
+    invalidConfigFiles.push(path);
     return null;
   }
   // Validate shape/types; on failure warn (to stderr) and fall back to skipping
@@ -76,6 +85,7 @@ function readJson(path: string): Partial<Config> | null {
   const result = validatePartialConfig(raw);
   if (!result.ok) {
     warn(`ignoring invalid config ${path}: ${result.issues.join("; ")}`);
+    invalidConfigFiles.push(path);
     return null;
   }
   return result.value;
@@ -141,6 +151,7 @@ export function validateConfigFiles(cliPath?: string): ConfigFileReport[] {
 }
 
 export function loadConfig(flags: CliFlags = {}): Config {
+  invalidConfigFiles = []; // reset per load; populated by readJson on bad/invalid files
   let cfg: Config = { ...DEFAULT_CONFIG };
   // Accumulate only the user's explicit color overrides, so we can apply them
   // on top of whichever theme ends up selected (theme < custom colors).

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadConfig } from "../config/load.js";
+import { loadConfig, getInvalidConfigFiles } from "../config/load.js";
 
 // Exhaustive config-resolution coverage: every location layer in the chain
 // (defaults < XDG < CLAUDE_CONFIG_DIR < ~/.claude < ./project < --config < env < CLI flag).
@@ -104,7 +104,7 @@ test("an unknown preset id never blanks the lines", () => {
   assert.ok(Array.isArray(cfg.lines) && cfg.lines.length >= 1, "unknown preset must keep usable default lines");
 });
 
-test("invalid config files are skipped, not fatal", () => {
+test("invalid config files are skipped, not fatal, and tracked for a badge", () => {
   const root = mkdtempSync(join(tmpdir(), "ccsd-bad-"));
   const cliPath = join(root, "bad.json");
   try {
@@ -113,6 +113,11 @@ test("invalid config files are skipped, not fatal", () => {
     // Falls back to defaults rather than applying the invalid values.
     assert.equal(typeof cfg.padding, "number");
     assert.notEqual(cfg.charset, "emoji");
+    // ...and the bad file is recorded so index.ts can surface a hot-path badge.
+    assert.ok(getInvalidConfigFiles().includes(cliPath), "invalid file tracked");
+    // A subsequent clean load clears it.
+    loadConfig({});
+    assert.equal(getInvalidConfigFiles().length, 0, "tracker resets per load");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

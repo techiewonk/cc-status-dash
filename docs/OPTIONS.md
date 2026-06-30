@@ -210,6 +210,8 @@ cc-status-dash --list-themes
 | `NO_COLOR` | Disables all color (sets `colorDepth: none`). |
 | `FORCE_COLOR=0` | Also disables color; `FORCE_COLOR=1/2/3` forces ansi/256/truecolor. |
 | `CC_STATUS_DASH_THEME` | Overrides `theme` (above files, below the `--theme` flag). |
+| `CC_STATUS_DASH_DISABLE` | Kill switch — when set, the statusline emits nothing and exits. |
+| `CC_STATUS_DASH_WIDTH` | Terminal width for `autoWrap` (highest priority, over `COLUMNS`). |
 | `COLUMNS` | Terminal width used for `autoWrap` (overrides `stdout.columns`). |
 | `XDG_CONFIG_HOME` | Config lookup location (see top). |
 | `CLAUDE_CONFIG_DIR` | Config lookup location (Claude Code's config dir). |
