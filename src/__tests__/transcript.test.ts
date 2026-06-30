@@ -159,6 +159,17 @@ test("block-cache: repeat read is consistent and a file change invalidates it", 
   }
 });
 
+test("session token tallies dedupe duplicate API-response writes by id", () => {
+  const usage = { input_tokens: 100, output_tokens: 50, cache_creation_input_tokens: 0, cache_read_input_tokens: 200 };
+  const t = parse([
+    { type: "assistant", message: { id: "msg_1", usage, content: [] } },
+    { type: "assistant", message: { id: "msg_1", usage, content: [] } }, // duplicate write — must not double count
+    { type: "assistant", message: { id: "msg_2", usage, content: [] } },
+  ]);
+  assert.equal(t.sessionTokens?.input, 200, "two distinct messages -> 2x input (not 3x)");
+  assert.equal(t.sessionTokens?.cacheRead, 400, "cacheRead deduped too");
+});
+
 test("agents resolve to done when their Task tool_result arrives", () => {
   const a = parse([
     { type: "assistant", message: { content: [{ type: "tool_use", id: "g1", name: "Task", input: { subagent_type: "explore" } }] } },

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { loadConfig, validateConfigFiles, getInvalidConfigFiles, type CliFlags } from "./config/load.js";
 import { collectProviderData } from "./data/providers.js";
+import { writeUsageSidecar } from "./data/sidecar.js";
 import { render } from "./render/renderer.js";
 import { listThemes } from "./themes/index.js";
 import { listWidgets } from "./widgets/index.js";
@@ -131,6 +132,7 @@ async function main(): Promise<void> {
     }
   }
 
+  writeUsageSidecar(input, Date.now()); // opt-in (CC_STATUS_DASH_USAGE_SIDECAR); no-op otherwise
   const data = collectProviderData(input, config);
   let out = render({ input, config, data });
   // Hot-path badge: a config file that existed but failed to parse/validate was

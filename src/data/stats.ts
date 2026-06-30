@@ -15,7 +15,7 @@ interface SessionStat {
   lastTs: number;
   cost: number;
   messages: number;
-  samples: { ts: number; total: number; input: number; output: number }[];
+  samples: { ts: number; total: number; input: number; output: number; cost?: number }[];
 }
 interface StatsFile { sessions: Record<string, SessionStat>; }
 
@@ -88,7 +88,7 @@ export function collectStats(input: StatuslineInput, windowSec = 60): StatsInfo 
   s.date = date; s.month = month;
   let pushed = false;
   if (s.samples.length === 0 || now - s.samples[s.samples.length - 1].ts > 1000) {
-    s.samples.push({ ts: now, total: t.total, input: t.input, output: t.output });
+    s.samples.push({ ts: now, total: t.total, input: t.input, output: t.output, cost });
     if (s.samples.length > MAX_SAMPLES) s.samples = s.samples.slice(-MAX_SAMPLES);
     s.messages++;
     pushed = true;
@@ -125,9 +125,29 @@ export function collectStats(input: StatuslineInput, windowSec = 60): StatsInfo 
     return Math.max(0, Math.round((pick(latest) - pick(base)) / dt));
   };
 
+  // Block cost (current 5h window): cost accrued since the window start, derived
+  // from cost-stamped samples. windowStart = five_hour.resets_at − 5h. Undefined
+  // when there's no rate-limit window or no cost-bearing sample to anchor on.
+  let blockCost: number | undefined;
+  const resetsAt = input.rate_limits?.five_hour?.resets_at;
+  if (resetsAt != null) {
+    const resetMs = typeof resetsAt === "number" ? (resetsAt < 1e12 ? resetsAt * 1000 : resetsAt) : Date.parse(String(resetsAt));
+    if (Number.isFinite(resetMs)) {
+      const windowStart = resetMs - 5 * 3600_000;
+      const withCost = s.samples.filter((x) => typeof x.cost === "number");
+      if (withCost.length) {
+        // cost at/just-before the window start (0 if the session began inside the window)
+        const before = [...withCost].reverse().find((x) => x.ts <= windowStart);
+        const baseCost = before ? (before.cost ?? 0) : 0;
+        blockCost = Math.max(0, cost - baseCost);
+      }
+    }
+  }
+
   return {
     sessionCost: cost,
     dailyCost, weeklyCost, monthlyCost,
+    blockCost,
     tokenSpeed: { input: speed((x) => x.input), output: speed((x) => x.output), total: speed((x) => x.total) },
     messageCount: s.messages,
   };

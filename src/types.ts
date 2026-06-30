@@ -136,6 +136,8 @@ export interface StatsInfo {
   dailyCost: number;
   weeklyCost: number;
   monthlyCost: number;
+  /** cost accrued in the current 5h rate-limit window (budget scope:block) */
+  blockCost?: number;
   /** tokens per second over the configured window */
   tokenSpeed: { input: number; output: number; total: number };
   messageCount: number;

@@ -85,6 +85,7 @@ function parseTranscript(path: string): { info: TranscriptInfo; lastUserMs?: num
   const mcpServers = new Set<string>();
   let todos: TranscriptInfo["todos"] = { total: 0, completed: 0 };
   let sessionTokens = { input: 0, output: 0, cacheCreation: 0, cacheRead: 0 };
+  const seenUsage = new Set<string>(); // dedupe duplicate API-response writes by id
   let compactionCount = 0;
   let sessionName: string | undefined;
   let advisorModel: string | undefined;
@@ -124,10 +125,17 @@ function parseTranscript(path: string): { info: TranscriptInfo; lastUserMs?: num
 
     const usage = entry?.message?.usage;
     if (usage) {
-      sessionTokens.input += Number(usage.input_tokens) || 0;
-      sessionTokens.output += Number(usage.output_tokens) || 0;
-      sessionTokens.cacheCreation += Number(usage.cache_creation_input_tokens) || 0;
-      sessionTokens.cacheRead += Number(usage.cache_read_input_tokens) || 0;
+      // Claude Code writes the same API response to the transcript 2-3 times
+      // (streaming partials + final). Dedupe by message/request id so token
+      // tallies aren't inflated (ccstatusline streaming-dedupe parity).
+      const uid = entry?.message?.id ?? entry?.requestId;
+      if (!uid || !seenUsage.has(uid)) {
+        if (uid) seenUsage.add(uid);
+        sessionTokens.input += Number(usage.input_tokens) || 0;
+        sessionTokens.output += Number(usage.output_tokens) || 0;
+        sessionTokens.cacheCreation += Number(usage.cache_creation_input_tokens) || 0;
+        sessionTokens.cacheRead += Number(usage.cache_read_input_tokens) || 0;
+      }
     }
 
     const content = entry?.message?.content;

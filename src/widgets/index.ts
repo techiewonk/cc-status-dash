@@ -870,7 +870,8 @@ add(w("budget", "usage", "Budget", ["stats"], (_d, opts, ctx) => {
   if (amount <= 0) return [];
   const scope = (opts.scope as string) ?? "session";
   const s = ctx.data.stats;
-  const val = scope === "today" ? s?.dailyCost : scope === "month" ? s?.monthlyCost : s?.sessionCost;
+  const val = scope === "today" ? s?.dailyCost : scope === "month" ? s?.monthlyCost
+    : scope === "block" ? s?.blockCost : s?.sessionCost;
   if (val == null) return [];
   const pct = Math.round((val / amount) * 100);
   const warn = Number(opts.warningThreshold ?? 80);

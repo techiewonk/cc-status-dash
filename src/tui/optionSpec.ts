@@ -120,7 +120,7 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
   budget: [
     { key: "amount", label: "Budget $", kind: "number" },
     { key: "warningThreshold", label: "Warn at %", kind: "number" },
-    { key: "scope", label: "Scope", kind: "enum", choices: ["session", "today", "month"] },
+    { key: "scope", label: "Scope", kind: "enum", choices: ["session", "today", "month", "block"] },
   ],
   env: [{ key: "variable", label: "Env var name", kind: "text" }],
   "custom-text": [

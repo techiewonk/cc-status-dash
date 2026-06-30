@@ -97,7 +97,7 @@ These **24 widgets** add their own options:
 | `git.branch` | `showDirty`, `showAheadBehind`, `showDiff`, `link` |
 | `git.files` | `max` (per-file `+/-`, Claude HUD parity) |
 | `git-pr` | `showStatus`, `showTitle` |
-| `budget` | `amount`, `warningThreshold`, `scope` (session/today/month) |
+| `budget` | `amount`, `warningThreshold`, `scope` (session/today/month/block) |
 | `reset-timer` / `weekly-reset-timer` | `timestamp`, `hoursOnly` |
 | `compaction-counter` | `hideWhenZero` |
 | `env` | `variable` |

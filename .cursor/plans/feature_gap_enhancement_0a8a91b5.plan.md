@@ -30,10 +30,10 @@ todos:
     content: "Phase 3 PARTIAL 2026-07-01: shipped global overrideForeground/overrideBackground (painter forces one FG/BG on every segment), powerlineCaps (round/flame end caps via POWERLINE_CAPS by codepoint). REMAINING: flexMode/flex-separator, auto-align, gradients (need per-char color interp), inheritSeparatorColors, TUI wrap-around nav + refreshInterval→settings.json install screen."
     status: in_progress
   - id: usage-api
-    content: "Phase 4: usage API provider, weekly sonnet/opus widgets, extra-usage-used (API-sourced); JSONL dedupe; external-usage write sidecar"
-    status: pending
+    content: "Phase 4 PARTIAL 2026-07-01: shipped JSONL token dedupe (seenUsage by message.id/requestId — no more 2-3x inflated tallies) AND external-usage write sidecar (data/sidecar.ts: CC_STATUS_DASH_USAGE_SIDECAR emits rate_limits JSON atomically, pairs with external-usage widget). DEFERRED (needs Anthropic usage API + OAuth, can't test locally): live usage API provider, weekly-sonnet/opus widgets, extra-usage-used."
+    status: in_progress
   - id: unique-features
-    content: "Phase 5 PARTIAL 2026-06-30: shipped session-health widget, cache-roi widget, theme pack (10 themes), AND MAX_LAYERS 9 (+4 dense presets mega/mega-tokens/mega-system/ultra → 35 presets; matrix test now covers 1..9). REMAINING: budget scope:block (needs per-block cost accumulator in stats), config profiles, skills hook cache."
+    content: "Phase 5 PARTIAL 2026-07-01: shipped session-health, cache-roi, theme pack (10 themes), MAX_LAYERS 9 (+4 dense presets → 35), AND budget scope:block (stats now cost-stamps samples + computes blockCost = cost since the 5h window start). REMAINING: config profiles (TUI named snapshots), skills hook cache (CC skills cache reader — uncertain data source)."
     status: in_progress
   - id: defer-jj
     content: "Defer Jujutsu (8 widgets) — opt-in jj provider only if user demand; document in PARITY"
