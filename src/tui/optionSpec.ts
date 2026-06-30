@@ -28,10 +28,12 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
   cwd: [
     { key: "segments", label: "Path segments", kind: "number" },
     { key: "style", label: "Style", kind: "enum", choices: ["fish", "basename", "full"] },
+    { key: "home", label: "Abbreviate home (~)", kind: "toggle" },
   ],
   "current-working-dir": [
     { key: "segments", label: "Path segments", kind: "number" },
     { key: "style", label: "Style", kind: "enum", choices: ["fish", "basename", "full"] },
+    { key: "home", label: "Abbreviate home (~)", kind: "toggle" },
   ],
   "context.bar": [
     { key: "mode", label: "Mode", kind: "enum", choices: ["remaining", "used"] },
@@ -82,6 +84,10 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "label", label: "Label", kind: "text" },
   ],
   "compaction-counter": [{ key: "hideWhenZero", label: "Hide when zero", kind: "toggle" }],
+  "git-pr": [
+    { key: "showStatus", label: "Show status", kind: "toggle" },
+    { key: "showTitle", label: "Show title", kind: "toggle" },
+  ],
 };
 
 /** Universal per-widget styling options — apply to EVERY widget instance (ccstatusline's
@@ -94,6 +100,7 @@ export const UNIVERSAL_OPTION_SPECS: FieldSpec[] = [
   { key: "dim", label: "Dim", kind: "toggle" },
   { key: "rawValue", label: "Raw (drop label)", kind: "toggle" },
   { key: "merge", label: "Merge w/ next (no sep)", kind: "toggle" },
+  { key: "maxWidth", label: "Max width (truncate)", kind: "number" },
 ];
 
 /** Full editable field list for a widget = its specific options + the universal ones. */

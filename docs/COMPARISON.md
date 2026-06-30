@@ -27,7 +27,7 @@ editable in the `--tui` options screen for every widget).
 | `dim` | ✅ per-widget | — | ✅ | ✅ |
 | `rawValue` (drop label) | ✅ per-widget | global only | ✅ (+ global `minimalist`) | ✅ |
 | `merge` (join, no sep) | ✅ | `mergeGroups` | ✅ | ✅ |
-| `maxWidth` (truncate) | ✅ | `toolNameMaxLength` etc. | ❌ (planned) | ❌ |
+| `maxWidth` (truncate) | ✅ | `toolNameMaxLength` etc. | ✅ | ✅ |
 
 ## Percentage → bar
 
@@ -68,10 +68,10 @@ Example: `{ "id": "usage.block", "barStyle": "blocks", "showPace": true }` →
 
 ## Gaps remaining vs ccstatusline
 
-- `maxWidth` per-widget truncation (option not yet implemented).
-- A few widget-specific toggles (cwd `home ~`, compaction `format`/`split`, git-pr
-  `status`/`title`, weekly-reset `hours-only`).
-- Niche widget families we don't carry: Jujutsu, Vim, Voice, external-usage, per-model weekly.
+- A few niche widget-specific toggles (compaction `format`/`split`, weekly-reset `hours-only`,
+  per-model weekly usage).
+- Niche widget families we don't carry: Jujutsu, Vim, Voice, external-usage.
 
-Everything else — the universal styling options, per-widget colors, and percentage bars —
-is now at parity, rendered and editable in the TUI.
+Everything else is at parity: the universal styling options (`color`, `bgColor`, `bold`,
+`dim`, `rawValue`, `merge`, `maxWidth`), per-widget colors, percentage bars, `cwd` home
+abbreviation, and `git-pr` status/title toggles — all rendered **and** editable in the TUI.

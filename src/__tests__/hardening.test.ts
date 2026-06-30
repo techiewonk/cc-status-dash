@@ -193,6 +193,27 @@ test("rawValue on a single widget drops its label", () => {
   assert.ok(!/Ctx/.test(out), `label should be dropped, got ${out}`);
 });
 
+// ---- maxWidth truncates a widget with an ellipsis ----
+test("maxWidth truncates a long widget", () => {
+  const lines = [{ style: "inline" as const, widgets: [{ id: "custom-text", text: "abcdefghijklmnop", maxWidth: 6 }] }];
+  const out = render({ input: {}, data: {}, config: cfg({ lines, padding: 0 }) });
+  const visible = out.replace(/\x1b\[[0-9;]*m/g, "");
+  assert.ok(visible.includes("…"), `expected ellipsis, got ${visible}`);
+  assert.ok(displayWidth(visible.trim()) <= 6, `width <= 6, got ${displayWidth(visible.trim())}`);
+});
+
+// ---- cwd home abbreviation ----
+test("cwd home:true abbreviates the home dir to ~", () => {
+  const prev = process.env.HOME;
+  try {
+    process.env.HOME = "/home/dev";
+    const w = getWidget("cwd")!;
+    const ctx: RenderContext = { input: { workspace: { current_dir: "/home/dev/projects/app" } }, data: {}, config: cfg() };
+    const out = w.render(w.collect(ctx), { home: true, style: "full" }, ctx).map((s) => s.text).join("");
+    assert.ok(out.startsWith("~/"), `expected ~ prefix, got ${out}`);
+  } finally { if (prev === undefined) delete process.env.HOME; else process.env.HOME = prev; }
+});
+
 // ---- powerline separator is configurable ----
 test("powerlineSeparator swaps the glyph (round = U+E0B4)", () => {
   const lines = [{ style: "powerline" as const, widgets: [{ id: "model" }, { id: "session-clock" }] }];

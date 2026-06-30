@@ -378,7 +378,10 @@ gitText("worktree-mode", "Worktree mode", "label", (g) => (g.worktree?.mode ? "w
 // ---------------- filesystem / system ----------------
 
 const cwdWidget = (id: string) => add(w(id, "system", "Working directory", ["stdin"], (_d, opts, ctx) => {
-  const data = san(ctx.input.workspace?.current_dir ?? ctx.input.cwd ?? process.cwd());
+  let data = san(ctx.input.workspace?.current_dir ?? ctx.input.cwd ?? process.cwd());
+  // `home` toggle: abbreviate the home directory to `~` (ccstatusline "(h)ome ~").
+  const home = process.env.HOME || process.env.USERPROFILE || "";
+  if (opts.home === true && home && data.startsWith(home)) data = `~${data.slice(home.length)}`;
   const parts = data.replace(/[\\/]+$/, "").split(/[\\/]/).filter(Boolean);
   const style = (opts.style as string) ?? "segments";
   const isDrive = (p: string) => /^[A-Za-z]:$/.test(p); // preserve a Windows drive letter
@@ -625,18 +628,23 @@ add(w("cost-projection", "usage", "Cost projection (block)", ["stats", "rate_lim
 }));
 
 // ---------------- git PR / API time ----------------
-add(w("git-pr", "git", "Pull request (gh/glab)", ["git"], (_d, _o, ctx) => {
+add(w("git-pr", "git", "Pull request (gh/glab)", ["git"], (_d, o, ctx) => {
   const g = ctx.data.git;
   if (!g?.isRepo) return [];
+  const showStatus = o.showStatus !== false; // toggles (ccstatusline parity): status + title
+  const showTitle = o.showTitle !== false;
   const cwd = ctx.input.workspace?.current_dir ?? ctx.input.cwd ?? process.cwd();
   const opts: import("node:child_process").ExecSyncOptionsWithStringEncoding = { cwd, timeout: 800, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8", windowsHide: true };
   try {
     const j = JSON.parse(execSync("gh pr view --json number,title,state", opts).trim());
-    return [{ text: `${sym("⎇", "PR", ctx)} ${String(j.state).toLowerCase()} #${j.number} ${san(String(j.title ?? ""))}`.trim(), color: "gitBranch" }];
+    const parts = [sym("⎇", "PR", ctx), ...(showStatus ? [String(j.state).toLowerCase()] : []), `#${j.number}`, ...(showTitle ? [san(String(j.title ?? ""))] : [])];
+    return [{ text: parts.join(" ").trim(), color: "gitBranch" }];
   } catch { /* try glab */ }
   try {
     const j = JSON.parse(execSync("glab mr view -F json", opts).trim());
-    return j?.iid ? [{ text: `${sym("⎇", "MR", ctx)} !${j.iid} ${san(String(j.title ?? ""))}`.trim(), color: "gitBranch" }] : [];
+    if (!j?.iid) return [];
+    const parts = [sym("⎇", "MR", ctx), `!${j.iid}`, ...(showTitle ? [san(String(j.title ?? ""))] : [])];
+    return [{ text: parts.join(" ").trim(), color: "gitBranch" }];
   } catch { return []; }
 }));
 add(w("total-api-time", "activity", "Total API time", ["stdin"], (_d, _o, ctx) => {

@@ -112,6 +112,7 @@ These apply to **every** widget instance and are editable in the `--tui` options
 | `dim` | boolean | Dim the value. |
 | `rawValue` | boolean | Drop the label for just this widget (scoped `minimalist`). |
 | `merge` | boolean | Join with the next widget with no separator. |
+| `maxWidth` | number | Truncate this widget to N columns with an ellipsis. |
 | `barStyle` | enum | On percentage widgets (`context.bar`, `context-percentage`, `usage.block`, `usage.weekly`): render a progress bar — any of the 10 [bar styles](#bar-styles), or `none` for text only. |
 
 ### Common per-widget options
@@ -122,6 +123,8 @@ These options are read by the widgets noted; unknown options are ignored.
 |---|---|---|---|
 | `show1M` | boolean | `model` | Append a `1M` badge when on a 1M-context model (auto-detected). |
 | `segments` | number | `cwd` | How many trailing path segments to show (`2` → `projects/app`). |
+| `home` | boolean | `cwd` | Abbreviate the home directory to `~`. |
+| `showStatus` / `showTitle` | boolean | `git-pr` | Show the PR state / title (both default on). |
 | `mode` | `"remaining"` \| `"used"` | `context.bar` | Show context left vs context used. |
 | `barStyle` | string | `context.bar`, usage bars | Progress-bar glyph set — see [Bar styles](#bar-styles). |
 | `showPace` | boolean | `usage.block` | Show the burn-vs-time pace delta (`⇣`/`⇡`). |

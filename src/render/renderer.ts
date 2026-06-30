@@ -83,6 +83,32 @@ function applyWidgetStyle(segments: Segment[], wc: WidgetConfig): Segment[] {
   });
 }
 
+/** Truncate a widget's segments to `maxWidth` display columns, appending an ellipsis.
+ * ccstatusline WidgetItem.maxWidth parity. Measures real terminal columns. */
+function truncateSegments(segments: Segment[], maxWidth: number): Segment[] {
+  if (maxWidth <= 0) return segments;
+  let total = 0;
+  for (const s of segments) total += displayWidth(s.text);
+  if (total <= maxWidth) return segments;
+  const limit = Math.max(1, maxWidth - 1); // leave a column for the ellipsis
+  const out: Segment[] = [];
+  let used = 0;
+  for (const s of segments) {
+    const w = displayWidth(s.text);
+    if (used + w <= limit) { out.push(s); used += w; continue; }
+    let txt = "";
+    for (const ch of s.text) {
+      const cw = displayWidth(ch);
+      if (used + cw > limit) break;
+      txt += ch; used += cw;
+    }
+    if (txt) out.push({ ...s, text: txt });
+    break;
+  }
+  out.push({ text: "…" });
+  return out;
+}
+
 function buildLineWidgets(line: LineConfig, ctx: RenderContext): BuiltWidget[] {
   const built: BuiltWidget[] = [];
   const pad = " ".repeat(Math.max(0, ctx.config.padding));
@@ -108,6 +134,7 @@ function buildLineWidgets(line: LineConfig, ctx: RenderContext): BuiltWidget[] {
     if (pad) segments = [{ text: pad }, ...segments, { text: pad }];
     if (ctx.config.globalBold) segments = segments.map((s) => ({ ...s, bold: true }));
     segments = applyWidgetStyle(segments, wc);
+    if (typeof wc.maxWidth === "number") segments = truncateSegments(segments, wc.maxWidth);
     built.push({ segments, merge: wc.merge === true });
   }
   return built;
