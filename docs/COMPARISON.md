@@ -11,7 +11,7 @@ and where cc-status-dash now stands. (Source of truth: local clones `D:\ccstatus
 | Paradigm | per-widget items in a pipeline | global `display.*` toggles | both — preset **or** per-widget pipeline |
 | Interactive TUI | ✅ multi-screen Ink | ❌ | ✅ multi-screen Ink (`--tui`) |
 | In-Claude-Code config | ❌ | ✅ slash command (LLM) | ✅ slash command + `--configure` wizard |
-| Widgets | ~80 (incl. Jujutsu, Vim, Voice) | fixed element set | **104** |
+| Widgets | ~80 (incl. Jujutsu, Vim, Voice) | fixed element set | **107** |
 
 ## Universal per-widget styling options
 
@@ -72,11 +72,11 @@ Examples:
 **Only in cc-status-dash (not ccstatusline):** `burn-rate`, `budget`, `cost-projection`,
 `daily/weekly/monthly-cost`, `token-breakdown`, `tokens-per-min`, `message-count`,
 `total-api-time`, `last-response-time`, `config-counts`, `mcp-count`, `session-duration`,
-`cache-timer`, `provider`, and more (104 total).
+`cache-timer`, `provider`, and more (107 total).
 
 ## Complete per-widget option reference (cc-status-dash)
 
-**Every one of the 104 widgets** also accepts the 7 universal options
+**Every one of the 107 widgets** also accepts the 7 universal options
 (`color`, `bgColor`, `bold`, `dim`, `rawValue`, `merge`, `maxWidth`) — not repeated below.
 These **23 widgets** add their own options:
 

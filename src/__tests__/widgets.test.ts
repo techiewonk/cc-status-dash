@@ -163,7 +163,27 @@ test("registry has the full widget set", () => {
 });
 
 test("widget count snapshot (bump deliberately when adding widgets)", () => {
-  assert.equal(listWidgets().length, 104, "widget count changed — update docs (README/OPTIONS/COMPARISON) + this snapshot");
+  assert.equal(listWidgets().length, 107, "widget count changed — update docs (README/OPTIONS/COMPARISON) + this snapshot");
+});
+
+test("Phase 1 HUD widgets render from real data", () => {
+  const ctx = (input: StatuslineInput, data: ProviderData = {}): RenderContext => ({ input, data, config: { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme) } });
+  // added-dirs from workspace.added_dirs
+  const ad = getWidget("added-dirs")!;
+  const adOut = ad.render(ad.collect(ctx({ workspace: { current_dir: "/x", added_dirs: ["/repo/shared", "/repo/lib"] } })), {}, ctx({ workspace: { added_dirs: ["/repo/shared", "/repo/lib"] } })).map((s) => s.text).join("");
+  assert.match(adOut, /\+shared/, `added-dirs shows basenames, got ${adOut}`);
+  // session-tokens + activity.mcp from transcript data
+  const data: ProviderData = { transcript: { recentTools: [], toolCounts: [], agents: [], todos: { total: 0, completed: 0 }, skills: [], mcpServers: ["slack", "github"], sessionTokens: { input: 88000, output: 4000, cacheCreation: 0, cacheRead: 0 } } };
+  const stOut = getWidget("session-tokens")!.render(null, {}, ctx({}, data)).map((s) => s.text).join("");
+  assert.match(stOut, /88(\.0)?k/, `session-tokens shows input, got ${stOut}`);
+  const mcpOut = getWidget("activity.mcp")!.render(null, {}, ctx({}, data)).map((s) => s.text).join("");
+  assert.match(mcpOut, /slack/, `activity.mcp shows names, got ${mcpOut}`);
+});
+
+test("usage limit-reached at 100%", () => {
+  const ctx: RenderContext = { input: { rate_limits: { five_hour: { used_percentage: 100, resets_at: Math.floor(Date.now() / 1000) + 3600 } } }, data: {}, config: { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme) } };
+  const out = getWidget("usage.block")!.render(null, {}, ctx).map((s) => s.text).join("");
+  assert.match(out, /limit/, `expected limit-reached, got ${out}`);
 });
 
 test("session-health + cache-roi render from existing data", () => {

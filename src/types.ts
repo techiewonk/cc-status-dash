@@ -5,7 +5,7 @@
 
 export interface StatuslineInput {
   model?: { id?: string; display_name?: string };
-  workspace?: { current_dir?: string; project_dir?: string; git_worktree?: string } | null;
+  workspace?: { current_dir?: string; project_dir?: string; git_worktree?: string; added_dirs?: string[] } | null;
   cwd?: string;
   session_id?: string;
   session_name?: string;

@@ -23,7 +23,7 @@ It fuses the two most popular Claude Code statusline tools into one:
 
 Plus the best ideas from the wider ecosystem: **pace delta** (burn vs. time-left) from claude-pace, multiple bar styles from claude-powerline, and up to a 5-layer dashboard.
 
-> **104 widgets · 10 themes · 30 presets (1–5 layers) · 3 render styles · 10 bar styles**
+> **107 widgets · 10 themes · 30 presets (1–5 layers) · 3 render styles · 10 bar styles**
 
 ---
 
@@ -180,15 +180,15 @@ layer on top. `NO_COLOR` is honored.
 
 ## Widgets
 
-**104 widgets** across 8 categories — incl. cc-status-dash exclusives `session-health` (context + pace + reset at a glance) and `cache-roi` (`--list-widgets` for the full list):
+**107 widgets** across 8 categories — incl. cc-status-dash exclusives `session-health` (context + pace + reset at a glance) and `cache-roi` (`--list-widgets` for the full list):
 
 | Category | # | Examples |
 |---|---|---|
 | git | 35 | `git.branch`, `git-status`, `git-changes`, `git-ahead-behind`, `git-worktree`, `git-pr` |
 | usage | 16 | `usage.block` (5h), `usage.weekly` (7d), `cost`, `burn-rate`, `budget`, `external-usage`, `daily/weekly/monthly-cost` |
-| activity | 13 | `activity.tools`, `activity.agents`, `activity.todos`, `skills`, `mcp-count`, `message-count` |
-| tokens | 13 | `tokens-total`, `tokens-cached`, `cache-hit-rate`, `cache-roi`, `tokens-per-min`, `total-speed` |
-| system | 11 | `cwd`, `version`, `session-name`, `free-memory`, `terminal-width`, `config-counts` |
+| activity | 14 | `activity.tools`, `activity.agents`, `activity.todos`, `activity.mcp`, `skills`, `mcp-count`, `message-count` |
+| tokens | 14 | `tokens-total`, `tokens-cached`, `cache-hit-rate`, `cache-roi`, `session-tokens`, `tokens-per-min`, `total-speed` |
+| system | 12 | `cwd`, `added-dirs`, `version`, `session-name`, `free-memory`, `terminal-width`, `config-counts` |
 | context | 8 | `context.bar`, `context-percentage`, `session-health`, `context-length`, `compaction-counter` |
 | model | 4 | `model`, `thinking-effort`, `provider`, `claude-account-email` |
 | custom | 4 | `custom-text`, `custom-symbol`, `custom-command`, `link` |
@@ -198,7 +198,7 @@ layer on top. `NO_COLOR` is honored.
 ## CLI
 
 ```bash
-npx cc-status-dash --list-widgets     # 104 widgets
+npx cc-status-dash --list-widgets     # 107 widgets
 npx cc-status-dash --list-themes      # 10 themes
 npx cc-status-dash --list-presets     # 30 presets
 npx cc-status-dash --validate         # check config files in the resolution chain

@@ -279,6 +279,13 @@ const usageWindow = (id: string, label: string, key: "five_hour" | "seven_day", 
     if (!win || typeof win.used_percentage !== "number") return [];
     const pct = win.used_percentage;
     if (pct < Number(opts.threshold ?? 0)) return [];
+    // Limit reached (Claude HUD parity): at/over 100% show a clear warning + reset time.
+    if (pct >= 100) {
+      const seg: Segment[] = [{ text: `${sym("⚠", "!", ctx)} ${label} limit`, color: "critical" }];
+      const cd = win.resets_at != null ? fmtCountdown(win.resets_at) : null;
+      if (cd) seg.push({ text: ` (${cd})`, color: "label" });
+      return seg;
+    }
     const color = pct >= critAt ? "critical" : pct >= 60 ? "warning" : "usage";
     // mode: "used" (default) shows % consumed; "remaining" shows % left (claude-hud parity).
     // The bar/threshold/color always track the *used* pct; only the number flips.
@@ -294,6 +301,11 @@ const usageWindow = (id: string, label: string, key: "five_hour" | "seven_day", 
         const ahead = delta <= 0;
         segs.push({ text: ` ${ahead ? sym("⇣", "v", ctx) : sym("⇡", "^", ctx)}${Math.abs(delta)}%`, color: ahead ? "paceGood" : "paceBad" });
       }
+    }
+    // usageCompact (Claude HUD parity): append the reset countdown inline, e.g. "5h 38% (1h 30m)".
+    if (opts.usageCompact && win.resets_at != null) {
+      const cd = fmtCountdown(win.resets_at);
+      if (cd) segs.push({ text: ` (${cd})`, color: "label" });
     }
     return segs;
   }));
@@ -358,6 +370,22 @@ timerWidget("block-timer", "Block", "five_hour", true);
 timerWidget("reset-timer", "Resets", "five_hour", false);
 timerWidget("weekly-reset-timer", "7d resets", "seven_day", false);
 
+// Added directories from /add-dir (Claude HUD parity) — multi-root sessions.
+add(w("added-dirs", "system", "Added directories", ["stdin"], (_d, opts, ctx) => {
+  const dirs = ctx.input.workspace?.added_dirs;
+  if (!Array.isArray(dirs) || !dirs.length) return [];
+  const max = typeof opts.max === "number" ? opts.max : 3;
+  const names = dirs.slice(0, max).map((d) => san(basename(String(d)))).filter((n): n is string => !!n);
+  if (!names.length) return [];
+  const extra = dirs.length > max ? ` +${dirs.length - max}` : "";
+  return lv(sym("⊕", "+", ctx), names.map((n) => `+${n}`).join(" ") + extra, "cwd", ctx);
+}));
+// Cumulative session tokens (Claude HUD parity): input / output from the transcript.
+add(w("session-tokens", "tokens", "Session tokens", ["transcript"], (_d, _o, ctx) => {
+  const st = ctx.data.transcript?.sessionTokens;
+  if (!st || (!st.input && !st.output)) return [];
+  return lv("Sess", `${sym("↑", "in ", ctx)}${fmtTokens(st.input)} ${sym("↓", "out ", ctx)}${fmtTokens(st.output)}`, "usage", ctx);
+}));
 add(w("session-clock", "system", "Clock", ["stdin"], (_d, o, ctx) =>
   lv(null, new Date().toLocaleTimeString([], {
     hour: "2-digit", minute: "2-digit",
@@ -558,6 +586,14 @@ add(w("skills", "activity", "Skills used", ["transcript"], (_d, opts, ctx) => {
 add(w("mcp-count", "activity", "MCP servers", ["transcript"], (_d, _o, ctx) => {
   const m = ctx.data.transcript?.mcpServers ?? [];
   return m.length ? lv("MCP", m.length, "label", ctx) : [];
+}));
+// Live MCP server names (Claude HUD parity) — vs mcp-count's number only.
+add(w("activity.mcp", "activity", "MCP servers (live)", ["transcript"], (_d, opts, ctx) => {
+  const m = ctx.data.transcript?.mcpServers ?? [];
+  if (!m.length) return [];
+  const max = typeof opts.max === "number" ? opts.max : 3;
+  const extra = m.length > max ? ` +${m.length - max}` : "";
+  return lv(sym("⚙", "mcp", ctx), m.slice(0, max).join(", ") + extra, "agent", ctx);
 }));
 add(w("session-duration", "activity", "Session duration", ["stdin"], (_d, _o, ctx) => {
   const ms = ctx.input.cost?.total_duration_ms;

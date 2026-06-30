@@ -47,14 +47,18 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
   "usage.block": [
     { key: "mode", label: "Mode", kind: "enum", choices: ["used", "remaining"] },
     { key: "showPace", label: "Show pace", kind: "toggle" },
+    { key: "usageCompact", label: "Compact (+ reset)", kind: "toggle" },
     { key: "barStyle", label: "Bar style", kind: "enum", choices: ["none", ...BAR_STYLES] },
     { key: "threshold", label: "Min % to show", kind: "number" },
   ],
   "usage.weekly": [
     { key: "mode", label: "Mode", kind: "enum", choices: ["used", "remaining"] },
+    { key: "usageCompact", label: "Compact (+ reset)", kind: "toggle" },
     { key: "barStyle", label: "Bar style", kind: "enum", choices: ["none", ...BAR_STYLES] },
     { key: "threshold", label: "Min % to show", kind: "number" },
   ],
+  "activity.mcp": [{ key: "max", label: "Max servers shown", kind: "number" }],
+  "added-dirs": [{ key: "max", label: "Max dirs shown", kind: "number" }],
   "session-usage": [
     { key: "mode", label: "Mode", kind: "enum", choices: ["used", "remaining"] },
     { key: "showPace", label: "Show pace", kind: "toggle" },

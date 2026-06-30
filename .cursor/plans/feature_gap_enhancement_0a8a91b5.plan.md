@@ -9,11 +9,11 @@ todos:
     content: "DONE 2026-06-30 (Phase 0b): Exposed JSON-only options in optionSpec.ts — burn-rate.mode, skills.mode, cache-timer.ttlSeconds, git-ahead-behind push warn/crit thresholds, session-clock + reset timers hour12/timezone, activity.tool-counts.max, token-breakdown.threshold, provider.showApi/prefix."
     status: completed
   - id: hud-widgets
-    content: "Phase 1: added-dirs, advisor, session-tokens, activity.mcp; stdin/transcript extensions; hud-compact preset"
-    status: pending
+    content: "Phase 1 PARTIAL 2026-06-30: shipped added-dirs (workspace.added_dirs added to schema), session-tokens (existing transcript data), activity.mcp (live names). REMAINING: advisor + session-start-date (need transcript advisorModel/sessionStart parsing), hud-compact preset."
+    status: in_progress
   - id: hud-ux
-    content: "Phase 1: effort symbols, provider-aware usage/cost cull, activity separators, mergeGroups, limit-reached state, usageCompact text, context tokens/both mode"
-    status: pending
+    content: "Phase 1 PARTIAL 2026-06-30: shipped limit-reached state (⚠ at 100% + reset) and usageCompact (inline reset countdown) on usage widgets. REMAINING: effort symbols, provider-aware usage/cost cull, activity separators, mergeGroups width-fallback, context tokens/both mode."
+    status: in_progress
   - id: hud-render
     content: "Phase 1b: OSC-8-safe wrap, adaptive bar width, clickable cwd, git.files per-file line, session-start-date widget, colors.usageWarning"
     status: pending
