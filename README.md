@@ -23,7 +23,7 @@ It fuses the two most popular Claude Code statusline tools into one:
 
 Plus the best ideas from the wider ecosystem: **pace delta** (burn vs. time-left) from claude-pace, multiple bar styles from claude-powerline, and up to a 5-layer dashboard.
 
-> **101 widgets · 5 themes · 30 presets (1–5 layers) · 3 render styles · 10 bar styles**
+> **102 widgets · 5 themes · 30 presets (1–5 layers) · 3 render styles · 10 bar styles**
 
 ---
 
@@ -180,12 +180,12 @@ layer on top. `NO_COLOR` is honored.
 
 ## Widgets
 
-**101 widgets** across 8 categories (`--list-widgets` for the full list):
+**102 widgets** across 8 categories (`--list-widgets` for the full list):
 
 | Category | # | Examples |
 |---|---|---|
 | git | 35 | `git.branch`, `git-status`, `git-changes`, `git-ahead-behind`, `git-worktree`, `git-pr` |
-| usage | 15 | `usage.block` (5h), `usage.weekly` (7d), `cost`, `burn-rate`, `budget`, `daily/weekly/monthly-cost` |
+| usage | 16 | `usage.block` (5h), `usage.weekly` (7d), `cost`, `burn-rate`, `budget`, `external-usage`, `daily/weekly/monthly-cost` |
 | activity | 13 | `activity.tools`, `activity.agents`, `activity.todos`, `skills`, `mcp-count`, `message-count` |
 | tokens | 12 | `tokens-total`, `tokens-cached`, `cache-hit-rate`, `tokens-per-min`, `total-speed` |
 | system | 11 | `cwd`, `version`, `session-name`, `free-memory`, `terminal-width`, `config-counts` |
@@ -198,7 +198,7 @@ layer on top. `NO_COLOR` is honored.
 ## CLI
 
 ```bash
-npx cc-status-dash --list-widgets     # 101 widgets
+npx cc-status-dash --list-widgets     # 102 widgets
 npx cc-status-dash --list-themes      # 5 themes
 npx cc-status-dash --list-presets     # 30 presets
 npx cc-status-dash --validate         # check config files in the resolution chain

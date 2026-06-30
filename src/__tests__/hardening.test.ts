@@ -193,6 +193,41 @@ test("rawValue on a single widget drops its label", () => {
   assert.ok(!/Ctx/.test(out), `label should be dropped, got ${out}`);
 });
 
+// ---- external usage widget reads a JSON file ----
+test("external-usage reads a percentage from a JSON file (+ remaining)", () => {
+  const dir = tmp();
+  try {
+    const p = join(dir, "usage.json");
+    writeFileSync(p, JSON.stringify({ used_percentage: 70, label: "API" }), "utf8");
+    const w = getWidget("external-usage")!;
+    const ctx: RenderContext = { input: {}, data: {}, config: cfg() };
+    const used = w.render(w.collect(ctx), { path: p }, ctx).map((s) => s.text).join("");
+    assert.match(used, /API/, "shows the label");
+    assert.match(used, /\b70%/, `used 70%, got ${used}`);
+    const rem = w.render(w.collect(ctx), { path: p, mode: "remaining" }, ctx).map((s) => s.text).join("");
+    assert.match(rem, /\b30% left/, `remaining 30%, got ${rem}`);
+    // missing file => culls, never throws
+    assert.equal(w.render(w.collect(ctx), { path: join(dir, "nope.json") }, ctx).length, 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+test("external-usage is stripped from untrusted project config", () => {
+  const dir = tmp();
+  const saved = { HOME: process.env.HOME, UP: process.env.USERPROFILE, XDG: process.env.XDG_CONFIG_HOME, CC: process.env.CLAUDE_CONFIG_DIR, cwd: process.cwd() };
+  try {
+    process.env.HOME = join(dir, "home"); process.env.USERPROFILE = join(dir, "home");
+    delete process.env.XDG_CONFIG_HOME; delete process.env.CLAUDE_CONFIG_DIR;
+    process.chdir(dir);
+    writeFileSync(join(dir, ".cc-status-dash.json"), JSON.stringify({ lines: [{ widgets: [{ id: "external-usage", path: "/etc/passwd" }, { id: "model" }] }] }), "utf8");
+    const ids = loadConfig().lines.flatMap((l) => l.widgets.map((w) => w.id));
+    assert.ok(!ids.includes("external-usage"), "external-usage stripped from repo-local config");
+    assert.ok(ids.includes("model"), "safe widgets survive");
+  } finally {
+    process.chdir(saved.cwd);
+    for (const [k, v] of [["HOME", saved.HOME], ["USERPROFILE", saved.UP], ["XDG_CONFIG_HOME", saved.XDG], ["CLAUDE_CONFIG_DIR", saved.CC]] as const) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 // ---- usage remaining mode (claude-hud parity) ----
 test("usage.block mode:remaining shows % left", () => {
   const ctx: RenderContext = { input: { rate_limits: { five_hour: { used_percentage: 40 } } }, data: {}, config: cfg() };

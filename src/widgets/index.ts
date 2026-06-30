@@ -1,4 +1,5 @@
 import { execSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import { basename } from "node:path";
 import type { DataSource, RenderContext, Segment, Widget, WidgetCategory, WidgetOptions } from "../types.js";
 import { renderBar, thresholdColor, type BarStyle } from "../render/bars.js";
@@ -263,6 +264,34 @@ usageWindow("usage.block", "5h", "five_hour");
 usageWindow("usage.weekly", "7d", "seven_day");
 usageWindow("session-usage", "5h", "five_hour");
 usageWindow("weekly-usage", "7d", "seven_day");
+
+// External usage (ccstatusline ExtraUsage / claude-hud externalUsagePath): read a usage
+// percentage another process wrote to a JSON file. Self-contained (no payload dependency).
+// Accepts `{ used_percentage }`, `{ used, limit }`, or a bare number; optional `label`/
+// `updated_at`. Reads an arbitrary path -> TRUSTED config only (see UNSAFE_FROM_UNTRUSTED).
+add(w("external-usage", "usage", "External usage", ["stdin"], (_d, o, ctx) => {
+  const path = typeof o.path === "string" ? o.path : (process.env.CC_STATUS_DASH_EXTERNAL_USAGE || undefined);
+  if (!path) return [];
+  let raw: unknown;
+  try {
+    if (!existsSync(path)) return [];
+    raw = JSON.parse(readFileSync(path, "utf8"));
+  } catch { return []; }
+  const r = raw as Record<string, unknown> | number;
+  let pct: number | null = null;
+  if (typeof r === "number") pct = r;
+  else if (typeof r?.used_percentage === "number") pct = r.used_percentage;
+  else if (typeof r?.used === "number" && typeof r?.limit === "number" && r.limit > 0) pct = (r.used / r.limit) * 100;
+  if (pct == null || !Number.isFinite(pct)) return [];
+  const maxAge = Number(o.maxAgeMs ?? 0);
+  if (maxAge > 0 && typeof r === "object" && r.updated_at != null && Date.now() - epochMs(r.updated_at as number) > maxAge) return [];
+  const clamped = Math.max(0, Math.min(100, pct));
+  const label = san(typeof o.label === "string" ? o.label : (typeof r === "object" && typeof r.label === "string" ? r.label : "ext")) ?? "ext";
+  const mode = (o.mode as string) ?? "used";
+  const color = clamped >= 85 ? "critical" : clamped >= 60 ? "warning" : "usage";
+  const text = mode === "remaining" ? `${pctStr(100 - clamped)}${ctx.config.minimalist ? "" : " left"}` : pctStr(clamped);
+  return pctSegments(label, clamped, text, color, o, ctx);
+}));
 
 const timerWidget = (id: string, label: string, key: "five_hour" | "seven_day", elapsed: boolean) =>
   add(w(id, "usage", label, ["rate_limits"], (_d, opts, ctx) => {

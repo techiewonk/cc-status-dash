@@ -97,7 +97,7 @@ Each entry in `lines` is one rendered row.
 A widget is `{ "id": "<id>", ...options }`. List every id locally:
 
 ```bash
-cc-status-dash --list-widgets     # 101 widgets: id, category, label
+cc-status-dash --list-widgets     # 102 widgets: id, category, label
 ```
 
 ### Universal options (any widget)
@@ -136,13 +136,15 @@ These options are read by the widgets noted; unknown options are ignored.
 | `command` | string | `custom-command` | Shell command whose stdout becomes the segment (trusted config only). |
 | `text` / `symbol` | string | `custom-text`, `custom-symbol` | Literal text/glyph to print. |
 | `link` | boolean | `git.branch`, `link` | Emit an OSC-8 hyperlink when a safe URL can be derived. |
+| `path` | string | `external-usage` | JSON file to read usage from (`{ used_percentage }` or `{ used, limit }` or a bare number; optional `label`/`updated_at`). Trusted config only; or set `$CC_STATUS_DASH_EXTERNAL_USAGE`. |
+| `maxAgeMs` | number | `external-usage` | Cull if the file's `updated_at` is older than this. |
 
-### Widget categories (101 total)
+### Widget categories (102 total)
 
 | Category | Count | Examples |
 |---|---|---|
 | `git` | 35 | `git.branch`, `git-status`, `git-changes`, `git-ahead-behind`, `git-sha`, `git-worktree`, `git-stash`, `git-tag`, `git-pr`, `git-operation` |
-| `usage` | 15 | `usage.block` (5h), `usage.weekly` (7d), `cost`, `burn-rate`, `budget`, `cost-projection`, `daily-cost`, `weekly-cost`, `monthly-cost`, `reset-timer` |
+| `usage` | 16 | `usage.block` (5h), `usage.weekly` (7d), `cost`, `burn-rate`, `budget`, `external-usage`, `cost-projection`, `daily-cost`, `weekly-cost`, `monthly-cost`, `reset-timer` |
 | `activity` | 13 | `activity.tools`, `activity.tool-counts`, `activity.agents`, `activity.todos`, `skills`, `mcp-count`, `message-count`, `session-duration`, `lines-added/removed` |
 | `tokens` | 12 | `tokens-total`, `tokens-input/output`, `tokens-cached`, `cache-read/write`, `cache-hit-rate`, `tokens-per-min`, `input/output/total-speed` |
 | `system` | 11 | `version`, `output-style`, `session-name`, `cwd`, `free-memory`, `terminal-width`, `session-clock`, `env`, `config-counts` |
@@ -222,7 +224,7 @@ cc-status-dash --list-themes
 | `--config <path>` | Use a specific config file (trusted — may use command/env widgets). |
 | `--theme <id>` | Override the theme for this render. |
 | `--preset <id>` | Override the preset for this render. |
-| `--list-widgets` | Print all 101 widget ids (id, category, label). |
+| `--list-widgets` | Print all 102 widget ids (id, category, label). |
 | `--list-themes` | Print the built-in theme ids. |
 | `--list-presets` | Print the preset catalog (id, line-count, description). |
 | `--validate` | Report on each config file in the resolution chain; exit 1 if any is invalid. |

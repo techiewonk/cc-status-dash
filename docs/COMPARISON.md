@@ -11,7 +11,7 @@ and where cc-status-dash now stands. (Source of truth: local clones `D:\ccstatus
 | Paradigm | per-widget items in a pipeline | global `display.*` toggles | both — preset **or** per-widget pipeline |
 | Interactive TUI | ✅ multi-screen Ink | ❌ | ✅ multi-screen Ink (`--tui`) |
 | In-Claude-Code config | ❌ | ✅ slash command (LLM) | ✅ slash command + `--configure` wizard |
-| Widgets | ~80 (incl. Jujutsu, Vim, Voice) | fixed element set | **101** |
+| Widgets | ~80 (incl. Jujutsu, Vim, Voice) | fixed element set | **102** |
 
 ## Universal per-widget styling options
 
@@ -72,13 +72,13 @@ Examples:
 **Only in cc-status-dash (not ccstatusline):** `burn-rate`, `budget`, `cost-projection`,
 `daily/weekly/monthly-cost`, `token-breakdown`, `tokens-per-min`, `message-count`,
 `total-api-time`, `last-response-time`, `config-counts`, `mcp-count`, `session-duration`,
-`cache-timer`, `provider`, and more (101 total).
+`cache-timer`, `provider`, and more (102 total).
 
 ## Complete per-widget option reference (cc-status-dash)
 
-**Every one of the 101 widgets** also accepts the 7 universal options
+**Every one of the 102 widgets** also accepts the 7 universal options
 (`color`, `bgColor`, `bold`, `dim`, `rawValue`, `merge`, `maxWidth`) — not repeated below.
-These **21 widgets** add their own options:
+These **22 widgets** add their own options:
 
 | Widget | Widget-specific options |
 |---|---|
@@ -91,6 +91,7 @@ These **21 widgets** add their own options:
 | `usage.weekly` (7d) | `mode`, `barStyle`, `threshold` |
 | `session-usage` | `mode`, `showPace`, `barStyle` |
 | `weekly-usage` | `mode`, `barStyle`, `threshold` |
+| `external-usage` | `path`, `label`, `mode`, `barStyle`, `maxAgeMs` |
 | `git.branch` | `showDirty`, `showAheadBehind`, `showDiff`, `link` |
 | `git-pr` | `showStatus`, `showTitle` |
 | `budget` | `amount`, `warningThreshold`, `scope` (session/today/month) |
@@ -110,7 +111,9 @@ are editable in the `--tui` options screen (`o`).
 
 - `compaction-counter` `format`/`split-by-trigger`/`tokens-reclaimed` (we don't capture the
   per-trigger / reclaimed-tokens data, only the count).
-- Niche widget families we don't carry: Jujutsu, Vim, Voice, external-usage, per-model weekly.
+- Niche widget families we don't carry: Jujutsu, Vim, Voice, per-model weekly (all need data
+  sources the Claude Code payload doesn't expose). **External usage is now supported** via the
+  `external-usage` widget (reads a JSON file — `path`/`mode`/`barStyle`/`maxAgeMs`).
 
 Everything else is at parity: the universal styling options (`color`, `bgColor`, `bold`,
 `dim`, `rawValue`, `merge`, `maxWidth`), per-widget colors, percentage bars, `cwd` home

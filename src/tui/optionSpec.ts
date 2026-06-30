@@ -94,6 +94,13 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "showStatus", label: "Show status", kind: "toggle" },
     { key: "showTitle", label: "Show title", kind: "toggle" },
   ],
+  "external-usage": [
+    { key: "path", label: "JSON file path", kind: "text" },
+    { key: "label", label: "Label", kind: "text" },
+    { key: "mode", label: "Mode", kind: "enum", choices: ["used", "remaining"] },
+    { key: "barStyle", label: "Bar style", kind: "enum", choices: ["none", ...BAR_STYLES] },
+    { key: "maxAgeMs", label: "Max age (ms)", kind: "number" },
+  ],
 };
 
 /** Universal per-widget styling options — apply to EVERY widget instance (ccstatusline's

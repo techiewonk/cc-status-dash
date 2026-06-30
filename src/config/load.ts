@@ -40,7 +40,7 @@ function candidatePaths(cliPath?: string): Candidate[] {
 // Widgets that execute shell commands or surface env vars must never come from an
 // untrusted (repo-local) config — that would be RCE / secret-exfiltration just from
 // opening a malicious repository.
-const UNSAFE_FROM_UNTRUSTED = new Set(["custom-command", "git-pr", "env"]);
+const UNSAFE_FROM_UNTRUSTED = new Set(["custom-command", "git-pr", "env", "external-usage"]);
 
 function stripUnsafeWidgets(partial: Partial<Config>): Partial<Config> {
   if (!partial.lines) return partial;
