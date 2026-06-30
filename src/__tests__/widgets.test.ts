@@ -4,6 +4,7 @@ import type { ProviderData, RenderContext, StatuslineInput } from "../types.js";
 import { DEFAULT_CONFIG } from "../config/defaults.js";
 import { resolvePalette } from "../themes/index.js";
 import { getWidget, listWidgets } from "../widgets/index.js";
+import { WIDGET_OPTION_SPECS } from "../tui/optionSpec.js";
 
 // Data-driven coverage: render every implemented widget against rich synthetic
 // stdin + provider data and assert the visible text. Runs on node:test & bun test.
@@ -159,6 +160,17 @@ test("registry has the full widget set", () => {
     assert.ok(ids.has(must), `missing widget ${must}`);
   }
   assert.ok(ids.size >= 80, `expected >=80 widgets, got ${ids.size}`);
+});
+
+test("widget count snapshot (bump deliberately when adding widgets)", () => {
+  assert.equal(listWidgets().length, 102, "widget count changed — update docs (README/OPTIONS/COMPARISON) + this snapshot");
+});
+
+test("every WIDGET_OPTION_SPECS key is a real widget id", () => {
+  const ids = new Set(listWidgets().map((w) => w.id));
+  for (const id of Object.keys(WIDGET_OPTION_SPECS)) {
+    assert.ok(ids.has(id), `optionSpec references unknown widget id "${id}"`);
+  }
 });
 
 test("empty providers render nothing (auto-cull)", () => {

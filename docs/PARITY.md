@@ -4,7 +4,7 @@ Maps the complete union feature catalog (all 7 surveyed statuslines) to cc-statu
 
 **Legend:** ✅ implemented · 🟡 partial · ⚙️ automatic/config-driven · 🗺️ roadmap · ⛔ out-of-scope (reason)
 
-Run `npx cc-status-dash --list-widgets` to see all widget ids (101 registered).
+Run `npx cc-status-dash --list-widgets` to see all widget ids (102 registered).
 
 ## Model & session
 | Feature | Status | Where |

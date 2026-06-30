@@ -71,6 +71,23 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "showDiff", label: "Show +/- diff", kind: "toggle" },
     { key: "link", label: "OSC-8 hyperlink", kind: "toggle" },
   ],
+  "git-ahead-behind": [
+    { key: "pushWarnThreshold", label: "Warn at N ahead", kind: "number" },
+    { key: "pushCritThreshold", label: "Critical at N ahead", kind: "number" },
+  ],
+  "burn-rate": [{ key: "mode", label: "Mode", kind: "enum", choices: ["wall", "active"] }],
+  "skills": [{ key: "mode", label: "Mode", kind: "enum", choices: ["count", "last", "list"] }],
+  "cache-timer": [{ key: "ttlSeconds", label: "Cache TTL (s)", kind: "number" }],
+  "session-clock": [
+    { key: "hour12", label: "12-hour clock", kind: "toggle" },
+    { key: "timezone", label: "Timezone (IANA)", kind: "text" },
+  ],
+  "activity.tool-counts": [{ key: "max", label: "Max tools shown", kind: "number" }],
+  "token-breakdown": [{ key: "threshold", label: "Min context %", kind: "number" }],
+  "provider": [
+    { key: "showApi", label: "Show API label", kind: "toggle" },
+    { key: "prefix", label: "Label prefix", kind: "text" },
+  ],
   budget: [
     { key: "amount", label: "Budget $", kind: "number" },
     { key: "warningThreshold", label: "Warn at %", kind: "number" },
@@ -88,8 +105,18 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "label", label: "Label", kind: "text" },
   ],
   "compaction-counter": [{ key: "hideWhenZero", label: "Hide when zero", kind: "toggle" }],
-  "reset-timer": [{ key: "timestamp", label: "Show clock time", kind: "toggle" }, { key: "hoursOnly", label: "Hours only", kind: "toggle" }],
-  "weekly-reset-timer": [{ key: "timestamp", label: "Show clock time", kind: "toggle" }, { key: "hoursOnly", label: "Hours only", kind: "toggle" }],
+  "reset-timer": [
+    { key: "timestamp", label: "Show clock time", kind: "toggle" },
+    { key: "hoursOnly", label: "Hours only", kind: "toggle" },
+    { key: "hour12", label: "12-hour clock", kind: "toggle" },
+    { key: "timezone", label: "Timezone (IANA)", kind: "text" },
+  ],
+  "weekly-reset-timer": [
+    { key: "timestamp", label: "Show clock time", kind: "toggle" },
+    { key: "hoursOnly", label: "Hours only", kind: "toggle" },
+    { key: "hour12", label: "12-hour clock", kind: "toggle" },
+    { key: "timezone", label: "Timezone (IANA)", kind: "text" },
+  ],
   "git-pr": [
     { key: "showStatus", label: "Show status", kind: "toggle" },
     { key: "showTitle", label: "Show title", kind: "toggle" },
