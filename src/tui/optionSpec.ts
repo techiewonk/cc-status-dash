@@ -38,13 +38,27 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "barStyle", label: "Bar style", kind: "enum", choices: BAR_STYLES },
   ],
   "context-percentage-usable": [{ key: "autocompactBuffer", label: "Autocompact buffer", kind: "number" }],
+  "context-percentage": [
+    { key: "mode", label: "Mode", kind: "enum", choices: ["remaining", "used"] },
+    { key: "barStyle", label: "Bar style", kind: "enum", choices: ["none", ...BAR_STYLES] },
+  ],
   "usage.block": [
     { key: "showPace", label: "Show pace", kind: "toggle" },
+    { key: "barStyle", label: "Bar style", kind: "enum", choices: ["none", ...BAR_STYLES] },
     { key: "threshold", label: "Min % to show", kind: "number" },
   ],
-  "usage.weekly": [{ key: "threshold", label: "Min % to show", kind: "number" }],
-  "session-usage": [{ key: "showPace", label: "Show pace", kind: "toggle" }],
-  "weekly-usage": [{ key: "threshold", label: "Min % to show", kind: "number" }],
+  "usage.weekly": [
+    { key: "barStyle", label: "Bar style", kind: "enum", choices: ["none", ...BAR_STYLES] },
+    { key: "threshold", label: "Min % to show", kind: "number" },
+  ],
+  "session-usage": [
+    { key: "showPace", label: "Show pace", kind: "toggle" },
+    { key: "barStyle", label: "Bar style", kind: "enum", choices: ["none", ...BAR_STYLES] },
+  ],
+  "weekly-usage": [
+    { key: "barStyle", label: "Bar style", kind: "enum", choices: ["none", ...BAR_STYLES] },
+    { key: "threshold", label: "Min % to show", kind: "number" },
+  ],
   "git.branch": [
     { key: "showDirty", label: "Show dirty marker", kind: "toggle" },
     { key: "showAheadBehind", label: "Ahead/behind", kind: "toggle" },
@@ -69,6 +83,23 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
   ],
   "compaction-counter": [{ key: "hideWhenZero", label: "Hide when zero", kind: "toggle" }],
 };
+
+/** Universal per-widget styling options — apply to EVERY widget instance (ccstatusline's
+ * WidgetItemSchema parity: color/background/bold/dim/rawValue/merge). Appended to each
+ * widget's option list so any widget can be individually styled. */
+export const UNIVERSAL_OPTION_SPECS: FieldSpec[] = [
+  { key: "color", label: "Color override", kind: "text" },
+  { key: "bgColor", label: "Background", kind: "text" },
+  { key: "bold", label: "Bold", kind: "toggle" },
+  { key: "dim", label: "Dim", kind: "toggle" },
+  { key: "rawValue", label: "Raw (drop label)", kind: "toggle" },
+  { key: "merge", label: "Merge w/ next (no sep)", kind: "toggle" },
+];
+
+/** Full editable field list for a widget = its specific options + the universal ones. */
+export function widgetFields(id: string): FieldSpec[] {
+  return [...(WIDGET_OPTION_SPECS[id] ?? []), ...UNIVERSAL_OPTION_SPECS];
+}
 
 /** Global config settings (ccstatusline's GlobalOverridesMenu). Theme/preset live on the layout screen. */
 export const GLOBAL_FIELD_SPECS: FieldSpec[] = [

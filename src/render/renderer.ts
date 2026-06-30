@@ -98,6 +98,12 @@ function buildLineWidgets(line: LineConfig, ctx: RenderContext): BuiltWidget[] {
       continue;
     }
     if (segments.length === 0) continue;
+    // Per-widget rawValue: drop the dim label prefix for just this widget (like the
+    // global `minimalist`, but scoped). ccstatusline WidgetItem.rawValue parity.
+    if (wc.rawValue === true) {
+      segments = segments.filter((s) => s.color !== "label" && s.text.trim() !== "");
+      if (segments.length === 0) continue;
+    }
     // Pad first so a per-widget bgColor/bold covers the padding too (no unstyled gaps).
     if (pad) segments = [{ text: pad }, ...segments, { text: pad }];
     if (ctx.config.globalBold) segments = segments.map((s) => ({ ...s, bold: true }));

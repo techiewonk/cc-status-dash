@@ -16,8 +16,8 @@ import {
 import {
   COLOR_KEYS,
   GLOBAL_FIELD_SPECS,
-  WIDGET_OPTION_SPECS,
   globalValue,
+  widgetFields,
   type FieldSpec,
 } from "./optionSpec.js";
 
@@ -85,7 +85,7 @@ export function fieldsFor(state: EditorState): FieldSpec[] {
   switch (state.screen) {
     case "options": {
       const wc = state.config.lines[state.cursor.line]?.widgets[state.cursor.widget];
-      return wc ? (WIDGET_OPTION_SPECS[wc.id] ?? []) : [];
+      return wc ? widgetFields(wc.id) : [];
     }
     case "global":
       return GLOBAL_FIELD_SPECS;

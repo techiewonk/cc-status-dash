@@ -174,6 +174,25 @@ test("context % and bar round to whole numbers", () => {
   }
 });
 
+// ---- percentage widgets can render a progress bar (barStyle option) ----
+test("usage.block renders a bar when barStyle is set", () => {
+  const ctx: RenderContext = { input: { rate_limits: { five_hour: { used_percentage: 40 } } }, data: {}, config: cfg() };
+  const w = getWidget("usage.block")!;
+  const plain = w.render(w.collect(ctx), {}, ctx).map((s) => s.text).join("");
+  assert.ok(!plain.includes("█"), "no bar by default");
+  const barred = w.render(w.collect(ctx), { barStyle: "blocks" }, ctx).map((s) => s.text).join("");
+  assert.ok(barred.includes("█") || barred.includes("░"), `expected a bar, got ${barred}`);
+  assert.ok(barred.includes("40%"), "still shows the percent");
+});
+
+// ---- per-widget rawValue drops the label (scoped minimalist) ----
+test("rawValue on a single widget drops its label", () => {
+  const lines = [{ style: "inline" as const, widgets: [{ id: "context-percentage", rawValue: true }] }];
+  const out = render({ input: { context_window: { used_percentage: 46, context_window_size: 200000 } }, data: {}, config: cfg({ lines }) });
+  assert.ok(out.includes("46%"), `value present, got ${out}`);
+  assert.ok(!/Ctx/.test(out), `label should be dropped, got ${out}`);
+});
+
 // ---- powerline separator is configurable ----
 test("powerlineSeparator swaps the glyph (round = U+E0B4)", () => {
   const lines = [{ style: "powerline" as const, widgets: [{ id: "model" }, { id: "session-clock" }] }];

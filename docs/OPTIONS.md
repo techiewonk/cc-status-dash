@@ -100,6 +100,20 @@ A widget is `{ "id": "<id>", ...options }`. List every id locally:
 cc-status-dash --list-widgets     # 101 widgets: id, category, label
 ```
 
+### Universal options (any widget)
+
+These apply to **every** widget instance and are editable in the `--tui` options screen:
+
+| Option | Type | Description |
+|---|---|---|
+| `color` | string | Override the foreground color (named / 256 / hex). |
+| `bgColor` | string | Background color (also used by powerline). |
+| `bold` | boolean | Force bold (or `false` to opt out of `globalBold`). |
+| `dim` | boolean | Dim the value. |
+| `rawValue` | boolean | Drop the label for just this widget (scoped `minimalist`). |
+| `merge` | boolean | Join with the next widget with no separator. |
+| `barStyle` | enum | On percentage widgets (`context.bar`, `context-percentage`, `usage.block`, `usage.weekly`): render a progress bar — any of the 10 [bar styles](#bar-styles), or `none` for text only. |
+
 ### Common per-widget options
 
 These options are read by the widgets noted; unknown options are ignored.

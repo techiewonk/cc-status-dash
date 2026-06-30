@@ -255,6 +255,7 @@ No Bun? `npm install && npm run build:node && node dist/index.js < sample-input.
 
 - **[docs/OPTIONS.md](docs/OPTIONS.md)** — every option, widget option, bar style, color key, env var, flag.
 - **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** — local dev + complete manual testing flow.
+- **[docs/COMPARISON.md](docs/COMPARISON.md)** — option-level comparison vs. ccstatusline & claude-hud.
 - **[docs/PARITY.md](docs/PARITY.md)** — feature-by-feature parity vs. 7 surveyed statuslines.
 - **[docs/STATUS.md](docs/STATUS.md)** — what's done / in progress / out of scope.
 - **[docs/ANALYSIS.md](docs/ANALYSIS.md)** — original design & deep dive.

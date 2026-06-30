@@ -114,6 +114,20 @@ function lv(label: string | null, value: string | number | null | undefined, col
  * (raw API `used_percentage` / `100 - used` subtractions) into a clean `7%`. */
 const pctStr = (n: number): string => `${Math.round(n)}%`;
 
+/** Label + optional progress bar + percent text. When the widget config sets a
+ * `barStyle` (and it isn't "none"), any percentage widget can render a bar — parity
+ * with claude-hud's `usageBarEnabled` and ccstatusline's ContextBar progress toggle.
+ * The bar always reflects `usedPct`; `text` is what's printed after it. */
+function pctSegments(label: string, usedPct: number, text: string, color: string, opts: Record<string, unknown>, ctx: RenderContext): Segment[] {
+  const style = opts.barStyle;
+  if (typeof style === "string" && style !== "none") {
+    const bar = renderBar(usedPct, 8, style as BarStyle, ctx.config.charset);
+    const head: Segment[] = ctx.config.minimalist ? [] : [{ text: `${label} `, color: "label" }];
+    return [...head, { text: bar.filled, color }, { text: bar.empty, color: "barEmpty" }, { text: " " }, { text, color }];
+  }
+  return lv(label, text, color, ctx);
+}
+
 function w(id: string, category: WidgetCategory, label: string, needs: DataSource[], render: Widget["render"]): Widget {
   return { id, category, label, needs, collect: () => null, render };
 }
@@ -168,9 +182,13 @@ add(w("context.bar", "context", "Context bar", ["stdin"], (_d, opts, ctx) => {
   segs.push({ text: `${pctStr(shown)}${mode === "remaining" && !ctx.config.minimalist ? " left" : ""}`, color });
   return segs;
 }));
-add(w("context-percentage", "context", "Context %", ["stdin"], (_d, _o, ctx) => {
+add(w("context-percentage", "context", "Context %", ["stdin"], (_d, opts, ctx) => {
   const u = contextPct(ctx);
-  return u == null ? [] : lv("Ctx", pctStr(u), thresholdColor(u), ctx);
+  if (u == null) return [];
+  const mode = (opts.mode as string) ?? "used";
+  const shown = mode === "remaining" ? 100 - u : u;
+  const text = pctStr(shown) + (mode === "remaining" && !ctx.config.minimalist ? " left" : "");
+  return pctSegments("Ctx", u, text, thresholdColor(u), opts, ctx);
 }));
 add(w("context-percentage-usable", "context", "Context % (usable)", ["stdin"], (_d, opts, ctx) => {
   const cw = ctx.input.context_window;
@@ -224,7 +242,7 @@ const usageWindow = (id: string, label: string, key: "five_hour" | "seven_day", 
     const pct = win.used_percentage;
     if (pct < Number(opts.threshold ?? 0)) return [];
     const color = pct >= critAt ? "critical" : pct >= 60 ? "warning" : "usage";
-    const segs = lv(label, pctStr(pct), color, ctx);
+    const segs = pctSegments(label, pct, pctStr(pct), color, opts, ctx);
     if (opts.showPace && win.resets_at != null) {
       const remMs = (epochMs(win.resets_at)) - Date.now();
       const WINDOW = WINDOW_MS[key];

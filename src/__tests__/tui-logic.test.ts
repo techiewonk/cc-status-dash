@@ -80,9 +80,12 @@ test("options screen toggles, cycles enums, and edits numbers via the engine", (
   let s = withWidget("git.branch");
   s = reduce(s, { type: "openScreen", screen: "options" });
   assert.equal(s.screen, "options");
-  // fields for git.branch: showDirty, showAheadBehind, showDiff, link (all toggles)
+  // fields = git.branch-specific options THEN the universal styling options (every widget)
   const fields = fieldsFor(s);
-  assert.deepEqual(fields.map((f) => f.key), ["showDirty", "showAheadBehind", "showDiff", "link"]);
+  assert.deepEqual(fields.slice(0, 4).map((f) => f.key), ["showDirty", "showAheadBehind", "showDiff", "link"]);
+  for (const k of ["color", "bgColor", "bold", "dim", "rawValue", "merge"]) {
+    assert.ok(fields.some((f) => f.key === k), `universal option ${k} present for every widget`);
+  }
   s = reduce(s, { type: "fieldAdjust", dir: 1 }); // toggle showDirty on
   assert.equal(s.config.lines[0].widgets[0].showDirty, true);
   assert.equal(s.config.preset, "custom");
