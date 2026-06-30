@@ -193,6 +193,20 @@ test("rawValue on a single widget drops its label", () => {
   assert.ok(!/Ctx/.test(out), `label should be dropped, got ${out}`);
 });
 
+// ---- usage remaining mode (claude-hud parity) ----
+test("usage.block mode:remaining shows % left", () => {
+  const ctx: RenderContext = { input: { rate_limits: { five_hour: { used_percentage: 40 } } }, data: {}, config: cfg() };
+  const w = getWidget("usage.block")!;
+  const used = w.render(w.collect(ctx), {}, ctx).map((s) => s.text).join("");
+  assert.match(used, /\b40%/, `used mode shows 40%, got ${used}`);
+  const rem = w.render(w.collect(ctx), { mode: "remaining" }, ctx).map((s) => s.text).join("");
+  assert.match(rem, /\b60%/, `remaining mode shows 60%, got ${rem}`);
+  assert.ok(/left/.test(rem), "remaining shows 'left' label");
+  // remaining + bar together: bar tracks USED (40% -> 3/8 filled), number shows remaining
+  const both = w.render(w.collect(ctx), { mode: "remaining", barStyle: "blocks" }, ctx).map((s) => s.text).join("");
+  assert.ok((both.includes("█") || both.includes("░")) && /60% left/.test(both), `bar + remaining, got ${both}`);
+});
+
 // ---- maxWidth truncates a widget with an ellipsis ----
 test("maxWidth truncates a long widget", () => {
   const lines = [{ style: "inline" as const, widgets: [{ id: "custom-text", text: "abcdefghijklmnop", maxWidth: 6 }] }];

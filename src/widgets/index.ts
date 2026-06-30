@@ -242,7 +242,11 @@ const usageWindow = (id: string, label: string, key: "five_hour" | "seven_day", 
     const pct = win.used_percentage;
     if (pct < Number(opts.threshold ?? 0)) return [];
     const color = pct >= critAt ? "critical" : pct >= 60 ? "warning" : "usage";
-    const segs = pctSegments(label, pct, pctStr(pct), color, opts, ctx);
+    // mode: "used" (default) shows % consumed; "remaining" shows % left (claude-hud parity).
+    // The bar/threshold/color always track the *used* pct; only the number flips.
+    const mode = (opts.mode as string) ?? "used";
+    const text = mode === "remaining" ? `${pctStr(100 - pct)}${ctx.config.minimalist ? "" : " left"}` : pctStr(pct);
+    const segs = pctSegments(label, pct, text, color, opts, ctx);
     if (opts.showPace && win.resets_at != null) {
       const remMs = (epochMs(win.resets_at)) - Date.now();
       const WINDOW = WINDOW_MS[key];
@@ -265,7 +269,9 @@ const timerWidget = (id: string, label: string, key: "five_hour" | "seven_day", 
     const win = ctx.input.rate_limits?.[key];
     if (!win?.resets_at) return [];
     if (!elapsed) {
-      const cd = fmtCountdown(win.resets_at) ?? undefined;
+      // hoursOnly: show the countdown as total hours (e.g. "27h") instead of "1d 3h".
+      const hrsOnly = opts.hoursOnly === true ? (() => { const m = epochMs(win.resets_at) - Date.now(); return m > 0 ? `${Math.ceil(m / 3_600_000)}h` : undefined; })() : undefined;
+      const cd = hrsOnly ?? fmtCountdown(win.resets_at) ?? undefined;
       // Optional exact reset timestamp (ccstatusline parity): 12/24h + IANA tz.
       if (opts.timestamp) {
         const at = new Date(epochMs(win.resets_at));

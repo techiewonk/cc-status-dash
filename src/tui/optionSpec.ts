@@ -45,19 +45,23 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "barStyle", label: "Bar style", kind: "enum", choices: ["none", ...BAR_STYLES] },
   ],
   "usage.block": [
+    { key: "mode", label: "Mode", kind: "enum", choices: ["used", "remaining"] },
     { key: "showPace", label: "Show pace", kind: "toggle" },
     { key: "barStyle", label: "Bar style", kind: "enum", choices: ["none", ...BAR_STYLES] },
     { key: "threshold", label: "Min % to show", kind: "number" },
   ],
   "usage.weekly": [
+    { key: "mode", label: "Mode", kind: "enum", choices: ["used", "remaining"] },
     { key: "barStyle", label: "Bar style", kind: "enum", choices: ["none", ...BAR_STYLES] },
     { key: "threshold", label: "Min % to show", kind: "number" },
   ],
   "session-usage": [
+    { key: "mode", label: "Mode", kind: "enum", choices: ["used", "remaining"] },
     { key: "showPace", label: "Show pace", kind: "toggle" },
     { key: "barStyle", label: "Bar style", kind: "enum", choices: ["none", ...BAR_STYLES] },
   ],
   "weekly-usage": [
+    { key: "mode", label: "Mode", kind: "enum", choices: ["used", "remaining"] },
     { key: "barStyle", label: "Bar style", kind: "enum", choices: ["none", ...BAR_STYLES] },
     { key: "threshold", label: "Min % to show", kind: "number" },
   ],
@@ -84,6 +88,8 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "label", label: "Label", kind: "text" },
   ],
   "compaction-counter": [{ key: "hideWhenZero", label: "Hide when zero", kind: "toggle" }],
+  "reset-timer": [{ key: "timestamp", label: "Show clock time", kind: "toggle" }, { key: "hoursOnly", label: "Hours only", kind: "toggle" }],
+  "weekly-reset-timer": [{ key: "timestamp", label: "Show clock time", kind: "toggle" }, { key: "hoursOnly", label: "Hours only", kind: "toggle" }],
   "git-pr": [
     { key: "showStatus", label: "Show status", kind: "toggle" },
     { key: "showTitle", label: "Show title", kind: "toggle" },

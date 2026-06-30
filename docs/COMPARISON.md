@@ -29,18 +29,26 @@ editable in the `--tui` options screen for every widget).
 | `merge` (join, no sep) | ✅ | `mergeGroups` | ✅ | ✅ |
 | `maxWidth` (truncate) | ✅ | `toolNameMaxLength` etc. | ✅ | ✅ |
 
-## Percentage → bar
+## Percentage → bar, and used / remaining / full
 
-All three can render usage/context as a **bar** instead of (or with) a number:
+All three can render usage/context as a **bar** and flip between **used** and **remaining**:
 
-| | how |
-|---|---|
-| ccstatusline | `ContextBar` widget + progress toggle |
-| claude-hud | `display.usageBarEnabled`, `display.usageValue` |
-| **cc-status-dash** | **`barStyle` option on any percentage widget** — `context.bar`, `context-percentage`, `usage.block` (5h), `usage.weekly` (7d). 10 bar styles. Set `barStyle: "none"` for text-only. |
+| | bar | used/remaining/full |
+|---|---|---|
+| ccstatusline | `ContextBar` widget + progress toggle | `ContextPercentage` used/remaining |
+| claude-hud | `display.usageBarEnabled` | `display.usageValue`, `display.contextValue` (remaining/used/full) |
+| **cc-status-dash** | **`barStyle` on any percentage widget** | **`mode: used \| remaining` on every usage + context widget** |
 
-Example: `{ "id": "usage.block", "barStyle": "blocks", "showPace": true }` →
-`5h ███░░░░░ 40% ⇣40%`.
+Bar applies to: `context.bar`, `context-percentage`, `usage.block` (5h), `usage.weekly` (7d)
+— 10 styles, or `barStyle: "none"` for text only.
+`mode` applies to: `context.bar`, `context-percentage`, `usage.block`, `usage.weekly`,
+`session-usage`, `weekly-usage`. (Token *counts* / context "full" use the dedicated
+`context-length` / `context-window` / `tokens-*` widgets.)
+
+Examples:
+- `{ "id": "usage.block", "barStyle": "blocks", "showPace": true }` → `5h ███░░░░░ 40% ⇣40%`
+- `{ "id": "usage.block", "mode": "remaining" }` → `5h 60% left`
+- `{ "id": "usage.weekly", "mode": "remaining", "barStyle": "dots" }` → `7d ●●●●●○○○ 39% left`
 
 ## Per-widget functional options (selected)
 
@@ -66,11 +74,43 @@ Example: `{ "id": "usage.block", "barStyle": "blocks", "showPace": true }` →
 `total-api-time`, `last-response-time`, `config-counts`, `mcp-count`, `session-duration`,
 `cache-timer`, `provider`, and more (101 total).
 
+## Complete per-widget option reference (cc-status-dash)
+
+**Every one of the 101 widgets** also accepts the 7 universal options
+(`color`, `bgColor`, `bold`, `dim`, `rawValue`, `merge`, `maxWidth`) — not repeated below.
+These **21 widgets** add their own options:
+
+| Widget | Widget-specific options |
+|---|---|
+| `model` | `show1M`, `format` (abbr/name/id/version) |
+| `cwd` / `current-working-dir` | `segments`, `style` (fish/basename/full), `home` (~) |
+| `context.bar` | `mode` (remaining/used), `barStyle` (10 styles) |
+| `context-percentage` | `mode` (remaining/used), `barStyle` (none + 10) |
+| `context-percentage-usable` | `autocompactBuffer` |
+| `usage.block` (5h) | `mode` (used/remaining), `showPace`, `barStyle`, `threshold` |
+| `usage.weekly` (7d) | `mode`, `barStyle`, `threshold` |
+| `session-usage` | `mode`, `showPace`, `barStyle` |
+| `weekly-usage` | `mode`, `barStyle`, `threshold` |
+| `git.branch` | `showDirty`, `showAheadBehind`, `showDiff`, `link` |
+| `git-pr` | `showStatus`, `showTitle` |
+| `budget` | `amount`, `warningThreshold`, `scope` (session/today/month) |
+| `reset-timer` / `weekly-reset-timer` | `timestamp`, `hoursOnly` |
+| `compaction-counter` | `hideWhenZero` |
+| `env` | `variable` |
+| `custom-text` | `text`, `prefix` |
+| `custom-symbol` | `symbol` |
+| `custom-command` | `command` |
+| `link` | `url`, `label` |
+
+The other ~80 widgets (tokens, cache, git-status family, system, activity, cost) take only
+the universal options. Full per-option types: [docs/OPTIONS.md](OPTIONS.md). All of the above
+are editable in the `--tui` options screen (`o`).
+
 ## Gaps remaining vs ccstatusline
 
-- A few niche widget-specific toggles (compaction `format`/`split`, weekly-reset `hours-only`,
-  per-model weekly usage).
-- Niche widget families we don't carry: Jujutsu, Vim, Voice, external-usage.
+- `compaction-counter` `format`/`split-by-trigger`/`tokens-reclaimed` (we don't capture the
+  per-trigger / reclaimed-tokens data, only the count).
+- Niche widget families we don't carry: Jujutsu, Vim, Voice, external-usage, per-model weekly.
 
 Everything else is at parity: the universal styling options (`color`, `bgColor`, `bold`,
 `dim`, `rawValue`, `merge`, `maxWidth`), per-widget colors, percentage bars, `cwd` home
