@@ -131,13 +131,18 @@ export interface Painter {
 export function createPainter(config: Config): Painter {
   const enabled = colorsEnabled(config.colorDepth);
   const depth = effectiveDepth(config.colorDepth);
+  // Global FG/BG overrides force a single color across every segment (ccstatusline parity).
+  const ovFg = typeof config.overrideForeground === "string" ? config.overrideForeground : undefined;
+  const ovBg = typeof config.overrideBackground === "string" ? config.overrideBackground : undefined;
   return {
     paint(text, opts) {
-      if (!enabled || (!opts.color && !opts.bgColor && !opts.bold)) return text;
+      const colorKey = ovFg ?? opts.color;
+      const bgKey = ovBg ?? opts.bgColor;
+      if (!enabled || (!colorKey && !bgKey && !opts.bold)) return text;
       let codes = "";
       if (opts.bold) codes += "\x1b[1m";
-      const fg = fgCode(resolveColorKey(opts.color, config) ?? "", depth);
-      const bg = bgCode(resolveColorKey(opts.bgColor, config) ?? "", depth);
+      const fg = fgCode(resolveColorKey(colorKey, config) ?? "", depth);
+      const bg = bgCode(resolveColorKey(bgKey, config) ?? "", depth);
       if (fg) codes += fg;
       if (bg) codes += bg;
       return codes ? `${codes}${text}${RESET}` : text;

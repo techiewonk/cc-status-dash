@@ -202,5 +202,11 @@ export interface Config {
   modelContextLimits?: { sonnet?: number; opus?: number; haiku?: number; default?: number };
   /** Powerline separator glyph by name (arrow | round | triangle | flame | pixel). */
   powerlineSeparator?: string;
+  /** Powerline end caps: round | flame | none (left/right rounded edges around the bar). */
+  powerlineCaps?: string;
+  /** Force this foreground color on every segment (global override, ccstatusline parity). */
+  overrideForeground?: string;
+  /** Force this background color on every segment. */
+  overrideBackground?: string;
   colors: Record<string, string>;
 }

@@ -293,6 +293,25 @@ test("maxWidth truncation closes a dangling OSC-8 hyperlink (no bleed)", () => {
   assert.equal(opens % 2, 0, `OSC-8 markers must be balanced (no open link), got ${opens} in ${JSON.stringify(out)}`);
 });
 
+test("global overrideForeground forces one color on every segment", () => {
+  const out = render({ input: INPUT, data: {}, config: cfg({
+    overrideForeground: "#ff0000", preset: "custom",
+    lines: [{ style: "inline", widgets: [{ id: "model" }, { id: "context.bar" }] }] }) });
+  const fgCodes = out.match(/\x1b\[38;2;\d+;\d+;\d+m/g) ?? [];
+  assert.ok(fgCodes.length >= 2, "multiple segments are colored");
+  assert.ok(fgCodes.every((c) => c === "\x1b[38;2;255;0;0m"), `all FG codes are red, got ${JSON.stringify([...new Set(fgCodes)])}`);
+});
+
+test("powerline caps wrap the bar with end glyphs", () => {
+  const LEFT_ROUND = String.fromCodePoint(0xe0b6), RIGHT_ROUND = String.fromCodePoint(0xe0b4);
+  const plain = render({ input: INPUT, data: {}, config: cfg({
+    preset: "custom", lines: [{ style: "powerline", widgets: [{ id: "model" }] }] }) });
+  const capped = render({ input: INPUT, data: {}, config: cfg({
+    preset: "custom", powerlineCaps: "round", lines: [{ style: "powerline", widgets: [{ id: "model" }] }] }) });
+  assert.ok(!plain.includes(LEFT_ROUND) && !plain.includes(RIGHT_ROUND), "no caps without powerlineCaps");
+  assert.ok(capped.includes(LEFT_ROUND) && capped.includes(RIGHT_ROUND), "round caps present on both ends");
+});
+
 test("cache-timer ttlSeconds counts down remaining cache life", () => {
   const ctx: RenderContext = {
     input: INPUT,

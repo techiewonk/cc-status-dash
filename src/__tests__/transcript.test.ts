@@ -130,6 +130,35 @@ test("advisorModel (latest assistant stamp) + sessionStart (first timestamp) are
   assert.equal(t.sessionStart, Date.parse("2026-06-30T10:00:00.000Z"), "sessionStart is the first timestamp");
 });
 
+test("block-cache: repeat read is consistent and a file change invalidates it", () => {
+  const cacheDir = mkdtempSync(join(tmpdir(), "ccsd-txcache-"));
+  const prev = process.env.XDG_CACHE_HOME;
+  process.env.XDG_CACHE_HOME = cacheDir;
+  const dir = mkdtempSync(join(tmpdir(), "ccsd-tx-"));
+  const path = join(dir, "t.jsonl");
+  try {
+    writeFileSync(path, [
+      JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", id: "1", name: "Bash" }] } }),
+      JSON.stringify({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: "1" }] } }),
+    ].join("\n"), "utf8");
+    const first = collectTranscript(path);
+    const second = collectTranscript(path); // served from cache (same size+mtime)
+    assert.deepEqual(second.toolCounts, first.toolCounts, "cache hit returns the same tallies");
+    // grow the file -> size changes -> cache invalidated -> Edit appears
+    writeFileSync(path, [
+      JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", id: "1", name: "Bash" }] } }),
+      JSON.stringify({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: "1" }] } }),
+      JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", id: "2", name: "Edit", input: { file_path: "a.ts" } }] } }),
+    ].join("\n"), "utf8");
+    const third = collectTranscript(path);
+    assert.ok(third.toolCounts.some((t) => t.name === "Edit"), "file change invalidates the cache");
+  } finally {
+    if (prev === undefined) delete process.env.XDG_CACHE_HOME; else process.env.XDG_CACHE_HOME = prev;
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(cacheDir, { recursive: true, force: true });
+  }
+});
+
 test("agents resolve to done when their Task tool_result arrives", () => {
   const a = parse([
     { type: "assistant", message: { content: [{ type: "tool_use", id: "g1", name: "Task", input: { subagent_type: "explore" } }] } },

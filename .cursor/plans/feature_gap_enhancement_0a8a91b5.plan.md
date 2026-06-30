@@ -21,14 +21,14 @@ todos:
     content: "Phase 2 DONE 2026-07-01: vim-mode (stdin vim.mode), voice-status (system readVoiceEnabled across 4 layered settings files; format icon/text/both), remote-control-status (system readRemoteControl scans <config>/sessions/*.json by sessionId/bridgeSessionId), thinking-effort fallback chain (stdin → default opt → ? showUnknown). 114 widgets."
     status: completed
   - id: option-depth
-    content: "Phase 2: dim parens, merge no-padding, windowSeconds, compaction options, linkToIDE/linkToRepo, timer locale, hideNoGit flags, symbol overrides"
-    status: pending
-  - id: resilience-perf
-    content: "Phase 2b MOSTLY DONE 2026-06-30: shipped invalid-config hot-path badge (⚠ prefix + getInvalidConfigFiles), bounded stdin read (256KB cap), CC_STATUS_DASH_DISABLE kill switch, CC_STATUS_DASH_WIDTH alias. Separator collapse already correct (empty widgets culled before join). REMAINING: block-cache for JSONL metrics (perf)."
+    content: "Phase 2 PARTIAL 2026-07-01: shipped dim:'parens' (renderer wraps value in dim parens). REMAINING (low-value polish): merge:'no-padding', windowSeconds, compaction format/trigger data (not captured by parser), linkToIDE/linkToRepo, timer locale/weekday, hideNoGit/hideNoRemote, per-widget symbol overrides."
     status: in_progress
+  - id: resilience-perf
+    content: "Phase 2b DONE 2026-07-01: invalid-config hot-path badge, bounded stdin read, CC_STATUS_DASH_DISABLE kill switch, CC_STATUS_DASH_WIDTH alias, separator collapse, AND block-cache for JSONL metrics (transcript disk cache keyed on size+mtime under XDG_CACHE_HOME; msSinceLastUser recomputed on hit so idle timers still tick; parseTranscript split out)."
+    status: completed
   - id: layout-powerline
-    content: "Phase 3: flexMode, flex-separator, powerline caps, auto-align, gradients, inheritSeparatorColors, global FG/BG override, TUI wrap-around + refreshInterval sync + install screen"
-    status: pending
+    content: "Phase 3 PARTIAL 2026-07-01: shipped global overrideForeground/overrideBackground (painter forces one FG/BG on every segment), powerlineCaps (round/flame end caps via POWERLINE_CAPS by codepoint). REMAINING: flexMode/flex-separator, auto-align, gradients (need per-char color interp), inheritSeparatorColors, TUI wrap-around nav + refreshInterval→settings.json install screen."
+    status: in_progress
   - id: usage-api
     content: "Phase 4: usage API provider, weekly sonnet/opus widgets, extra-usage-used (API-sourced); JSONL dedupe; external-usage write sidecar"
     status: pending

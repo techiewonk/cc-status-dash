@@ -37,7 +37,10 @@ file with `cc-status-dash --validate`.
 | `lines` | `LineConfig[]` | preset | The layout. Overrides `preset`'s lines when present. Up to **9** lines. |
 | `modelContextLimits` | object | — | Per-model context-window sizes (tokens): `{ sonnet?, opus?, haiku?, default? }`. Used when the payload omits `context_window_size`. |
 | `powerlineSeparator` | enum | `arrow` | Powerline separator glyph: `arrow` `round` `triangle` `flame` `pixel` (Nerd Font). Applies to `powerline`-style lines. |
-| `colors` | object | theme | Per-key color overrides layered on top of the theme. See [Colors](#colors). |
+| `powerlineCaps` | enum | `none` | Powerline end caps wrapping the bar: `none` `round` `flame` (Nerd Font). |
+| `overrideForeground` | string | — | Force one foreground color on **every** segment (named/256/hex). |
+| `overrideBackground` | string | — | Force one background color on every segment. |
+| `colors` | object | theme | Per-key color overrides layered on top of the theme (incl. `usageWarning`/`usageCritical`). See [Colors](#colors). |
 
 ### Example
 
@@ -109,7 +112,7 @@ These apply to **every** widget instance and are editable in the `--tui` options
 | `color` | string | Override the foreground color (named / 256 / hex). |
 | `bgColor` | string | Background color (also used by powerline). |
 | `bold` | boolean | Force bold (or `false` to opt out of `globalBold`). |
-| `dim` | boolean | Dim the value. |
+| `dim` | boolean \| `"parens"` | `true` recolors the value dim; `"parens"` wraps it in dim parentheses instead. |
 | `rawValue` | boolean | Drop the label for just this widget (scoped `minimalist`). |
 | `merge` | boolean | Join with the next widget with no separator. |
 | `maxWidth` | number | Truncate this widget to N columns with an ellipsis. |

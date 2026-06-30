@@ -55,6 +55,9 @@ export const PartialConfigSchema = v.looseObject({
   lines: v.optional(v.array(LineConfigSchema)),
   modelContextLimits: v.optional(ModelContextLimitsSchema),
   powerlineSeparator: v.optional(v.picklist(["arrow", "round", "triangle", "flame", "pixel"])),
+  powerlineCaps: v.optional(v.picklist(["none", "round", "flame"])),
+  overrideForeground: v.optional(v.string()),
+  overrideBackground: v.optional(v.string()),
   colors: v.optional(v.record(v.string(), v.string())),
 });
 

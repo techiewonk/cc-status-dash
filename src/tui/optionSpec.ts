@@ -187,6 +187,9 @@ export const GLOBAL_FIELD_SPECS: FieldSpec[] = [
   { key: "padding", label: "Padding", kind: "number" },
   { key: "separator", label: "Separator", kind: "text" },
   { key: "powerlineSeparator", label: "Powerline separator", kind: "enum", choices: ["arrow", "round", "triangle", "flame", "pixel"] },
+  { key: "powerlineCaps", label: "Powerline caps", kind: "enum", choices: ["none", "round", "flame"] },
+  { key: "overrideForeground", label: "Override FG (all)", kind: "text" },
+  { key: "overrideBackground", label: "Override BG (all)", kind: "text" },
   { key: "refreshInterval", label: "Refresh interval (s)", kind: "number" },
 ];
 

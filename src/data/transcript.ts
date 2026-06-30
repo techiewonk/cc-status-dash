@@ -1,4 +1,7 @@
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, statSync, mkdirSync, writeFileSync, renameSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { createHash } from "node:crypto";
+import { dirname, join } from "node:path";
 import type { TranscriptInfo } from "../types.js";
 import { clean as san } from "./sanitize.js";
 
@@ -8,18 +11,57 @@ import { clean as san } from "./sanitize.js";
 
 const MAX_BYTES = 512 * 1024;
 
+const EMPTY: TranscriptInfo = {
+  recentTools: [], toolCounts: [], agents: [], todos: { total: 0, completed: 0 }, skills: [], mcpServers: [],
+};
+
+// Block-cache: the statusline re-spawns every render, so the only way to skip a
+// re-parse on an UNCHANGED transcript (the idle case) is a disk cache keyed on the
+// file's size+mtime. Time-relative fields (msSinceLastUser) are recomputed on a hit
+// so a cached idle session still ticks; everything else is stable per (size,mtime).
+interface TxCache { size: number; mtimeMs: number; info: TranscriptInfo; lastUserMs?: number }
+function txCacheFile(path: string): string {
+  const base = process.env.XDG_CACHE_HOME ?? join(tmpdir(), "cc-status-dash");
+  return join(base, `tx-${createHash("sha1").update(path).digest("hex").slice(0, 16)}.json`);
+}
+function readTxCache(file: string): TxCache | null {
+  try { return JSON.parse(readFileSync(file, "utf8")) as TxCache; } catch { return null; }
+}
+function writeTxCache(file: string, data: TxCache): void {
+  try {
+    mkdirSync(dirname(file), { recursive: true });
+    const tmp = `${file}.${process.pid}.tmp`;
+    writeFileSync(tmp, JSON.stringify(data));
+    renameSync(tmp, file);
+  } catch { /* best-effort */ }
+}
+
 export function collectTranscript(path?: string): TranscriptInfo {
-  const empty: TranscriptInfo = {
-    recentTools: [], toolCounts: [], agents: [], todos: { total: 0, completed: 0 }, skills: [], mcpServers: [],
-  };
-  if (!path || !existsSync(path)) return empty;
+  if (!path || !existsSync(path)) return EMPTY;
+  let st: ReturnType<typeof statSync> | undefined;
+  try { st = statSync(path); } catch { st = undefined; }
+  const cf = st ? txCacheFile(path) : "";
+  if (st) {
+    const cached = readTxCache(cf);
+    if (cached && cached.size === st.size && cached.mtimeMs === st.mtimeMs) {
+      // Re-derive the only now-relative field; the rest is valid for this (size,mtime).
+      return { ...cached.info, msSinceLastUser: cached.lastUserMs ? Date.now() - cached.lastUserMs : undefined };
+    }
+  }
+  const parsed = parseTranscript(path);
+  if (st && parsed) writeTxCache(cf, { size: st.size, mtimeMs: st.mtimeMs, info: parsed.info, lastUserMs: parsed.lastUserMs });
+  return parsed ? parsed.info : EMPTY;
+}
+
+function parseTranscript(path: string): { info: TranscriptInfo; lastUserMs?: number } | null {
+  const empty = EMPTY;
 
   let raw: string;
   try {
     const buf = readFileSync(path);
     raw = buf.subarray(Math.max(0, buf.length - MAX_BYTES)).toString("utf8");
   } catch {
-    return empty;
+    return { info: empty };
   }
 
   const lines = raw.split("\n").filter(Boolean);
@@ -136,7 +178,7 @@ export function collectTranscript(path?: string): TranscriptInfo {
     .sort((a, b) => Number(b.running) - Number(a.running) || b.lastIdx - a.lastIdx) // running first, then most-recent
     .map(({ name, count, running }) => ({ name, count, running }));
 
-  return {
+  const info: TranscriptInfo = {
     recentTools: tools.slice(-6).reverse(),
     toolCounts,
     agents: agents.slice(-3).map((a) => {
@@ -156,6 +198,7 @@ export function collectTranscript(path?: string): TranscriptInfo {
     msSinceLastUser: lastUserMs ? Date.now() - lastUserMs : undefined,
     lastResponseMs: (lastAssistantMs && lastUserMs && lastAssistantMs > lastUserMs) ? lastAssistantMs - lastUserMs : undefined,
   };
+  return { info, lastUserMs };
 }
 
 function extractTarget(input: unknown): string | undefined {

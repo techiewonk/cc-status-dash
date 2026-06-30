@@ -68,9 +68,12 @@ function applyWidgetStyle(segments: Segment[], wc: WidgetConfig): Segment[] {
   const color = typeof wc.color === "string" ? wc.color : undefined;
   const bgColor = typeof wc.bgColor === "string" ? wc.bgColor : undefined;
   const bold = typeof wc.bold === "boolean" ? wc.bold : undefined;
+  // `dim: true` recolors the value to dim; `dim: "parens"` instead wraps the
+  // value in dim parentheses without recoloring it (ccstatusline dim:parens parity).
   const dim = wc.dim === true;
-  if (color === undefined && bgColor === undefined && bold === undefined && !dim) return segments;
-  return segments.map((s) => {
+  const parens = wc.dim === "parens";
+  if (color === undefined && bgColor === undefined && bold === undefined && !dim && !parens) return segments;
+  let out = segments.map((s) => {
     const isLabel = s.color === "label";
     const next: Segment = { ...s };
     if (bgColor !== undefined) next.bgColor = bgColor;
@@ -81,6 +84,8 @@ function applyWidgetStyle(segments: Segment[], wc: WidgetConfig): Segment[] {
     }
     return next;
   });
+  if (parens) out = [{ text: "(", color: "label", bgColor }, ...out, { text: ")", color: "label", bgColor }];
+  return out;
 }
 
 // OSC-8 hyperlink introducer (ESC ] 8 ; ;). A complete link has two of these
@@ -193,18 +198,33 @@ function renderCapsule(built: BuiltWidget[], painter: Painter, ctx: RenderContex
   }).join(" ");
 }
 
+// Powerline end caps (Nerd Font half-circle / flame). `none` keeps the flush edge.
+// Defined by codepoint so the PUA glyphs survive editing: round = U+E0B6/E0B4,
+// flame = U+E0C2/E0C0.
+const POWERLINE_CAPS: Record<string, { left: string; right: string }> = {
+  round: { left: String.fromCodePoint(0xe0b6), right: String.fromCodePoint(0xe0b4) },
+  flame: { left: String.fromCodePoint(0xe0c2), right: String.fromCodePoint(0xe0c0) },
+};
 function renderPowerline(built: BuiltWidget[], painter: Painter, ctx: RenderContext): string {
   const bgCycle = ["model", "cwd", "git"];
   const arrow = ctx.config.charset === "text"
     ? POWERLINE_SEP_TEXT
     : (POWERLINE_SEPS[ctx.config.powerlineSeparator ?? ""] ?? POWERLINE_SEP);
+  const caps = ctx.config.charset !== "text" ? POWERLINE_CAPS[ctx.config.powerlineCaps ?? ""] : undefined;
   let out = "";
+  // Left cap: a glyph in the first segment's bg, on the terminal's default bg.
+  if (caps && built.length) out += painter.paint(caps.left, { color: bgCycle[0] });
   built.forEach((wgt, i) => {
     const bg = bgCycle[i % bgCycle.length];
     const text = " " + wgt.segments.map((s) => s.text).join("") + " ";
     out += painter.paint(text, { bgColor: bg, color: "label", bold: true });
-    const nextBg = i + 1 < built.length ? bgCycle[(i + 1) % bgCycle.length] : undefined;
-    out += painter.paint(arrow, { color: bg, bgColor: nextBg });
+    const last = i + 1 >= built.length;
+    if (last && caps) {
+      out += painter.paint(caps.right, { color: bg }); // right cap closes the bar
+    } else {
+      const nextBg = !last ? bgCycle[(i + 1) % bgCycle.length] : undefined;
+      out += painter.paint(arrow, { color: bg, bgColor: nextBg });
+    }
   });
   return out;
 }
