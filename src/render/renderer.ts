@@ -11,6 +11,14 @@ import { createPainter, type Painter } from "./colors.js";
 // (they were previously stripped to empty strings, blanking arrows/caps).
 const POWERLINE_SEP = ""; // right-pointing powerline arrow
 const POWERLINE_SEP_TEXT = ">"; // ASCII fallback for charset:"text"
+// Named powerline separator glyphs (Nerd Font), selectable via config.powerlineSeparator.
+const POWERLINE_SEPS: Record<string, string> = {
+  arrow: "",
+  round: "",
+  triangle: "",
+  flame: "",
+  pixel: "",
+};
 const CAP_LEFT = ""; // left rounded cap
 const CAP_RIGHT = ""; // right rounded cap
 
@@ -136,7 +144,9 @@ function renderCapsule(built: BuiltWidget[], painter: Painter, ctx: RenderContex
 
 function renderPowerline(built: BuiltWidget[], painter: Painter, ctx: RenderContext): string {
   const bgCycle = ["model", "cwd", "git"];
-  const arrow = ctx.config.charset === "text" ? POWERLINE_SEP_TEXT : POWERLINE_SEP;
+  const arrow = ctx.config.charset === "text"
+    ? POWERLINE_SEP_TEXT
+    : (POWERLINE_SEPS[ctx.config.powerlineSeparator ?? ""] ?? POWERLINE_SEP);
   let out = "";
   built.forEach((wgt, i) => {
     const bg = bgCycle[i % bgCycle.length];

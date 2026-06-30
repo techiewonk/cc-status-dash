@@ -174,6 +174,16 @@ test("context % and bar round to whole numbers", () => {
   }
 });
 
+// ---- powerline separator is configurable ----
+test("powerlineSeparator swaps the glyph (round = U+E0B4)", () => {
+  const lines = [{ style: "powerline" as const, widgets: [{ id: "model" }, { id: "session-clock" }] }];
+  const base = render({ input: { model: { display_name: "Opus" } }, data: {}, config: cfg({ lines }) });
+  assert.ok(base.includes(""), "default powerline uses the arrow glyph");
+  const round = render({ input: { model: { display_name: "Opus" } }, data: {}, config: cfg({ lines, powerlineSeparator: "round" }) });
+  assert.ok(round.includes(""), "round separator emits U+E0B4");
+  assert.ok(!round.includes(""), "round separator replaces the arrow");
+});
+
 // ---- OSC8 git.branch only links when owner/repo are clean ----
 test("git.branch link is omitted for an invalid owner/repo", () => {
   const w = getWidget("git.branch")!;

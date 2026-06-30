@@ -130,5 +130,6 @@ The **Ink TUI** config editor is built (`src/tui/`, `--tui`) — pure reducer/pi
 unit-tested and the Ink view is tested headlessly via ink-testing-library. It is now
 multi-screen (ccstatusline-parity): **layout** (lines/widgets) · **options** (per-widget,
 spec-driven by `tui/optionSpec.ts` → `setWidgetOption`) · **global** (settings → `setGlobal`,
-incl. `refreshInterval`) · **colors** (palette overrides → `setColor`). Remaining polish:
-wrap-around nav, powerline separator/cap customization, install-into-settings.json screen.
+incl. `refreshInterval` + `powerlineSeparator`) · **colors** (palette overrides → `setColor`).
+Powerline separator glyph is configurable (`powerlineSeparator`: arrow/round/triangle/flame/pixel).
+Remaining polish: wrap-around nav, powerline cap customization, install-into-settings.json screen.

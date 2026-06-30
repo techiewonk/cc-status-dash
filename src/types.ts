@@ -188,5 +188,7 @@ export interface Config {
   lines: LineConfig[];
   /** Optional per-model context-window limits (tokens). */
   modelContextLimits?: { sonnet?: number; opus?: number; haiku?: number; default?: number };
+  /** Powerline separator glyph by name (arrow | round | triangle | flame | pixel). */
+  powerlineSeparator?: string;
   colors: Record<string, string>;
 }

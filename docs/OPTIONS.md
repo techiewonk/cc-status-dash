@@ -36,6 +36,7 @@ file with `cc-status-dash --validate`.
 | `refreshInterval` | number (≥0) | `10` | Hint (seconds) written into Claude Code's `statusLine` config; keeps elapsed timers ticking while idle. |
 | `lines` | `LineConfig[]` | preset | The layout. Overrides `preset`'s lines when present. Up to **5** lines. |
 | `modelContextLimits` | object | — | Per-model context-window sizes (tokens): `{ sonnet?, opus?, haiku?, default? }`. Used when the payload omits `context_window_size`. |
+| `powerlineSeparator` | enum | `arrow` | Powerline separator glyph: `arrow` `round` `triangle` `flame` `pixel` (Nerd Font). Applies to `powerline`-style lines. |
 | `colors` | object | theme | Per-key color overrides layered on top of the theme. See [Colors](#colors). |
 
 ### Example
