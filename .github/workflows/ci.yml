@@ -23,7 +23,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22" # node --test glob-pattern args need >= 21
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
