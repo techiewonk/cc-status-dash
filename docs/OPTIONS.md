@@ -235,7 +235,7 @@ cc-status-dash --list-themes
 
 ## Presets
 
-30 presets, grouped by layer count. Pick density first, then flavor. Full list any time
+31 presets, grouped by layer count. Pick density first, then flavor. Full list any time
 with `cc-status-dash --list-presets`.
 
 | Lines | Presets |

@@ -167,6 +167,18 @@ const onelineActivity = (): LineConfig => ({
   ],
 });
 
+// Single-line HUD mirror (Claude HUD's compact layout, no global layout engine).
+const hudCompactLine = (): LineConfig => ({
+  style: "inline",
+  widgets: [
+    { id: "model", show1M: true },
+    { id: "context.bar", mode: "remaining" },
+    { id: "usage.block", showPace: true },
+    { id: "activity.tool-counts" },
+    { id: "activity.todos" },
+  ],
+});
+
 const onelineTokens = (): LineConfig => ({
   style: "inline",
   widgets: [
@@ -228,6 +240,7 @@ export const PRESET_CATALOG: PresetDef[] = [
   { id: "oneline-usage", name: "One-line (usage)", lineCount: 1, description: "model · context · 5h · 7d · cost", lines: [onelineUsage()] },
   { id: "oneline-activity", name: "One-line (activity)", lineCount: 1, description: "model · context · 5h · live tools/agents/todos", lines: [onelineActivity()] },
   { id: "oneline-tokens", name: "One-line (tokens)", lineCount: 1, description: "model · context · total tokens · tok/min · cost", lines: [onelineTokens()] },
+  { id: "hud-compact", name: "HUD compact", lineCount: 1, description: "single-line HUD: model · context · 5h pace · live tools/todos", lines: [hudCompactLine()] },
   // 2 lines
   { id: "hud", name: "HUD", lineCount: 2, description: "identity + live tools/agents/todos (Claude HUD style)", lines: [idInline(), activity()] },
   { id: "tokens", name: "Tokens", lineCount: 2, description: "identity + token throughput (total + tok/min)", lines: [idInline(), tokenLine()] },

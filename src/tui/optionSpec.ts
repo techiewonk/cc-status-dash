@@ -42,8 +42,12 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
   "context-percentage-usable": [{ key: "autocompactBuffer", label: "Autocompact buffer", kind: "number" }],
   "context-percentage": [
     { key: "mode", label: "Mode", kind: "enum", choices: ["remaining", "used"] },
+    { key: "value", label: "Value", kind: "enum", choices: ["percent", "tokens", "both"] },
     { key: "barStyle", label: "Bar style", kind: "enum", choices: ["none", ...BAR_STYLES] },
   ],
+  "thinking-effort": [{ key: "symbols", label: "Glyph (not word)", kind: "toggle" }],
+  cost: [{ key: "hideOnProvider", label: "Hide on Bedrock/Vertex", kind: "toggle" }],
+  "session-cost": [{ key: "hideOnProvider", label: "Hide on Bedrock/Vertex", kind: "toggle" }],
   "usage.block": [
     { key: "mode", label: "Mode", kind: "enum", choices: ["used", "remaining"] },
     { key: "showPace", label: "Show pace", kind: "toggle" },

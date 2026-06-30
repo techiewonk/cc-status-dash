@@ -136,6 +136,12 @@ function w(id: string, category: WidgetCategory, label: string, needs: DataSourc
 const ALL: Widget[] = [];
 const add = (x: Widget) => { ALL.push(x); };
 
+/** Third-party provider (Bedrock/Vertex) — usage/cost reported by Claude Code may be
+ * misleading there, so widgets can opt to cull via `hideOnProvider`. */
+function thirdPartyProvider(ctx: RenderContext): boolean {
+  return process.env.CLAUDE_CODE_USE_BEDROCK === "1" || process.env.CLAUDE_CODE_USE_VERTEX === "1" || /bedrock|vertex/i.test(ctx.input.model?.id ?? "");
+}
+
 // ---------------- model / session ----------------
 
 add(w("model", "model", "Model", ["stdin"], (_d, o, ctx) => {
@@ -156,10 +162,16 @@ add(w("session-name", "system", "Session name", ["stdin", "transcript"], (_d, _o
   lv(null, san(ctx.input.session_name) ?? ctx.data.transcript?.sessionName, "model", ctx)));
 add(w("claude-session-id", "system", "Session id", ["stdin"], (_d, _o, ctx) =>
   lv(sym("⌗", "#", ctx), ctx.input.session_id?.slice(0, 8), "label", ctx)));
-add(w("thinking-effort", "model", "Thinking effort", ["stdin"], (_d, _o, ctx) => {
+add(w("thinking-effort", "model", "Thinking effort", ["stdin"], (_d, opts, ctx) => {
   const e = ctx.input.effort;
-  const level = typeof e === "string" ? e : e?.level;
-  return lv(sym("✦", "T", ctx), level ?? undefined, "usage", ctx);
+  const level = (typeof e === "string" ? e : e?.level)?.toLowerCase();
+  if (!level) return [];
+  // `symbols`: a compact severity glyph instead of the word (Claude HUD parity).
+  if (opts.symbols && ctx.config.charset !== "text") {
+    const glyph: Record<string, string> = { none: "○", low: "◔", medium: "◑", high: "●", max: "⬤" };
+    return [{ text: glyph[level] ?? "◑", color: "usage" }];
+  }
+  return lv(sym("✦", "T", ctx), level, "usage", ctx);
 }));
 add(w("compaction-counter", "context", "Compaction count", ["transcript"], (_d, o, ctx) => {
   const c = ctx.data.transcript?.compactionCount ?? 0;
@@ -188,7 +200,14 @@ add(w("context-percentage", "context", "Context %", ["stdin"], (_d, opts, ctx) =
   if (u == null) return [];
   const mode = (opts.mode as string) ?? "used";
   const shown = mode === "remaining" ? 100 - u : u;
-  const text = pctStr(shown) + (mode === "remaining" && !ctx.config.minimalist ? " left" : "");
+  // value: "percent" (default) | "tokens" (45k/200k) | "both" (45% (45k/200k)) — claude-hud parity.
+  const value = (opts.value as string) ?? "percent";
+  const limit = modelLimit(ctx);
+  const tok = limit ? `${fmtTokens(usageTokens(ctx).total)}/${fmtTokens(limit)}` : null;
+  const text =
+    value === "tokens" && tok ? tok
+    : value === "both" && tok ? `${pctStr(shown)} (${tok})`
+    : pctStr(shown) + (mode === "remaining" && !ctx.config.minimalist ? " left" : "");
   return pctSegments("Ctx", u, text, thresholdColor(u), opts, ctx);
 }));
 add(w("context-percentage-usable", "context", "Context % (usable)", ["stdin"], (_d, opts, ctx) => {
@@ -267,7 +286,8 @@ add(w("session-health", "context", "Session health", ["stdin", "rate_limits"], (
 
 // ---------------- usage / cost / timers ----------------
 
-const costWidget = (id: string) => add(w(id, "usage", "Session cost", ["stdin"], (_d, _o, ctx) => {
+const costWidget = (id: string) => add(w(id, "usage", "Session cost", ["stdin"], (_d, opts, ctx) => {
+  if (opts.hideOnProvider && thirdPartyProvider(ctx)) return []; // Bedrock/Vertex cost is provider-billed
   const c = ctx.input.cost?.total_cost_usd;
   return typeof c === "number" ? [{ text: `$${c.toFixed(2)}`, color: "paceGood" }] : [];
 }));

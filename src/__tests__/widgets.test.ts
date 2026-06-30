@@ -180,6 +180,18 @@ test("Phase 1 HUD widgets render from real data", () => {
   assert.match(mcpOut, /slack/, `activity.mcp shows names, got ${mcpOut}`);
 });
 
+test("thinking-effort symbols + context value modes", () => {
+  const cfg = { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme) };
+  const eff = getWidget("thinking-effort")!;
+  const ectx: RenderContext = { input: { effort: { level: "high" } }, data: {}, config: cfg };
+  assert.match(eff.render(null, { symbols: true }, ectx).map((s) => s.text).join(""), /●/, "high effort → ● glyph");
+  assert.match(eff.render(null, {}, ectx).map((s) => s.text).join(""), /high/, "default shows the word");
+  const cp = getWidget("context-percentage")!;
+  const cctx: RenderContext = { input: { context_window: { used_percentage: 46, context_window_size: 200000, current_usage: { input_tokens: 92000 } } }, data: {}, config: cfg };
+  assert.match(cp.render(null, { value: "both" }, cctx).map((s) => s.text).join(""), /46% \(92\.0k\/200\.0k\)/, "value:both shows % + tokens");
+  assert.match(cp.render(null, { value: "tokens" }, cctx).map((s) => s.text).join(""), /92\.0k\/200\.0k/, "value:tokens shows tokens");
+});
+
 test("usage limit-reached at 100%", () => {
   const ctx: RenderContext = { input: { rate_limits: { five_hour: { used_percentage: 100, resets_at: Math.floor(Date.now() / 1000) + 3600 } } }, data: {}, config: { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme) } };
   const out = getWidget("usage.block")!.render(null, {}, ctx).map((s) => s.text).join("");

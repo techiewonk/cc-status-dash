@@ -12,7 +12,7 @@ todos:
     content: "Phase 1 PARTIAL 2026-06-30: shipped added-dirs (workspace.added_dirs added to schema), session-tokens (existing transcript data), activity.mcp (live names). REMAINING: advisor + session-start-date (need transcript advisorModel/sessionStart parsing), hud-compact preset."
     status: in_progress
   - id: hud-ux
-    content: "Phase 1 PARTIAL 2026-06-30: shipped limit-reached state (⚠ at 100% + reset) and usageCompact (inline reset countdown) on usage widgets. REMAINING: effort symbols, provider-aware usage/cost cull, activity separators, mergeGroups width-fallback, context tokens/both mode."
+    content: "Phase 1 MOSTLY DONE 2026-06-30: limit-reached, usageCompact, effort symbols (thinking-effort.symbols), provider-aware cost cull (cost.hideOnProvider), context tokens/both (context-percentage.value), hud-compact preset. REMAINING: activity separators widget, mergeGroups width-fallback."
     status: in_progress
   - id: hud-render
     content: "Phase 1b: OSC-8-safe wrap, adaptive bar width, clickable cwd, git.files per-file line, session-start-date widget, colors.usageWarning"

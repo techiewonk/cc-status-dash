@@ -2,7 +2,7 @@
 
 _Last updated: 2026-06-30. Living tracker of what is done, in progress, and remaining._
 
-Snapshot: **107 widgets**, 10 themes, 30 presets (1–5 layers), persistent stats store, config-mutation engine, valibot-validated config. Builds clean (`bun build` split + `tsc`), 298 tests pass (incl. preset×style + config-location matrices + a security/resilience hardening suite), renders all presets, Ink TUI editor + @clack wizard. See [PARITY.md](PARITY.md) for the full feature-by-feature matrix.
+Snapshot: **107 widgets**, 10 themes, 31 presets (1–5 layers), persistent stats store, config-mutation engine, valibot-validated config. Builds clean (`bun build` split + `tsc`), 298 tests pass (incl. preset×style + config-location matrices + a security/resilience hardening suite), renders all presets, Ink TUI editor + @clack wizard. See [PARITY.md](PARITY.md) for the full feature-by-feature matrix.
 
 ## ✅ Done
 - **Runtime: Bun-first**, Node-compatible (`bun build --target=node` → single `dist/index.js`; `build:node` tsc fallback). Source stays runtime-agnostic.
