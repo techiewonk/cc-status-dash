@@ -163,7 +163,24 @@ test("registry has the full widget set", () => {
 });
 
 test("widget count snapshot (bump deliberately when adding widgets)", () => {
-  assert.equal(listWidgets().length, 102, "widget count changed — update docs (README/OPTIONS/COMPARISON) + this snapshot");
+  assert.equal(listWidgets().length, 104, "widget count changed — update docs (README/OPTIONS/COMPARISON) + this snapshot");
+});
+
+test("session-health + cache-roi render from existing data", () => {
+  const input: StatuslineInput = {
+    context_window: { used_percentage: 46, context_window_size: 200000, current_usage: { cache_read_input_tokens: 120000 } },
+    rate_limits: { five_hour: { used_percentage: 40, resets_at: Math.floor(Date.now() / 1000) + 5400 } },
+  };
+  const ctx: RenderContext = { input, data: {}, config: { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme) } };
+  const sh = getWidget("session-health")!;
+  const shOut = sh.render(sh.collect(ctx), {}, ctx).map((s) => s.text).join("");
+  assert.match(shOut, /54% ctx/, `health shows context left, got ${shOut}`);
+  assert.match(shOut, /5h 40%/, `health shows 5h usage, got ${shOut}`);
+  const roi = getWidget("cache-roi")!;
+  const roiOut = roi.render(roi.collect(ctx), {}, ctx).map((s) => s.text).join("");
+  assert.match(roiOut, /saved/, `roi shows savings, got ${roiOut}`);
+  const roiDollar = roi.render(roi.collect(ctx), { savedPerMTok: 10 }, ctx).map((s) => s.text).join("");
+  assert.match(roiDollar, /\$1\.20 saved/, `roi $ estimate (120k * $10/M), got ${roiDollar}`);
 });
 
 test("every WIDGET_OPTION_SPECS key is a real widget id", () => {

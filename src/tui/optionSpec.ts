@@ -84,6 +84,7 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
   ],
   "activity.tool-counts": [{ key: "max", label: "Max tools shown", kind: "number" }],
   "token-breakdown": [{ key: "threshold", label: "Min context %", kind: "number" }],
+  "cache-roi": [{ key: "savedPerMTok", label: "$ saved / 1M tok", kind: "number" }],
   "provider": [
     { key: "showApi", label: "Show API label", kind: "toggle" },
     { key: "prefix", label: "Label prefix", kind: "text" },

@@ -6,7 +6,7 @@ Guidance for Claude Code (and humans) working in this repo.
 A feature-rich **statusline + HUD** for Claude Code, in TypeScript. It fuses
 ccstatusline's widget-pipeline config with Claude HUD's clean look and live
 tools/agents/todos activity, plus pace-aware usage and a persistent stats store.
-**102 widgets**, 5 themes, 30 presets (1–5 layers), 3 render styles.
+**104 widgets**, 10 themes, 30 presets (1–5 layers), 3 render styles.
 
 Tagline: *ccstatusline's brain, Claude HUD's face.*
 

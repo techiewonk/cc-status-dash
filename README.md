@@ -23,7 +23,7 @@ It fuses the two most popular Claude Code statusline tools into one:
 
 Plus the best ideas from the wider ecosystem: **pace delta** (burn vs. time-left) from claude-pace, multiple bar styles from claude-powerline, and up to a 5-layer dashboard.
 
-> **102 widgets · 5 themes · 30 presets (1–5 layers) · 3 render styles · 10 bar styles**
+> **104 widgets · 10 themes · 30 presets (1–5 layers) · 3 render styles · 10 bar styles**
 
 ---
 
@@ -170,7 +170,7 @@ Each line picks a **render style** — `inline` (`a │ b │ c`), `powerline` (
 
 ## Themes & colors
 
-Built-in themes: **`hud-clean`** (default), `tokyo-night`, `gruvbox`, `nord`, `mono`.
+Built-in themes (10): **`hud-clean`** (default), `tokyo-night`, `gruvbox`, `nord`, `catppuccin`, `dracula`, `one-dark`, `rose-pine`, **`hud-light`** (for light terminals), `mono`.
 
 Pick one with `"theme"` / `--theme`, then override any individual color under `"colors"`. Values can be a
 named color (`cyan`, `dim`), a 256-index (`208`), or hex (`#ff6600`). The theme is the base; your colors
@@ -180,16 +180,16 @@ layer on top. `NO_COLOR` is honored.
 
 ## Widgets
 
-**102 widgets** across 8 categories (`--list-widgets` for the full list):
+**104 widgets** across 8 categories — incl. cc-status-dash exclusives `session-health` (context + pace + reset at a glance) and `cache-roi` (`--list-widgets` for the full list):
 
 | Category | # | Examples |
 |---|---|---|
 | git | 35 | `git.branch`, `git-status`, `git-changes`, `git-ahead-behind`, `git-worktree`, `git-pr` |
 | usage | 16 | `usage.block` (5h), `usage.weekly` (7d), `cost`, `burn-rate`, `budget`, `external-usage`, `daily/weekly/monthly-cost` |
 | activity | 13 | `activity.tools`, `activity.agents`, `activity.todos`, `skills`, `mcp-count`, `message-count` |
-| tokens | 12 | `tokens-total`, `tokens-cached`, `cache-hit-rate`, `tokens-per-min`, `total-speed` |
+| tokens | 13 | `tokens-total`, `tokens-cached`, `cache-hit-rate`, `cache-roi`, `tokens-per-min`, `total-speed` |
 | system | 11 | `cwd`, `version`, `session-name`, `free-memory`, `terminal-width`, `config-counts` |
-| context | 7 | `context.bar`, `context-percentage`, `context-length`, `compaction-counter` |
+| context | 8 | `context.bar`, `context-percentage`, `session-health`, `context-length`, `compaction-counter` |
 | model | 4 | `model`, `thinking-effort`, `provider`, `claude-account-email` |
 | custom | 4 | `custom-text`, `custom-symbol`, `custom-command`, `link` |
 
@@ -198,8 +198,8 @@ layer on top. `NO_COLOR` is honored.
 ## CLI
 
 ```bash
-npx cc-status-dash --list-widgets     # 102 widgets
-npx cc-status-dash --list-themes      # 5 themes
+npx cc-status-dash --list-widgets     # 104 widgets
+npx cc-status-dash --list-themes      # 10 themes
 npx cc-status-dash --list-presets     # 30 presets
 npx cc-status-dash --validate         # check config files in the resolution chain
 npx cc-status-dash --configure        # @clack preset wizard (TTY)

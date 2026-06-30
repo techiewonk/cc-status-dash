@@ -227,6 +227,43 @@ add(w("cache-hit-rate", "tokens", "Cache hit rate", ["stdin"], (_d, _o, ctx) => 
   if (denom === 0) return [];
   return lv("Cache", pctStr((t.cacheRead / denom) * 100), "context", ctx);
 }));
+// cc-status-dash exclusive: estimated savings from prompt-cache reads (work avoided).
+// Shows cached-token count by default, or a $ estimate when `savedPerMTok` is set.
+add(w("cache-roi", "tokens", "Cache ROI", ["stdin"], (_d, opts, ctx) => {
+  const t = usageTokens(ctx);
+  if (!t.cacheRead) return [];
+  const rate = Number(opts.savedPerMTok ?? 0); // $ saved per 1M tokens served from cache
+  const saved = rate > 0 ? `$${((t.cacheRead / 1_000_000) * rate).toFixed(2)}` : fmtTokens(t.cacheRead);
+  return lv(sym("♻", "roi", ctx), `${saved} saved`, "paceGood", ctx);
+}));
+// cc-status-dash exclusive: one-glance health — context left · 5h usage + pace · time to reset.
+add(w("session-health", "context", "Session health", ["stdin", "rate_limits"], (_d, _o, ctx) => {
+  const segs: Segment[] = [];
+  const used = contextPct(ctx);
+  if (used != null) {
+    const c = thresholdColor(used);
+    segs.push({ text: `${sym("◉", "health", ctx)} `, color: c }, { text: pctStr(100 - used), color: c });
+    if (!ctx.config.minimalist) segs.push({ text: " ctx", color: "label" });
+  }
+  const win = ctx.input.rate_limits?.five_hour;
+  if (win && typeof win.used_percentage === "number") {
+    const u = win.used_percentage;
+    if (segs.length) segs.push({ text: " · ", color: "label" });
+    segs.push({ text: `5h ${pctStr(u)}`, color: u >= 85 ? "critical" : u >= 60 ? "warning" : "usage" });
+    if (win.resets_at != null) {
+      const W = 5 * 3_600_000;
+      const elapsedPct = ((W - (epochMs(win.resets_at) - Date.now())) / W) * 100;
+      const delta = Math.round(u - elapsedPct);
+      if (Number.isFinite(delta)) {
+        const ahead = delta <= 0;
+        segs.push({ text: ` ${ahead ? sym("⇣", "v", ctx) : sym("⇡", "^", ctx)}${Math.abs(delta)}%`, color: ahead ? "paceGood" : "paceBad" });
+      }
+      const cd = fmtCountdown(win.resets_at);
+      if (cd) segs.push({ text: ` · ${cd}`, color: "label" });
+    }
+  }
+  return segs;
+}));
 
 // ---------------- usage / cost / timers ----------------
 

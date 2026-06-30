@@ -33,8 +33,8 @@ todos:
     content: "Phase 4: usage API provider, weekly sonnet/opus widgets, extra-usage-used (API-sourced); JSONL dedupe; external-usage write sidecar"
     status: pending
   - id: unique-features
-    content: "Phase 5: session-health widget, cache-roi widget, budget scope:block, theme pack (+light), MAX_LAYERS 9, config profiles, skills hook cache"
-    status: pending
+    content: "Phase 5 PARTIAL 2026-06-30: shipped session-health widget, cache-roi widget, theme pack (+catppuccin/dracula/one-dark/rose-pine/hud-light → 10 themes). REMAINING: budget scope:block (needs per-block cost accumulator in stats), MAX_LAYERS 9 (test couples to preset coverage), config profiles, skills hook cache."
+    status: in_progress
   - id: defer-jj
     content: "Defer Jujutsu (8 widgets) — opt-in jj provider only if user demand; document in PARITY"
     status: pending

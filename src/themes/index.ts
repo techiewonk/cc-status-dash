@@ -135,6 +135,62 @@ const NORD: Theme = {
   },
 };
 
+const CATPPUCCIN: Theme = {
+  name: "catppuccin",
+  description: "Catppuccin Mocha — soft pastel dark",
+  colors: {
+    model: "#89b4fa", cwd: "#f9e2af", git: "#cba6f7", gitBranch: "#89b4fa",
+    context: "#a6e3a1", usage: "#74c7ec", warning: "#f9e2af", critical: "#f38ba8",
+    label: "#6c7086", paceGood: "#a6e3a1", paceBad: "#f38ba8", barFilled: "#a6e3a1",
+    barEmpty: "#45475a", activeTool: "#f9e2af", doneTool: "#a6e3a1", agent: "#cba6f7", todo: "#89b4fa",
+  },
+};
+
+const DRACULA: Theme = {
+  name: "dracula",
+  description: "Dracula — vivid neon dark",
+  colors: {
+    model: "#8be9fd", cwd: "#f1fa8c", git: "#ff79c6", gitBranch: "#bd93f9",
+    context: "#50fa7b", usage: "#bd93f9", warning: "#f1fa8c", critical: "#ff5555",
+    label: "#6272a4", paceGood: "#50fa7b", paceBad: "#ff5555", barFilled: "#50fa7b",
+    barEmpty: "#44475a", activeTool: "#f1fa8c", doneTool: "#50fa7b", agent: "#ff79c6", todo: "#8be9fd",
+  },
+};
+
+const ONE_DARK: Theme = {
+  name: "one-dark",
+  description: "Atom One Dark",
+  colors: {
+    model: "#61afef", cwd: "#e5c07b", git: "#c678dd", gitBranch: "#61afef",
+    context: "#98c379", usage: "#56b6c2", warning: "#e5c07b", critical: "#e06c75",
+    label: "#5c6370", paceGood: "#98c379", paceBad: "#e06c75", barFilled: "#98c379",
+    barEmpty: "#3e4451", activeTool: "#e5c07b", doneTool: "#98c379", agent: "#c678dd", todo: "#61afef",
+  },
+};
+
+const ROSE_PINE: Theme = {
+  name: "rose-pine",
+  description: "Rosé Pine — muted, cozy",
+  colors: {
+    model: "#9ccfd8", cwd: "#f6c177", git: "#c4a7e7", gitBranch: "#31748f",
+    context: "#ebbcba", usage: "#9ccfd8", warning: "#f6c177", critical: "#eb6f92",
+    label: "#6e6a86", paceGood: "#9ccfd8", paceBad: "#eb6f92", barFilled: "#31748f",
+    barEmpty: "#26233a", activeTool: "#f6c177", doneTool: "#9ccfd8", agent: "#c4a7e7", todo: "#9ccfd8",
+  },
+};
+
+// Dark text on light backgrounds (GitHub-light-ish) for light terminals.
+const HUD_LIGHT: Theme = {
+  name: "hud-light",
+  description: "Readable on light terminal backgrounds",
+  colors: {
+    model: "#0969da", cwd: "#9a6700", git: "#8250df", gitBranch: "#0969da",
+    context: "#1a7f37", usage: "#0550ae", warning: "#9a6700", critical: "#cf222e",
+    label: "#6e7781", paceGood: "#1a7f37", paceBad: "#cf222e", barFilled: "#1a7f37",
+    barEmpty: "#d0d7de", activeTool: "#9a6700", doneTool: "#1a7f37", agent: "#8250df", todo: "#0969da",
+  },
+};
+
 const MONO: Theme = {
   name: "mono",
   description: "No color (NO_COLOR friendly / ASCII terminals)",
@@ -146,6 +202,11 @@ export const THEMES: Record<string, Theme> = {
   "tokyo-night": TOKYO_NIGHT,
   gruvbox: GRUVBOX,
   nord: NORD,
+  catppuccin: CATPPUCCIN,
+  dracula: DRACULA,
+  "one-dark": ONE_DARK,
+  "rose-pine": ROSE_PINE,
+  "hud-light": HUD_LIGHT,
   mono: MONO,
 };
 
