@@ -22,6 +22,8 @@ function parseFlags(argv: string[]): CliFlags & { listThemes?: boolean; listWidg
     else if (a.startsWith("--theme=")) flags.theme = a.slice(8);
     else if (a === "--preset") flags.preset = argv[++i] as CliFlags["preset"];
     else if (a.startsWith("--preset=")) flags.preset = a.slice(9) as CliFlags["preset"];
+    else if (a === "--profile") flags.profile = argv[++i];
+    else if (a.startsWith("--profile=")) flags.profile = a.slice(10);
     else if (a === "--list-themes") flags.listThemes = true;
     else if (a === "--list-widgets") flags.listWidgets = true;
     else if (a === "--list-presets") flags.listPresets = true;

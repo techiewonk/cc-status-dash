@@ -88,6 +88,17 @@ test("config resolution honors the full location precedence ladder", () => {
     // --- custom colors merge over the theme ---
     writeCfg(cliPath, { theme: "nord", colors: { model: "#123456" } });
     assert.equal(loadConfig({ config: cliPath }).colors.model, "#123456", "custom color overrides theme");
+
+    // --- config profiles: activate a named snapshot (flag > env > activeProfile) ---
+    writeCfg(cliPath, { theme: "nord", profiles: { monitor: { theme: "dracula", separator: "M" } } });
+    assert.equal(loadConfig({ config: cliPath }).theme, "nord", "no profile active -> base theme");
+    assert.equal(loadConfig({ config: cliPath, profile: "monitor" }).theme, "dracula", "--profile activates the snapshot");
+    assert.equal(loadConfig({ config: cliPath, profile: "monitor" }).separator, "M", "profile overrides separator too");
+    process.env.CC_STATUS_DASH_PROFILE = "monitor";
+    assert.equal(loadConfig({ config: cliPath }).theme, "dracula", "env activates the profile");
+    delete process.env.CC_STATUS_DASH_PROFILE;
+    writeCfg(cliPath, { theme: "nord", activeProfile: "monitor", profiles: { monitor: { theme: "dracula" } } });
+    assert.equal(loadConfig({ config: cliPath }).theme, "dracula", "activeProfile in the file activates it");
   } finally {
     process.chdir(saved.cwd);
     for (const [k, v] of Object.entries(saved)) {

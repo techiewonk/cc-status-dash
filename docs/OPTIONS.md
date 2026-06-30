@@ -40,6 +40,8 @@ file with `cc-status-dash --validate`.
 | `powerlineCaps` | enum | `none` | Powerline end caps wrapping the bar: `none` `round` `flame` (Nerd Font). |
 | `overrideForeground` | string | — | Force one foreground color on **every** segment (named/256/hex). |
 | `overrideBackground` | string | — | Force one background color on every segment. |
+| `profiles` | object | — | Named config snapshots (e.g. `dev`, `monitor`); each value is a partial config merged over the base when active. |
+| `activeProfile` | string | — | Which profile to activate. Overridden by `--profile <name>` or `$CC_STATUS_DASH_PROFILE`. |
 | `colors` | object | theme | Per-key color overrides layered on top of the theme (incl. `usageWarning`/`usageCritical`). See [Colors](#colors). |
 
 ### Example
@@ -84,6 +86,7 @@ Each entry in `lines` is one rendered row.
 | `style` | `"inline"` \| `"powerline"` \| `"capsule"` | `"inline"` | Render style for the row. |
 | `showWhen` | `"always"` \| `"activity"` | `"always"` | `activity` hides the whole line unless a live tool/agent/todo is running — the empty-HUD-collapses behavior. |
 | `widgets` | `WidgetConfig[]` | — | Ordered list of widgets. Each is `{ "id": "...", ...options }`. A widget that has nothing to show renders empty and is culled. |
+| `gradient` | `string[]` | — | Color this line's widget values across a gradient of ≥2 hex stops, e.g. `["#ff0000","#0000ff"]` — each widget gets an interpolated color by position. |
 
 ### Render styles
 
@@ -224,7 +227,9 @@ cc-status-dash --list-themes
 | `FORCE_COLOR=0` | Also disables color; `FORCE_COLOR=1/2/3` forces ansi/256/truecolor. |
 | `CC_STATUS_DASH_THEME` | Overrides `theme` (above files, below the `--theme` flag). |
 | `CC_STATUS_DASH_DISABLE` | Kill switch — when set, the statusline emits nothing and exits. |
-| `CC_STATUS_DASH_WIDTH` | Terminal width for `autoWrap` (highest priority, over `COLUMNS`). |
+| `CC_STATUS_DASH_WIDTH` | Terminal width for `autoWrap` + adaptive bar width (highest priority, over `COLUMNS`). |
+| `CC_STATUS_DASH_PROFILE` | Activate a named config `profiles` entry (below `--profile`, above `activeProfile`). |
+| `CC_STATUS_DASH_USAGE_SIDECAR` | Path to write current `rate_limits` usage as JSON each render (pairs with the `external-usage` widget). |
 | `COLUMNS` | Terminal width used for `autoWrap` (overrides `stdout.columns`). |
 | `XDG_CONFIG_HOME` | Config lookup location (see top). |
 | `CLAUDE_CONFIG_DIR` | Config lookup location (Claude Code's config dir). |
@@ -239,6 +244,7 @@ cc-status-dash --list-themes
 | `--config <path>` | Use a specific config file (trusted — may use command/env widgets). |
 | `--theme <id>` | Override the theme for this render. |
 | `--preset <id>` | Override the preset for this render. |
+| `--profile <name>` | Activate a named config `profiles` entry for this render. |
 | `--list-widgets` | Print all 114 widget ids (id, category, label). |
 | `--list-themes` | Print the built-in theme ids. |
 | `--list-presets` | Print the preset catalog (id, line-count, description). |

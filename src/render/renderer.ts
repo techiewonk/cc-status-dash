@@ -1,7 +1,7 @@
 import type { Config, LineConfig, RenderContext, Segment, WidgetConfig } from "../types.js";
 import { getWidget } from "../widgets/index.js";
 import { stripVTControlCharacters } from "node:util";
-import { createPainter, type Painter } from "./colors.js";
+import { createPainter, gradientAt, type Painter } from "./colors.js";
 
 // Renders the resolved config into the final multi-line string.
 // Line styles: inline / powerline / capsule. Global options honored:
@@ -159,6 +159,15 @@ function buildLineWidgets(line: LineConfig, ctx: RenderContext): BuiltWidget[] {
     segments = applyWidgetStyle(segments, wc);
     if (typeof wc.maxWidth === "number") segments = truncateSegments(segments, wc.maxWidth);
     built.push({ segments, merge: wc.merge === true });
+  }
+  // Line gradient: recolor each widget's value segments by interpolated position
+  // across the gradient stops (left → right). Labels/padding keep their styling.
+  const grad = Array.isArray(line.gradient) ? line.gradient.filter((c) => typeof c === "string" && c.startsWith("#")) : [];
+  if (grad.length >= 2 && built.length) {
+    built.forEach((b, i) => {
+      const color = gradientAt(grad, built.length === 1 ? 0 : i / (built.length - 1));
+      b.segments = b.segments.map((s) => (s.color === "label" || s.text.trim() === "" ? s : { ...s, color }));
+    });
   }
   return built;
 }

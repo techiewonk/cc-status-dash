@@ -312,6 +312,17 @@ test("powerline caps wrap the bar with end glyphs", () => {
   assert.ok(capped.includes(LEFT_ROUND) && capped.includes(RIGHT_ROUND), "round caps present on both ends");
 });
 
+test("line gradient interpolates widget colors across the stops", () => {
+  const out = render({ input: INPUT, data: {}, config: cfg({
+    colorDepth: "truecolor", preset: "custom",
+    lines: [{ style: "inline", gradient: ["#ff0000", "#0000ff"],
+      widgets: [{ id: "model" }, { id: "cwd", style: "basename" }, { id: "context.bar" }] }] }) });
+  const fgs: string[] = out.match(/38;2;\d+;\d+;\d+/g) ?? [];
+  assert.ok(fgs.includes("38;2;255;0;0"), "first widget is the start color (red)");
+  assert.ok(fgs.includes("38;2;0;0;255"), "last widget is the end color (blue)");
+  assert.ok(fgs.includes("38;2;128;0;128"), "middle widget is the interpolated midpoint (purple)");
+});
+
 test("cache-timer ttlSeconds counts down remaining cache life", () => {
   const ctx: RenderContext = {
     input: INPUT,

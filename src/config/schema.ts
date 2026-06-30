@@ -30,6 +30,7 @@ const LineConfigSchema = v.object({
   style: v.optional(LineStyleSchema),
   showWhen: v.optional(ShowWhenSchema),
   widgets: v.array(WidgetConfigSchema),
+  gradient: v.optional(v.array(v.string())),
 });
 
 const ModelContextLimitsSchema = v.object({
@@ -58,6 +59,8 @@ export const PartialConfigSchema = v.looseObject({
   powerlineCaps: v.optional(v.picklist(["none", "round", "flame"])),
   overrideForeground: v.optional(v.string()),
   overrideBackground: v.optional(v.string()),
+  profiles: v.optional(v.record(v.string(), v.looseObject({}))),
+  activeProfile: v.optional(v.string()),
   colors: v.optional(v.record(v.string(), v.string())),
 });
 

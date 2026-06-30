@@ -184,6 +184,9 @@ export interface LineConfig {
   style?: LineStyle;
   showWhen?: "always" | "activity";
   widgets: WidgetConfig[];
+  /** Color this line's widget values across a gradient of hex stops (>=2), e.g.
+   * `["#ff0000", "#0000ff"]` — each widget gets an interpolated color by position. */
+  gradient?: string[];
 }
 
 export interface Config {
@@ -210,5 +213,10 @@ export interface Config {
   overrideForeground?: string;
   /** Force this background color on every segment. */
   overrideBackground?: string;
+  /** Named config snapshots (e.g. `dev`, `monitor`); activate via `activeProfile`,
+   * `--profile <name>`, or `$CC_STATUS_DASH_PROFILE`. Each is merged over the base. */
+  profiles?: Record<string, Partial<Config>>;
+  /** Name of the profile to activate from `profiles`. */
+  activeProfile?: string;
   colors: Record<string, string>;
 }

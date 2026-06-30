@@ -115,6 +115,23 @@ function bgCode(value: string, depth: RealDepth): string | null {
   return named ? `\x1b[${named + 10}m` : null;
 }
 
+/** Interpolate a hex color across `stops` (>=2 hex colors) at position t∈[0,1].
+ * Returns a `#rrggbb` string. Used by line gradients. */
+export function gradientAt(stops: string[], t: number): string {
+  const valid = stops.filter((s) => typeof s === "string" && s.startsWith("#"));
+  if (valid.length === 0) return "#ffffff";
+  if (valid.length === 1) return valid[0];
+  const clamped = Math.max(0, Math.min(1, t));
+  const scaled = clamped * (valid.length - 1);
+  const i = Math.min(valid.length - 2, Math.floor(scaled));
+  const f = scaled - i;
+  const [r1, g1, b1] = hexToRgb(valid[i]);
+  const [r2, g2, b2] = hexToRgb(valid[i + 1]);
+  const mix = (a: number, b: number) => Math.round(a + (b - a) * f);
+  const hx = (n: number) => n.toString(16).padStart(2, "0");
+  return `#${hx(mix(r1, r2))}${hx(mix(g1, g2))}${hx(mix(b1, b2))}`;
+}
+
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace("#", "");
   return [

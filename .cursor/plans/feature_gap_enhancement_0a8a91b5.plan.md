@@ -27,14 +27,14 @@ todos:
     content: "Phase 2b DONE 2026-07-01: invalid-config hot-path badge, bounded stdin read, CC_STATUS_DASH_DISABLE kill switch, CC_STATUS_DASH_WIDTH alias, separator collapse, AND block-cache for JSONL metrics (transcript disk cache keyed on size+mtime under XDG_CACHE_HOME; msSinceLastUser recomputed on hit so idle timers still tick; parseTranscript split out)."
     status: completed
   - id: layout-powerline
-    content: "Phase 3 PARTIAL 2026-07-01: shipped global overrideForeground/overrideBackground (painter forces one FG/BG on every segment), powerlineCaps (round/flame end caps via POWERLINE_CAPS by codepoint). REMAINING: flexMode/flex-separator, auto-align, gradients (need per-char color interp), inheritSeparatorColors, TUI wrap-around nav + refreshInterval→settings.json install screen."
+    content: "Phase 3 PARTIAL 2026-07-01: shipped global overrideForeground/overrideBackground, powerlineCaps (round/flame), AND line gradients (LineConfig.gradient: per-widget hex interpolation via gradientAt(), truecolor verified red→purple→blue). REMAINING (large/low-value): flexMode/flex-separator + auto-align (full layout engine), inheritSeparatorColors, TUI wrap-around nav + refreshInterval→settings.json install screen."
     status: in_progress
   - id: usage-api
     content: "Phase 4 PARTIAL 2026-07-01: shipped JSONL token dedupe (seenUsage by message.id/requestId — no more 2-3x inflated tallies) AND external-usage write sidecar (data/sidecar.ts: CC_STATUS_DASH_USAGE_SIDECAR emits rate_limits JSON atomically, pairs with external-usage widget). DEFERRED (needs Anthropic usage API + OAuth, can't test locally): live usage API provider, weekly-sonnet/opus widgets, extra-usage-used."
     status: in_progress
   - id: unique-features
-    content: "Phase 5 PARTIAL 2026-07-01: shipped session-health, cache-roi, theme pack (10 themes), MAX_LAYERS 9 (+4 dense presets → 35), AND budget scope:block (stats now cost-stamps samples + computes blockCost = cost since the 5h window start). REMAINING: config profiles (TUI named snapshots), skills hook cache (CC skills cache reader — uncertain data source)."
-    status: in_progress
+    content: "Phase 5 DONE 2026-07-01: session-health, cache-roi, theme pack (10), MAX_LAYERS 9 (+4 presets), budget scope:block, AND config profiles (config.profiles named snapshots; activate via --profile / CC_STATUS_DASH_PROFILE / activeProfile; merged over base in loadConfig). DEFERRED: skills hook cache (Claude Code exposes no stable skills-cache file format to read — transcript tail already covers skills)."
+    status: completed
   - id: defer-jj
     content: "Defer Jujutsu (8 widgets) — opt-in jj provider only if user demand; document in PARITY"
     status: pending

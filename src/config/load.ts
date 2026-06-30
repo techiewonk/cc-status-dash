@@ -119,6 +119,7 @@ export interface CliFlags {
   config?: string;
   theme?: string;
   preset?: Config["preset"];
+  profile?: string;
 }
 
 export interface ConfigFileReport {
@@ -165,6 +166,14 @@ export function loadConfig(flags: CliFlags = {}): Config {
     }
   }
   cfg = applyEnv(cfg);
+  // Config profiles: activate a named snapshot (CLI > env > config.activeProfile),
+  // merged over the base so a profile can flip lines/theme/preset in one switch.
+  const profileName = flags.profile ?? process.env.CC_STATUS_DASH_PROFILE ?? cfg.activeProfile;
+  if (profileName && cfg.profiles && cfg.profiles[profileName]) {
+    const prof = cfg.profiles[profileName];
+    if (prof.colors) Object.assign(userColors, prof.colors);
+    cfg = merge(cfg, prof);
+  }
   if (flags.theme) cfg.theme = flags.theme;
   if (flags.preset) cfg = merge(cfg, { preset: flags.preset });
   // Final palette = selected theme overlaid with the user's custom colors.
