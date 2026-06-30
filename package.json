@@ -20,6 +20,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "bun test src",
     "test:node": "npm run build:node && node --test dist/__tests__/*.test.js",
+    "smoke": "bash scripts/smoke.sh",
+    "demo:build": "bash scripts/build-demo.sh",
     "lint": "biome check .",
     "format": "biome format --write ."
   },

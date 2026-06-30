@@ -4,13 +4,14 @@ import { collectProviderData } from "./data/providers.js";
 import { render } from "./render/renderer.js";
 import { listThemes } from "./themes/index.js";
 import { listWidgets } from "./widgets/index.js";
+import { PRESET_CATALOG } from "./config/defaults.js";
 import type { StatuslineInput } from "./types.js";
 
 // Entry point. Claude Code pipes a JSON status payload on stdin and expects the
 // rendered status line(s) on stdout. We also expose a few inspection flags so
 // the project is usable/debuggable before the Ink TUI lands.
 
-function parseFlags(argv: string[]): CliFlags & { listThemes?: boolean; listWidgets?: boolean; validate?: boolean; configure?: boolean; tui?: boolean } {
+function parseFlags(argv: string[]): CliFlags & { listThemes?: boolean; listWidgets?: boolean; listPresets?: boolean; validate?: boolean; configure?: boolean; tui?: boolean } {
   const flags: ReturnType<typeof parseFlags> = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -22,6 +23,7 @@ function parseFlags(argv: string[]): CliFlags & { listThemes?: boolean; listWidg
     else if (a.startsWith("--preset=")) flags.preset = a.slice(9) as CliFlags["preset"];
     else if (a === "--list-themes") flags.listThemes = true;
     else if (a === "--list-widgets") flags.listWidgets = true;
+    else if (a === "--list-presets") flags.listPresets = true;
     else if (a === "--validate") flags.validate = true;
     else if (a === "--configure" || a === "--wizard") flags.configure = true;
     else if (a === "--tui" || a === "--edit") flags.tui = true;
@@ -66,6 +68,12 @@ async function main(): Promise<void> {
   if (flags.listWidgets) {
     process.stdout.write(
       listWidgets().map((w) => `${w.id.padEnd(18)} ${w.category.padEnd(9)} ${w.label}`).join("\n") + "\n",
+    );
+    return;
+  }
+  if (flags.listPresets) {
+    process.stdout.write(
+      PRESET_CATALOG.map((p) => `${p.id.padEnd(18)} ${String(p.lineCount)}L  ${p.description}`).join("\n") + "\n",
     );
     return;
   }

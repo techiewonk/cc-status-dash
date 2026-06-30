@@ -119,6 +119,65 @@ const activityAgentsTodos = (): LineConfig => ({
   widgets: [{ id: "activity.agents" }, { id: "activity.todos" }],
 });
 
+// ---- dense single-line builders (pack many widgets into one inline line) ----
+
+const onelineAll = (): LineConfig => ({
+  style: "inline",
+  widgets: [
+    { id: "model", show1M: true },
+    { id: "cwd", segments: 1 },
+    { id: "git.branch", showDirty: true, showAheadBehind: true },
+    { id: "context.bar", mode: "remaining" },
+    { id: "usage.block", showPace: true },
+    { id: "cost" },
+  ],
+});
+
+const onelineGit = (): LineConfig => ({
+  style: "inline",
+  widgets: [
+    { id: "model", show1M: true },
+    { id: "cwd", segments: 1 },
+    { id: "git.branch", showDirty: true, showAheadBehind: true, showDiff: true },
+    { id: "git-changes" },
+    { id: "context.bar", mode: "remaining" },
+  ],
+});
+
+const onelineUsage = (): LineConfig => ({
+  style: "inline",
+  widgets: [
+    { id: "model", show1M: true },
+    { id: "context.bar", mode: "remaining" },
+    { id: "usage.block", showPace: true },
+    { id: "usage.weekly", threshold: 0 },
+    { id: "cost" },
+  ],
+});
+
+const onelineActivity = (): LineConfig => ({
+  style: "inline",
+  widgets: [
+    { id: "model", show1M: true },
+    { id: "context.bar", mode: "remaining" },
+    { id: "usage.block", showPace: true },
+    { id: "activity.tool-counts" },
+    { id: "activity.agents" },
+    { id: "activity.todos" },
+  ],
+});
+
+const onelineTokens = (): LineConfig => ({
+  style: "inline",
+  widgets: [
+    { id: "model", show1M: true },
+    { id: "context.bar", mode: "remaining" },
+    { id: "tokens-total" },
+    { id: "tokens-per-min" },
+    { id: "cost" },
+  ],
+});
+
 // ---- preset catalog ----
 
 export interface PresetDef {
@@ -162,6 +221,13 @@ export const PRESET_CATALOG: PresetDef[] = [
   { id: "vibe", name: "Vibe", lineCount: 1, description: "model (1M badge) + context + cost", lines: [vibeLine()] },
   { id: "pace", name: "Pace", lineCount: 1, description: "context + 5h pace (claude-pace style)", lines: [ctxUsage()] },
   { id: "powerline", name: "Powerline", lineCount: 1, description: "single powerline identity bar", lines: [idPL(false)] },
+
+  // 1 line — dense "everything on one line" flavors
+  { id: "oneline", name: "One-line", lineCount: 1, description: "all-in-one: model · cwd · git · context · 5h pace · cost", lines: [onelineAll()] },
+  { id: "oneline-git", name: "One-line (git)", lineCount: 1, description: "model · cwd · git w/ diff · +/- changes · context", lines: [onelineGit()] },
+  { id: "oneline-usage", name: "One-line (usage)", lineCount: 1, description: "model · context · 5h · 7d · cost", lines: [onelineUsage()] },
+  { id: "oneline-activity", name: "One-line (activity)", lineCount: 1, description: "model · context · 5h · live tools/agents/todos", lines: [onelineActivity()] },
+  { id: "oneline-tokens", name: "One-line (tokens)", lineCount: 1, description: "model · context · total tokens · tok/min · cost", lines: [onelineTokens()] },
   // 2 lines
   { id: "hud", name: "HUD", lineCount: 2, description: "identity + live tools/agents/todos (Claude HUD style)", lines: [idInline(), activity()] },
   { id: "tokens", name: "Tokens", lineCount: 2, description: "identity + token throughput (total + tok/min)", lines: [idInline(), tokenLine()] },
