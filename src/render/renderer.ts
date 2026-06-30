@@ -22,7 +22,7 @@ const POWERLINE_SEPS: Record<string, string> = {
 const CAP_LEFT = ""; // left rounded cap
 const CAP_RIGHT = ""; // right rounded cap
 
-interface BuiltWidget { segments: Segment[]; merge: boolean; }
+interface BuiltWidget { segments: Segment[]; merge: boolean; color?: string; }
 
 /** Terminal cell width of a single code point: 0 (combining/zero-width), 2 (wide/CJK/emoji), else 1. */
 function charWidth(cp: number): number {
@@ -158,7 +158,9 @@ function buildLineWidgets(line: LineConfig, ctx: RenderContext): BuiltWidget[] {
     if (ctx.config.globalBold) segments = segments.map((s) => ({ ...s, bold: true }));
     segments = applyWidgetStyle(segments, wc);
     if (typeof wc.maxWidth === "number") segments = truncateSegments(segments, wc.maxWidth);
-    built.push({ segments, merge: wc.merge === true });
+    // Primary color = first non-label value segment (used by inheritSeparatorColors).
+    const primary = segments.find((s) => s.color && s.color !== "label" && s.text.trim() !== "")?.color;
+    built.push({ segments, merge: wc.merge === true, color: primary });
   }
   // Line gradient: recolor each widget's value segments by interpolated position
   // across the gradient stops (left → right). Labels/padding keep their styling.
@@ -172,24 +174,30 @@ function buildLineWidgets(line: LineConfig, ctx: RenderContext): BuiltWidget[] {
   return built;
 }
 
-function renderInline(built: BuiltWidget[], painter: Painter, sep: string, autoWrap: boolean): string {
+function renderInline(built: BuiltWidget[], painter: Painter, sep: string, autoWrap: boolean, inheritSep = false): string {
   const chunks: string[] = [];
+  const chunkColors: (string | undefined)[] = [];
   for (const wgt of built) {
     const str = wgt.segments.map((s) => painter.paint(s.text, s)).join("");
     if (wgt.merge && chunks.length) chunks[chunks.length - 1] += str;
-    else chunks.push(str);
+    else { chunks.push(str); chunkColors.push(wgt.color); }
   }
-  const sepStr = ` ${painter.paint(sep, { color: "label" })} `;
-  if (!autoWrap) return chunks.join(sepStr);
+  // Separator before chunk i takes the previous widget's color when inheritSeparatorColors
+  // is on (ccstatusline parity); otherwise the dim "label" color. Color codes are
+  // zero-width, so wrap math is unaffected.
+  const sepBefore = (i: number) =>
+    ` ${painter.paint(sep, { color: inheritSep ? (chunkColors[i - 1] ?? "label") : "label" })} `;
+  if (!autoWrap) return chunks.map((c, i) => (i === 0 ? c : sepBefore(i) + c)).join("");
 
   const width = Number(process.env.CC_STATUS_DASH_WIDTH) || Number(process.env.COLUMNS) || process.stdout.columns || 80;
-  const sepLen = plainLen(sepStr);
+  const sepLen = plainLen(sepBefore(1));
   const lines: string[] = [];
   let cur = "", curLen = 0;
-  for (const c of chunks) {
+  for (let i = 0; i < chunks.length; i++) {
+    const c = chunks[i];
     const cl = plainLen(c);
     if (cur === "") { cur = c; curLen = cl; }
-    else if (curLen + sepLen + cl <= width) { cur += sepStr + c; curLen += sepLen + cl; }
+    else if (curLen + sepLen + cl <= width) { cur += sepBefore(i) + c; curLen += sepLen + cl; }
     else { lines.push(cur); cur = c; curLen = cl; }
   }
   if (cur) lines.push(cur);
@@ -249,7 +257,7 @@ export function render(ctx: RenderContext): string {
     out.push(
       line.style === "powerline" ? renderPowerline(built, painter, ctx)
       : line.style === "capsule" ? renderCapsule(built, painter, ctx)
-      : renderInline(built, painter, config.charset === "text" && config.separator === "│" ? "|" : config.separator, config.autoWrap),
+      : renderInline(built, painter, config.charset === "text" && config.separator === "│" ? "|" : config.separator, config.autoWrap, config.inheritSeparatorColors === true),
     );
   }
   return out.join("\n");

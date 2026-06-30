@@ -312,6 +312,14 @@ test("powerline caps wrap the bar with end glyphs", () => {
   assert.ok(capped.includes(LEFT_ROUND) && capped.includes(RIGHT_ROUND), "round caps present on both ends");
 });
 
+test("inheritSeparatorColors paints the separator with the preceding widget's color", () => {
+  const lines = [{ style: "inline" as const, widgets: [{ id: "model", color: "#ff0000" }, { id: "cwd", style: "basename" }] }];
+  const off = render({ input: INPUT, data: {}, config: cfg({ colorDepth: "truecolor", preset: "custom", lines }) });
+  const on = render({ input: INPUT, data: {}, config: cfg({ colorDepth: "truecolor", preset: "custom", inheritSeparatorColors: true, lines }) });
+  const count = (s: string) => (s.match(/38;2;255;0;0/g) ?? []).length;
+  assert.ok(count(on) > count(off), `separator inherits red (on=${count(on)} > off=${count(off)})`);
+});
+
 test("line gradient interpolates widget colors across the stops", () => {
   const out = render({ input: INPUT, data: {}, config: cfg({
     colorDepth: "truecolor", preset: "custom",

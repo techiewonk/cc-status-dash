@@ -40,6 +40,7 @@ file with `cc-status-dash --validate`.
 | `powerlineCaps` | enum | `none` | Powerline end caps wrapping the bar: `none` `round` `flame` (Nerd Font). |
 | `overrideForeground` | string | — | Force one foreground color on **every** segment (named/256/hex). |
 | `overrideBackground` | string | — | Force one background color on every segment. |
+| `inheritSeparatorColors` | boolean | `false` | Color inline separators with the preceding widget's color instead of dim. |
 | `profiles` | object | — | Named config snapshots (e.g. `dev`, `monitor`); each value is a partial config merged over the base when active. |
 | `activeProfile` | string | — | Which profile to activate. Overridden by `--profile <name>` or `$CC_STATUS_DASH_PROFILE`. |
 | `colors` | object | theme | Per-key color overrides layered on top of the theme (incl. `usageWarning`/`usageCritical`). See [Colors](#colors). |
@@ -140,6 +141,7 @@ These options are read by the widgets noted; unknown options are ignored.
 | `showDirty` | boolean | `git.branch` | Mark the branch dirty when there are uncommitted changes. |
 | `showAheadBehind` | boolean | `git.branch` | Append ahead/behind counts vs upstream. |
 | `showDiff` | boolean | `git.branch` | Append `+insertions/-deletions`. |
+| `hideNoRemote` | boolean | `git.branch` | Cull the widget when the repo has no `origin` remote. |
 | `variable` | string | `env` | Name of the environment variable to surface (trusted config only). |
 | `command` | string | `custom-command` | Shell command whose stdout becomes the segment (trusted config only). |
 | `text` / `symbol` | string | `custom-text`, `custom-symbol` | Literal text/glyph to print. |

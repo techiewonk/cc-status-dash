@@ -61,6 +61,7 @@ export const PartialConfigSchema = v.looseObject({
   overrideBackground: v.optional(v.string()),
   profiles: v.optional(v.record(v.string(), v.looseObject({}))),
   activeProfile: v.optional(v.string()),
+  inheritSeparatorColors: v.optional(v.boolean()),
   colors: v.optional(v.record(v.string(), v.string())),
 });
 

@@ -218,5 +218,7 @@ export interface Config {
   profiles?: Record<string, Partial<Config>>;
   /** Name of the profile to activate from `profiles`. */
   activeProfile?: string;
+  /** Color inline separators with the preceding widget's color (vs dim label). */
+  inheritSeparatorColors?: boolean;
   colors: Record<string, string>;
 }

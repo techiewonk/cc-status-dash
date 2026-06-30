@@ -21,13 +21,13 @@ todos:
     content: "Phase 2 DONE 2026-07-01: vim-mode (stdin vim.mode), voice-status (system readVoiceEnabled across 4 layered settings files; format icon/text/both), remote-control-status (system readRemoteControl scans <config>/sessions/*.json by sessionId/bridgeSessionId), thinking-effort fallback chain (stdin → default opt → ? showUnknown). 114 widgets."
     status: completed
   - id: option-depth
-    content: "Phase 2 PARTIAL 2026-07-01: shipped dim:'parens' (renderer wraps value in dim parens). REMAINING (low-value polish): merge:'no-padding', windowSeconds, compaction format/trigger data (not captured by parser), linkToIDE/linkToRepo, timer locale/weekday, hideNoGit/hideNoRemote, per-widget symbol overrides."
+    content: "Phase 2 PARTIAL 2026-07-01: shipped dim:'parens' (dim-paren value wrap) + git.branch hideNoRemote (cull when no origin). DEFERRED (low-value polish or no data source): merge:'no-padding', windowSeconds, compaction format/trigger/reclaimed (parser captures only the count), linkToIDE/linkToRepo, timer locale/weekday, per-widget symbol overrides."
     status: in_progress
   - id: resilience-perf
     content: "Phase 2b DONE 2026-07-01: invalid-config hot-path badge, bounded stdin read, CC_STATUS_DASH_DISABLE kill switch, CC_STATUS_DASH_WIDTH alias, separator collapse, AND block-cache for JSONL metrics (transcript disk cache keyed on size+mtime under XDG_CACHE_HOME; msSinceLastUser recomputed on hit so idle timers still tick; parseTranscript split out)."
     status: completed
   - id: layout-powerline
-    content: "Phase 3 PARTIAL 2026-07-01: shipped global overrideForeground/overrideBackground, powerlineCaps (round/flame), AND line gradients (LineConfig.gradient: per-widget hex interpolation via gradientAt(), truecolor verified red→purple→blue). REMAINING (large/low-value): flexMode/flex-separator + auto-align (full layout engine), inheritSeparatorColors, TUI wrap-around nav + refreshInterval→settings.json install screen."
+    content: "Phase 3 PARTIAL 2026-07-01: shipped global overrideForeground/overrideBackground, powerlineCaps (round/flame), AND line gradients (LineConfig.gradient: per-widget hex interpolation via gradientAt(), truecolor verified red→purple→blue). AND inheritSeparatorColors (separator takes preceding widget's color). REMAINING (large): flexMode/flex-separator + auto-align (full layout engine — deferred like the plan defers other ~2wk items), TUI wrap-around nav + refreshInterval→settings.json install screen (Ink UI work, not headless-testable)."
     status: in_progress
   - id: usage-api
     content: "Phase 4 PARTIAL 2026-07-01: shipped JSONL token dedupe (seenUsage by message.id/requestId — no more 2-3x inflated tallies) AND external-usage write sidecar (data/sidecar.ts: CC_STATUS_DASH_USAGE_SIDECAR emits rate_limits JSON atomically, pairs with external-usage widget). DEFERRED (needs Anthropic usage API + OAuth, can't test locally): live usage API provider, weekly-sonnet/opus widgets, extra-usage-used."

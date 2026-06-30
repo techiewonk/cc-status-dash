@@ -507,6 +507,8 @@ const gitText = (id: string, label: string, color: string, pick: (g: NonNullable
 add(w("git.branch", "git", "Git branch", ["git"], (_d, opts, ctx) => {
   const g = ctx.data.git;
   if (!g?.isRepo || !g.branch) return [];
+  // hideNoRemote: cull when the repo has no origin remote (ccstatusline parity).
+  if (opts.hideNoRemote && !g.originRepo) return [];
   let text = `${sym("", "git:", ctx)} ${g.branch}`.trim();
   if (opts.showDirty && g.dirty) text += " *";
   if (opts.showAheadBehind) { if (g.ahead) text += ` ${sym("↑", "^", ctx)}${g.ahead}`; if (g.behind) text += ` ${sym("↓", "v", ctx)}${g.behind}`; }

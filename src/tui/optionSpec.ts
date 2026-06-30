@@ -94,6 +94,7 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "showAheadBehind", label: "Ahead/behind", kind: "toggle" },
     { key: "showDiff", label: "Show +/- diff", kind: "toggle" },
     { key: "link", label: "OSC-8 hyperlink", kind: "toggle" },
+    { key: "hideNoRemote", label: "Hide if no remote", kind: "toggle" },
   ],
   "git-ahead-behind": [
     { key: "pushWarnThreshold", label: "Warn at N ahead", kind: "number" },
@@ -188,6 +189,7 @@ export const GLOBAL_FIELD_SPECS: FieldSpec[] = [
   { key: "separator", label: "Separator", kind: "text" },
   { key: "powerlineSeparator", label: "Powerline separator", kind: "enum", choices: ["arrow", "round", "triangle", "flame", "pixel"] },
   { key: "powerlineCaps", label: "Powerline caps", kind: "enum", choices: ["none", "round", "flame"] },
+  { key: "inheritSeparatorColors", label: "Inherit separator colors", kind: "toggle" },
   { key: "overrideForeground", label: "Override FG (all)", kind: "text" },
   { key: "overrideBackground", label: "Override BG (all)", kind: "text" },
   { key: "refreshInterval", label: "Refresh interval (s)", kind: "number" },
