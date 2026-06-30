@@ -1,0 +1,7 @@
+# Shell scripts and VHS tapes run on Linux (CI, smoke, VHS) — keep LF so the
+# shebang doesn't break with a trailing CR.
+*.sh    text eol=lf
+*.tape  text eol=lf
+
+# Binary assets — no EOL/whitespace munging, no textual diff.
+*.gif   binary
