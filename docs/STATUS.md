@@ -1,8 +1,17 @@
 # Project status — cc-status-dash
 
-_Last updated: 2026-06-30. Living tracker of what is done, in progress, and remaining._
+_Last updated: 2026-07-01. Living tracker of what is done, in progress, and remaining._
 
-Snapshot: **114 widgets**, 10 themes, 35 presets (1–9 layers), persistent stats store, config-mutation engine, valibot-validated config. Builds clean (`bun build` split + `tsc`), 306 tests pass (incl. preset×style + config-location matrices + a security/resilience hardening suite), renders all presets, Ink TUI editor + @clack wizard. See [PARITY.md](PARITY.md) for the full feature-by-feature matrix.
+Snapshot: **114 widgets**, 10 themes, 35 presets (1–9 layers), persistent stats store, config-mutation engine, valibot-validated config. Builds clean (`bun build` split + `tsc`), **335 tests pass** (incl. preset×style + config-location matrices + a security/resilience hardening suite), renders all presets, Ink TUI editor + @clack wizard. See [PARITY.md](PARITY.md) for the full feature-by-feature matrix.
+
+### v0.5→v0.6 feature push (2026-07-01) — HUD/ccstatusline closure across all plan phases
+- **New widgets**: `git.files` (per-file +/- via gated numstat), `advisor`, `session-start-date`, `activity.separator`, `vim-mode`, `voice-status`, `remote-control-status` (107→114).
+- **Activity parity**: agent `[model]`+description, tool-counts `+N more` overflow + MCP-id shortening, running `◐` glyph.
+- **Layout/color**: line **gradients** (per-widget hex interpolation), global **overrideForeground/Background**, **powerlineCaps** (round/flame), **inheritSeparatorColors**, `dim:"parens"`, **adaptive bar width** + explicit `barWidth`, `colors.usageWarning/usageCritical`.
+- **Render safety**: OSC-8-safe `maxWidth` truncation (closes dangling links, atomic escape segments), clickable `cwd` (`file://`).
+- **Config**: **profiles** (named snapshots via `--profile`/env/`activeProfile`), **MAX_LAYERS 9** (+4 dense presets).
+- **Data/perf**: transcript **block-cache** (size+mtime), **JSONL token dedupe**, agent/advisor/sessionStart parsing, **budget scope:block**, **usage sidecar writer** (`CC_STATUS_DASH_USAGE_SIDECAR`).
+- **Deferred (large or need-unavailable-data)**: live usage API + weekly-opus/sonnet (needs Anthropic OAuth), flexMode/auto-align (full layout engine), TUI install-to-settings screen, skills hook cache (no stable CC cache format), Jujutsu/i18n (per original plan).
 
 ## ✅ Done
 - **Runtime: Bun-first**, Node-compatible (`bun build --target=node` → single `dist/index.js`; `build:node` tsc fallback). Source stays runtime-agnostic.
