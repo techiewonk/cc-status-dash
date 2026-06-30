@@ -115,6 +115,42 @@ function lv(label: string | null, value: string | number | null | undefined, col
  * (raw API `used_percentage` / `100 - used` subtractions) into a clean `7%`. */
 const pctStr = (n: number): string => `${Math.round(n)}%`;
 
+/** Collapse MCP tool ids (`mcp__server__tool` → `tool`) and clamp to `maxLen` (0 = no clamp),
+ * matching Claude HUD's tools-line shortening. */
+function shortenTool(name: string, maxLen = 0): string {
+  const short = /^mcp__.+__.+$/.test(name) ? (name.split("__").pop() ?? name) : name;
+  if (maxLen <= 0 || short.length <= maxLen) return short;
+  return short.slice(0, Math.max(0, maxLen - 1)) + "…";
+}
+
+/** Truncate free text to `maxLen` graphemes (cheap, code-unit based) with an ellipsis. */
+function clamp(s: string, maxLen: number): string {
+  return s.length <= maxLen ? s : s.slice(0, Math.max(0, maxLen - 1)) + "…";
+}
+
+/** Wrap `text` in an OSC-8 hyperlink to `url` (ESC]8;;URL BEL text ESC]8;;BEL). */
+function osc8(url: string, text: string): string {
+  return `\x1b]8;;${encodeURI(url)}\x07${text}\x1b]8;;\x07`;
+}
+
+/** Build a `file://` URL for a local path (Windows drive → `file:///D:/...`). */
+function fileUrl(p: string): string {
+  const norm = p.replace(/\\/g, "/");
+  return norm.startsWith("/") ? `file://${norm}` : `file:///${norm}`;
+}
+
+/** Prettify a raw model id into a human label (Claude HUD parity):
+ * `claude-opus-4-7` → `Opus 4.7`, `claude-haiku-4-5-20251001` → `Haiku 4.5`, `opus` → `Opus`. */
+function prettifyModelId(raw: string): string {
+  const id = raw.trim();
+  if (!id) return "";
+  const m = id.match(/^(?:claude-)?(opus|sonnet|haiku)-(\d+)-(\d+)/i);
+  if (m) return `${m[1][0].toUpperCase()}${m[1].slice(1).toLowerCase()} ${m[2]}.${m[3]}`;
+  const low = id.toLowerCase();
+  if (low === "opus" || low === "sonnet" || low === "haiku") return low[0].toUpperCase() + low.slice(1);
+  return id.replace(/^claude-/i, "");
+}
+
 /** Label + optional progress bar + percent text. When the widget config sets a
  * `barStyle` (and it isn't "none"), any percentage widget can render a bar — parity
  * with claude-hud's `usageBarEnabled` and ccstatusline's ContextBar progress toggle.
@@ -151,6 +187,14 @@ add(w("model", "model", "Model", ["stdin"], (_d, o, ctx) => {
 }));
 add(w("context-1m", "context", "1M context badge", ["stdin"], (_d, _o, ctx) =>
   has1M(ctx) ? [{ text: sym("◇ 1M", "1M", ctx), color: "context", bold: true }] : []));
+// Advisor model (Claude HUD parity) — surfaces the `/advisor` model when set on the session.
+// `override` option forces a literal label; otherwise the transcript id is prettified.
+add(w("advisor", "model", "Advisor model", ["transcript"], (_d, opts, ctx) => {
+  const override = typeof opts.override === "string" ? san(opts.override) : undefined;
+  const raw = ctx.data.transcript?.advisorModel;
+  const value = override || (raw ? prettifyModelId(raw) : undefined);
+  return value ? lv(sym("✦", "advisor", ctx), value, "model", ctx) : [];
+}));
 add(w("version", "system", "Claude Code version", ["stdin"], (_d, _o, ctx) =>
   lv(null, ctx.input.version ? `v${ctx.input.version}` : null, "label", ctx)));
 add(w("output-style", "system", "Output style", ["stdin"], (_d, _o, ctx) => {
@@ -456,6 +500,23 @@ add(w("git-changes", "git", "Git changes (+/-)", ["git"], (_d, _o, ctx) => {
   if (g.deletions) segs.push({ text: `${segs.length ? " " : ""}-${g.deletions}`, color: "critical" });
   return segs;
 }));
+// Per-file changes (Claude HUD parity): `≡ file.ts +4 -1 │ other.ts +2`. The git
+// provider only collects per-file stats when this widget is in the layout (gated).
+add(w("git.files", "git", "Git files (per-file +/-)", ["git"], (_d, opts, ctx) => {
+  const files = ctx.data.git?.files;
+  if (!files?.length) return [];
+  const max = typeof opts.max === "number" ? opts.max : 3;
+  const out: Segment[] = [];
+  files.slice(0, max).forEach((f, i) => {
+    if (i > 0) out.push({ text: sym(" │ ", " | ", ctx), color: "label" });
+    out.push({ text: `${sym("≡", "", ctx)}${ctx.config.charset === "text" ? "" : " "}${basename(f.path)}`, color: "gitBranch" });
+    if (f.added) out.push({ text: ` +${f.added}`, color: "context" });
+    if (f.removed) out.push({ text: ` -${f.removed}`, color: "critical" });
+  });
+  const hidden = files.length - Math.min(files.length, max);
+  if (hidden > 0) out.push({ text: `${sym(" │ ", " | ", ctx)}+${hidden} more`, color: "label" });
+  return out;
+}));
 gitText("git-insertions", "Insertions", "context", (g) => (g.insertions ? `+${g.insertions}` : null));
 gitText("git-deletions", "Deletions", "critical", (g) => (g.deletions ? `-${g.deletions}` : null));
 gitText("git-staged", "Staged", "context", (g) => g.staged || null);
@@ -510,6 +571,12 @@ const cwdWidget = (id: string) => add(w(id, "system", "Working directory", ["std
   else if (style === "basename") out = parts[parts.length - 1] ?? data;
   else if (style === "fish") out = parts.map((p, i) => (i < parts.length - 1 && !isDrive(p) ? p.slice(0, 1) : p)).join("/");
   else out = parts.slice(-Number(opts.segments ?? 1)).join("/") || data;
+  // `link` toggle: make the (possibly abbreviated) path an OSC-8 `file://` hyperlink
+  // to the real absolute directory (Claude HUD clickable-cwd parity).
+  if (opts.link === true) {
+    const abs = san(ctx.input.workspace?.current_dir ?? ctx.input.cwd ?? process.cwd());
+    if (abs) out = osc8(fileUrl(abs), out);
+  }
   return [{ text: out, color: "cwd" }];
 }));
 cwdWidget("cwd"); cwdWidget("current-working-dir");
@@ -550,14 +617,17 @@ add(w("link", "custom", "Link (OSC8)", [], (_d, opts, _ctx) => {
 
 // ---------------- HUD activity ----------------
 
-add(w("activity.tools", "activity", "Tool activity", ["transcript"], (_d, _o, ctx) => {
+add(w("activity.tools", "activity", "Tool activity", ["transcript"], (_d, opts, ctx) => {
   const tools = ctx.data.transcript?.recentTools ?? [];
   if (!tools.length) return [];
-  const check = sym("✓", "ok", ctx);
+  const run = sym("◐", "*", ctx);
+  const done = sym("✓", "ok", ctx);
+  const nameMax = typeof opts.nameMax === "number" ? opts.nameMax : 0;
   const out: Segment[] = [];
   tools.slice(0, 3).forEach((t, i) => {
     if (i > 0) out.push({ text: sym(" │ ", " | ", ctx), color: "label" });
-    out.push({ text: `${check} ${t.name}`, color: "doneTool" });
+    const running = t.done === false;
+    out.push({ text: `${running ? run : done} ${shortenTool(t.name, nameMax)}`, color: running ? "agent" : "doneTool" });
     if (t.target) out.push({ text: ` ${t.target}`, color: "label" });
   });
   return out;
@@ -570,22 +640,29 @@ add(w("activity.tool-counts", "activity", "Tool counts", ["transcript"], (_d, op
   const run = sym("◐", "*", ctx);
   const done = sym("✓", "ok", ctx);
   const max = typeof opts.max === "number" ? opts.max : 5;
+  const nameMax = typeof opts.nameMax === "number" ? opts.nameMax : 0;
   const out: Segment[] = [];
-  tc.slice(0, max).forEach((t, i) => {
+  const shown = tc.slice(0, max);
+  shown.forEach((t, i) => {
     if (i > 0) out.push({ text: sym(" │ ", " | ", ctx), color: "label" });
-    out.push({ text: `${t.running ? run : done} ${t.name}`, color: t.running ? "agent" : "doneTool" });
+    out.push({ text: `${t.running ? run : done} ${shortenTool(t.name, nameMax)}`, color: t.running ? "agent" : "doneTool" });
     if (t.count > 1) out.push({ text: ` ×${t.count}`, color: "label" });
   });
+  const hidden = tc.length - shown.length;
+  if (hidden > 0) out.push({ text: `${sym(" │ ", " | ", ctx)}+${hidden} more`, color: "label" });
   return out;
 }));
-add(w("activity.agents", "activity", "Agent activity", ["transcript"], (_d, _o, ctx) => {
+add(w("activity.agents", "activity", "Agent activity", ["transcript"], (_d, opts, ctx) => {
   const agents = ctx.data.transcript?.agents ?? [];
   if (!agents.length) return [];
+  const descMax = typeof opts.descMax === "number" ? opts.descMax : 40;
   const out: Segment[] = [];
   agents.forEach((a, i) => {
     if (i > 0) out.push({ text: "  " });
     const running = a.status !== "done";
     out.push({ text: `${sym(running ? "◐" : "✓", running ? ">" : "ok", ctx)} ${a.name}`, color: "agent" });
+    if (a.model) out.push({ text: ` [${a.model}]`, color: "label" });
+    if (a.description && descMax > 0) out.push({ text: `: ${clamp(a.description, descMax)}`, color: "label" });
     if (a.elapsedSec) out.push({ text: ` (${fmtDuration(a.elapsedSec * 1000)})`, color: "label" });
   });
   return out;
@@ -615,9 +692,30 @@ add(w("activity.mcp", "activity", "MCP servers (live)", ["transcript"], (_d, opt
   const extra = m.length > max ? ` +${m.length - max}` : "";
   return lv(sym("⚙", "mcp", ctx), m.slice(0, max).join(", ") + extra, "agent", ctx);
 }));
+// Composable visual break (Claude HUD's activity separator) — emit a rule of `length`
+// glyphs. Always renders (never culled), letting users insert a divider before activity lines.
+add(w("activity.separator", "activity", "Activity separator", ["stdin"], (_d, opts, ctx) => {
+  const len = typeof opts.length === "number" ? Math.max(1, Math.min(80, opts.length)) : 8;
+  const glyph = typeof opts.glyph === "string" && opts.glyph ? opts.glyph : sym("─", "-", ctx);
+  return [{ text: glyph.repeat(len), color: "label" }];
+}));
 add(w("session-duration", "activity", "Session duration", ["stdin"], (_d, _o, ctx) => {
   const ms = ctx.input.cost?.total_duration_ms;
   return ms ? lv(sym("⏱", "dur", ctx), fmtDuration(ms), "label", ctx) : [];
+}));
+// Session age from the transcript's first entry (Claude HUD parity). `mode:"date"`
+// shows the start time (locale HH:MM); default "age" shows elapsed since start.
+add(w("session-start-date", "activity", "Session start / age", ["transcript"], (_d, opts, ctx) => {
+  const start = ctx.data.transcript?.sessionStart;
+  if (!start || !Number.isFinite(start)) return [];
+  if (opts.mode === "date") {
+    const d = new Date(start);
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return lv(sym("◷", "since", ctx), `${hh}:${mm}`, "label", ctx);
+  }
+  const age = Date.now() - start;
+  return age > 0 ? lv(sym("◷", "age", ctx), fmtDuration(age), "label", ctx) : [];
 }));
 add(w("lines-added", "activity", "Lines added", ["stdin"], (_d, _o, ctx) => {
   const n = ctx.input.cost?.total_lines_added;

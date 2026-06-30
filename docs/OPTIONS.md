@@ -34,7 +34,7 @@ file with `cc-status-dash --validate`.
 | `padding` | number (≥0) | `1` | Spaces of padding around each segment's text. |
 | `autoWrap` | boolean | `false` | Wrap long `inline` lines to the terminal width (uses `COLUMNS`, else `stdout.columns`). |
 | `refreshInterval` | number (≥0) | `10` | Hint (seconds) written into Claude Code's `statusLine` config; keeps elapsed timers ticking while idle. |
-| `lines` | `LineConfig[]` | preset | The layout. Overrides `preset`'s lines when present. Up to **5** lines. |
+| `lines` | `LineConfig[]` | preset | The layout. Overrides `preset`'s lines when present. Up to **9** lines. |
 | `modelContextLimits` | object | — | Per-model context-window sizes (tokens): `{ sonnet?, opus?, haiku?, default? }`. Used when the payload omits `context_window_size`. |
 | `powerlineSeparator` | enum | `arrow` | Powerline separator glyph: `arrow` `round` `triangle` `flame` `pixel` (Nerd Font). Applies to `powerline`-style lines. |
 | `colors` | object | theme | Per-key color overrides layered on top of the theme. See [Colors](#colors). |
@@ -97,7 +97,7 @@ Each entry in `lines` is one rendered row.
 A widget is `{ "id": "<id>", ...options }`. List every id locally:
 
 ```bash
-cc-status-dash --list-widgets     # 107 widgets: id, category, label
+cc-status-dash --list-widgets     # 111 widgets: id, category, label
 ```
 
 ### Universal options (any widget)
@@ -135,21 +135,27 @@ These options are read by the widgets noted; unknown options are ignored.
 | `variable` | string | `env` | Name of the environment variable to surface (trusted config only). |
 | `command` | string | `custom-command` | Shell command whose stdout becomes the segment (trusted config only). |
 | `text` / `symbol` | string | `custom-text`, `custom-symbol` | Literal text/glyph to print. |
-| `link` | boolean | `git.branch`, `link` | Emit an OSC-8 hyperlink when a safe URL can be derived. |
+| `link` | boolean | `git.branch`, `cwd`, `link` | Emit an OSC-8 hyperlink when a safe URL can be derived (`cwd` links to a `file://` path). |
 | `path` | string | `external-usage` | JSON file to read usage from (`{ used_percentage }` or `{ used, limit }` or a bare number; optional `label`/`updated_at`). Trusted config only; or set `$CC_STATUS_DASH_EXTERNAL_USAGE`. |
 | `maxAgeMs` | number | `external-usage` | Cull if the file's `updated_at` is older than this. |
+| `max` | number | `activity.tool-counts`, `activity.mcp`, `git.files` | How many tools/servers/files to show before collapsing the rest into `+N more`. |
+| `nameMax` | number | `activity.tools`, `activity.tool-counts` | Clamp each tool name to N chars (`0` = no clamp); MCP ids always collapse to their leaf (`mcp__github__search` → `search`). |
+| `descMax` | number | `activity.agents` | Truncate each subagent's task description to N chars (`0` = hide description). Also shows `[model]` when known. |
+| `length` / `glyph` | number / string | `activity.separator` | Width and glyph of the visual rule (default `8` × `─`). |
+| `override` | string | `advisor` | Force a literal advisor label instead of the transcript's prettified model id. |
+| `mode` | `"age"` \| `"date"` | `session-start-date` | `age` shows elapsed since session start; `date` shows the start time (`HH:MM`). |
 
-### Widget categories (107 total)
+### Widget categories (111 total)
 
 | Category | Count | Examples |
 |---|---|---|
-| `git` | 35 | `git.branch`, `git-status`, `git-changes`, `git-ahead-behind`, `git-sha`, `git-worktree`, `git-stash`, `git-tag`, `git-pr`, `git-operation` |
+| `git` | 36 | `git.branch`, `git.files`, `git-status`, `git-changes`, `git-ahead-behind`, `git-sha`, `git-worktree`, `git-stash`, `git-tag`, `git-pr`, `git-operation` |
 | `usage` | 16 | `usage.block` (5h), `usage.weekly` (7d), `cost`, `burn-rate`, `budget`, `external-usage`, `cost-projection`, `daily-cost`, `weekly-cost`, `monthly-cost`, `reset-timer` |
-| `activity` | 14 | `activity.tools`, `activity.tool-counts`, `activity.agents`, `activity.todos`, `skills`, `mcp-count`, `message-count`, `session-duration`, `lines-added/removed` |
+| `activity` | 16 | `activity.tools`, `activity.tool-counts`, `activity.agents`, `activity.todos`, `activity.mcp`, `activity.separator`, `skills`, `mcp-count`, `message-count`, `session-duration`, `session-start-date`, `lines-added/removed` |
 | `tokens` | 14 | `tokens-total`, `tokens-cached`, `cache-read/write`, `cache-hit-rate`, `cache-roi`, `tokens-per-min`, `input/output/total-speed` |
 | `system` | 12 | `version`, `output-style`, `session-name`, `cwd`, `free-memory`, `terminal-width`, `session-clock`, `env`, `config-counts` |
 | `context` | 8 | `context.bar`, `context-percentage`, `session-health`, `context-percentage-usable`, `context-length`, `context-window`, `context-1m`, `compaction-counter` |
-| `model` | 4 | `model`, `thinking-effort`, `provider`, `claude-account-email` |
+| `model` | 5 | `model`, `thinking-effort`, `advisor`, `provider`, `claude-account-email` |
 | `custom` | 4 | `custom-text`, `custom-symbol`, `custom-command`, `link` |
 
 ---
@@ -226,7 +232,7 @@ cc-status-dash --list-themes
 | `--config <path>` | Use a specific config file (trusted — may use command/env widgets). |
 | `--theme <id>` | Override the theme for this render. |
 | `--preset <id>` | Override the preset for this render. |
-| `--list-widgets` | Print all 107 widget ids (id, category, label). |
+| `--list-widgets` | Print all 111 widget ids (id, category, label). |
 | `--list-themes` | Print the built-in theme ids. |
 | `--list-presets` | Print the preset catalog (id, line-count, description). |
 | `--validate` | Report on each config file in the resolution chain; exit 1 if any is invalid. |
@@ -237,7 +243,7 @@ cc-status-dash --list-themes
 
 ## Presets
 
-31 presets, grouped by layer count. Pick density first, then flavor. Full list any time
+35 presets, grouped by layer count. Pick density first, then flavor. Full list any time
 with `cc-status-dash --list-presets`.
 
 | Lines | Presets |

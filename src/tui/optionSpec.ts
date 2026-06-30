@@ -29,11 +29,13 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "segments", label: "Path segments", kind: "number" },
     { key: "style", label: "Style", kind: "enum", choices: ["fish", "basename", "full"] },
     { key: "home", label: "Abbreviate home (~)", kind: "toggle" },
+    { key: "link", label: "OSC-8 file:// link", kind: "toggle" },
   ],
   "current-working-dir": [
     { key: "segments", label: "Path segments", kind: "number" },
     { key: "style", label: "Style", kind: "enum", choices: ["fish", "basename", "full"] },
     { key: "home", label: "Abbreviate home (~)", kind: "toggle" },
+    { key: "link", label: "OSC-8 file:// link", kind: "toggle" },
   ],
   "context.bar": [
     { key: "mode", label: "Mode", kind: "enum", choices: ["remaining", "used"] },
@@ -62,6 +64,14 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "threshold", label: "Min % to show", kind: "number" },
   ],
   "activity.mcp": [{ key: "max", label: "Max servers shown", kind: "number" }],
+  "activity.tools": [{ key: "nameMax", label: "Max tool-name chars (0=off)", kind: "number" }],
+  "activity.agents": [{ key: "descMax", label: "Max description chars (0=hide)", kind: "number" }],
+  "activity.separator": [
+    { key: "length", label: "Rule length", kind: "number" },
+    { key: "glyph", label: "Rule glyph", kind: "text" },
+  ],
+  advisor: [{ key: "override", label: "Override label", kind: "text" }],
+  "session-start-date": [{ key: "mode", label: "Mode", kind: "enum", choices: ["age", "date"] }],
   "added-dirs": [{ key: "max", label: "Max dirs shown", kind: "number" }],
   "session-usage": [
     { key: "mode", label: "Mode", kind: "enum", choices: ["used", "remaining"] },
@@ -83,6 +93,7 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "pushWarnThreshold", label: "Warn at N ahead", kind: "number" },
     { key: "pushCritThreshold", label: "Critical at N ahead", kind: "number" },
   ],
+  "git.files": [{ key: "max", label: "Max files shown", kind: "number" }],
   "burn-rate": [{ key: "mode", label: "Mode", kind: "enum", choices: ["wall", "active"] }],
   "skills": [{ key: "mode", label: "Mode", kind: "enum", choices: ["count", "last", "list"] }],
   "cache-timer": [{ key: "ttlSeconds", label: "Cache TTL (s)", kind: "number" }],
@@ -90,7 +101,10 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "hour12", label: "12-hour clock", kind: "toggle" },
     { key: "timezone", label: "Timezone (IANA)", kind: "text" },
   ],
-  "activity.tool-counts": [{ key: "max", label: "Max tools shown", kind: "number" }],
+  "activity.tool-counts": [
+    { key: "max", label: "Max tools shown", kind: "number" },
+    { key: "nameMax", label: "Max tool-name chars (0=off)", kind: "number" },
+  ],
   "token-breakdown": [{ key: "threshold", label: "Min context %", kind: "number" }],
   "cache-roi": [{ key: "savedPerMTok", label: "$ saved / 1M tok", kind: "number" }],
   "provider": [

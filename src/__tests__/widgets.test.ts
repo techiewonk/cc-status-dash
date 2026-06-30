@@ -163,7 +163,7 @@ test("registry has the full widget set", () => {
 });
 
 test("widget count snapshot (bump deliberately when adding widgets)", () => {
-  assert.equal(listWidgets().length, 107, "widget count changed — update docs (README/OPTIONS/COMPARISON) + this snapshot");
+  assert.equal(listWidgets().length, 111, "widget count changed — update docs (README/OPTIONS/COMPARISON) + this snapshot");
 });
 
 test("Phase 1 HUD widgets render from real data", () => {
@@ -178,6 +178,53 @@ test("Phase 1 HUD widgets render from real data", () => {
   assert.match(stOut, /88(\.0)?k/, `session-tokens shows input, got ${stOut}`);
   const mcpOut = getWidget("activity.mcp")!.render(null, {}, ctx({}, data)).map((s) => s.text).join("");
   assert.match(mcpOut, /slack/, `activity.mcp shows names, got ${mcpOut}`);
+});
+
+test("activity parity: agent description, tool-counts overflow + mcp shortening, separator", () => {
+  const ctx = (data: ProviderData): RenderContext => ({ input: {}, data, config: { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme) } });
+  // agent description + model render (Claude HUD agents-line parity)
+  const agData: ProviderData = { transcript: { recentTools: [], toolCounts: [], agents: [{ name: "Explore", model: "haiku", description: "find the auth flow", status: "running", elapsedSec: 12 }], todos: { total: 0, completed: 0 }, skills: [], mcpServers: [] } };
+  const agOut = getWidget("activity.agents")!.render(null, {}, ctx(agData)).map((s) => s.text).join("");
+  assert.match(agOut, /Explore \[haiku\]: find the auth flow \(12s\)/, `agents shows model+desc+elapsed, got ${agOut}`);
+  // tool-counts: MCP id collapses to leaf, and overflow shows "+N more"
+  const tcData: ProviderData = { transcript: { recentTools: [], toolCounts: [
+    { name: "Bash", count: 12, running: false }, { name: "mcp__github__search_issues", count: 3, running: false },
+    { name: "Edit", count: 2, running: false }, { name: "Read", count: 9, running: false },
+    { name: "Grep", count: 4, running: false }, { name: "Write", count: 1, running: false },
+  ], agents: [], todos: { total: 0, completed: 0 }, skills: [], mcpServers: [] } };
+  const tcOut = getWidget("activity.tool-counts")!.render(null, { max: 5 }, ctx(tcData)).map((s) => s.text).join("");
+  assert.match(tcOut, /search_issues/, `mcp tool id collapses to leaf, got ${tcOut}`);
+  assert.doesNotMatch(tcOut, /mcp__github__/, `full mcp id should not appear, got ${tcOut}`);
+  assert.match(tcOut, /\+1 more/, `overflow indicator when >max, got ${tcOut}`);
+  // separator always renders a rule
+  const sepOut = getWidget("activity.separator")!.render(null, { length: 6 }, ctx({})).map((s) => s.text).join("");
+  assert.equal(sepOut, "──────", `separator emits a rule, got ${sepOut}`);
+});
+
+test("cwd link wraps the path in an OSC-8 file:// hyperlink", () => {
+  const cfg = { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme) };
+  const w = getWidget("cwd")!;
+  const ctx: RenderContext = { input: { workspace: { current_dir: "D:/proj/app" } }, data: {}, config: cfg };
+  const linked = w.render(null, { link: true, style: "basename" }, ctx).map((s) => s.text).join("");
+  assert.match(linked, /\x1b\]8;;file:\/\/\/D:\/proj\/app\x07app\x1b\]8;;\x07/, `expected OSC-8 file link, got ${JSON.stringify(linked)}`);
+  // no link option → plain text, no escape
+  const plain = w.render(null, { style: "basename" }, ctx).map((s) => s.text).join("");
+  assert.equal(plain, "app");
+});
+
+test("git.files renders per-file +/- with overflow", () => {
+  const ctx = (data: ProviderData): RenderContext => ({ input: {}, data, config: { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme) } });
+  const data: ProviderData = { git: { isRepo: true, files: [
+    { path: "src/widgets/index.ts", added: 4, removed: 1 },
+    { path: "src/data/git.ts", added: 12, removed: 0 },
+    { path: "README.md", added: 1, removed: 1 },
+    { path: "docs/OPTIONS.md", added: 2, removed: 0 },
+  ] } };
+  const out = getWidget("git.files")!.render(null, { max: 3 }, ctx(data)).map((s) => s.text).join("");
+  assert.match(out, /index\.ts \+4 -1/, `shows basename + counts, got ${out}`);
+  assert.doesNotMatch(out, /src\/widgets/, `shows basename only, got ${out}`);
+  assert.match(out, /\+1 more/, `overflow when >max, got ${out}`);
+  assert.deepEqual(getWidget("git.files")!.render(null, {}, ctx({ git: { isRepo: true } })), [], "empty when no per-file data");
 });
 
 test("thinking-effort symbols + context value modes", () => {

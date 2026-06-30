@@ -9,14 +9,14 @@ todos:
     content: "DONE 2026-06-30 (Phase 0b): Exposed JSON-only options in optionSpec.ts — burn-rate.mode, skills.mode, cache-timer.ttlSeconds, git-ahead-behind push warn/crit thresholds, session-clock + reset timers hour12/timezone, activity.tool-counts.max, token-breakdown.threshold, provider.showApi/prefix."
     status: completed
   - id: hud-widgets
-    content: "Phase 1 PARTIAL 2026-06-30: shipped added-dirs (workspace.added_dirs added to schema), session-tokens (existing transcript data), activity.mcp (live names). REMAINING: advisor + session-start-date (need transcript advisorModel/sessionStart parsing), hud-compact preset."
-    status: in_progress
+    content: "Phase 1 DONE 2026-06-30: shipped added-dirs, session-tokens, activity.mcp, hud-compact preset, AND advisor + session-start-date widgets (transcript now parses advisorModel + sessionStart + Task input.model). 110 widgets."
+    status: completed
   - id: hud-ux
-    content: "Phase 1 MOSTLY DONE 2026-06-30: limit-reached, usageCompact, effort symbols (thinking-effort.symbols), provider-aware cost cull (cost.hideOnProvider), context tokens/both (context-percentage.value), hud-compact preset. REMAINING: activity separators widget, mergeGroups width-fallback."
+    content: "Phase 1 MOSTLY DONE 2026-06-30: limit-reached, usageCompact, effort symbols (thinking-effort.symbols), provider-aware cost cull (cost.hideOnProvider), context tokens/both (context-percentage.value), hud-compact preset, activity.separator widget (108 widgets), activity-parity polish (activity.agents now shows [model]+description via transcript Task.description; activity.tool-counts +N more overflow + MCP-id leaf-shortening + nameMax; activity.tools running ◐ glyph). REMAINING: mergeGroups width-fallback."
     status: in_progress
   - id: hud-render
-    content: "Phase 1b: OSC-8-safe wrap, adaptive bar width, clickable cwd, git.files per-file line, session-start-date widget, colors.usageWarning"
-    status: pending
+    content: "Phase 1b PARTIAL 2026-07-01: shipped git.files per-file widget (gated git diff --numstat, capped 20 files, +N more overflow, separate -f disk cache), session-start-date widget, AND clickable cwd (cwd.link → OSC-8 file:// hyperlink via osc8()/fileUrl() helpers). REMAINING: OSC-8-safe autoWrap (don't split hyperlinks), adaptive bar width, colors.usageWarning semantic key."
+    status: in_progress
   - id: cc-state-widgets
     content: "Phase 2: voice-status, remote-control-status, vim-mode + system.ts config readers; thinking-effort fallback chain"
     status: pending
@@ -33,7 +33,7 @@ todos:
     content: "Phase 4: usage API provider, weekly sonnet/opus widgets, extra-usage-used (API-sourced); JSONL dedupe; external-usage write sidecar"
     status: pending
   - id: unique-features
-    content: "Phase 5 PARTIAL 2026-06-30: shipped session-health widget, cache-roi widget, theme pack (+catppuccin/dracula/one-dark/rose-pine/hud-light → 10 themes). REMAINING: budget scope:block (needs per-block cost accumulator in stats), MAX_LAYERS 9 (test couples to preset coverage), config profiles, skills hook cache."
+    content: "Phase 5 PARTIAL 2026-06-30: shipped session-health widget, cache-roi widget, theme pack (10 themes), AND MAX_LAYERS 9 (+4 dense presets mega/mega-tokens/mega-system/ultra → 35 presets; matrix test now covers 1..9). REMAINING: budget scope:block (needs per-block cost accumulator in stats), config profiles, skills hook cache."
     status: in_progress
   - id: defer-jj
     content: "Defer Jujutsu (8 widgets) — opt-in jj provider only if user demand; document in PARITY"

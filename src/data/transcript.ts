@@ -24,7 +24,7 @@ export function collectTranscript(path?: string): TranscriptInfo {
 
   const lines = raw.split("\n").filter(Boolean);
   const tools: TranscriptInfo["recentTools"] = [];
-  const agents: { name: string; id?: string }[] = [];
+  const agents: { name: string; id?: string; model?: string; description?: string }[] = [];
   // Per-tool tallies + in-flight detection: a tool_use whose id never gets a
   // matching tool_result is still running (the live tool, like Claude HUD's ⊙).
   const counts = new Map<string, { count: number; lastIdx: number }>();
@@ -45,6 +45,8 @@ export function collectTranscript(path?: string): TranscriptInfo {
   let sessionTokens = { input: 0, output: 0, cacheCreation: 0, cacheRead: 0 };
   let compactionCount = 0;
   let sessionName: string | undefined;
+  let advisorModel: string | undefined;
+  let sessionStart: number | undefined;
   let lastUserMs: number | undefined;
   let lastAssistantMs: number | undefined;
   const taskStart = new Map<string, number>(); // Task tool_use id -> start ms (for agent elapsed)
@@ -57,6 +59,11 @@ export function collectTranscript(path?: string): TranscriptInfo {
     // their tools/tokens/todos don't double-count against the main session.
     if (entry?.isSidechain === true) continue;
     const entryTs = typeof entry.timestamp === "string" ? Date.parse(entry.timestamp) : undefined;
+    if (sessionStart == null && entryTs != null && !Number.isNaN(entryTs)) sessionStart = entryTs;
+    // `advisorModel` is stamped on assistant records once `/advisor` is set; keep the latest.
+    if (entry.type === "assistant" && typeof entry.advisorModel === "string" && entry.advisorModel) {
+      advisorModel = san(entry.advisorModel.slice(0, 64));
+    }
 
     if (entry.type === "user" && entry.timestamp) {
       // Tool results are also delivered as type:"user" entries — only count a
@@ -101,7 +108,7 @@ export function collectTranscript(path?: string): TranscriptInfo {
           current: san(items.find((t: any) => t?.status === "in_progress")?.content),
         };
       } else if (name === "Task") {
-        agents.push({ name: san(block.input?.subagent_type) ?? "agent", id: block.id });
+        agents.push({ name: san(block.input?.subagent_type) ?? "agent", id: block.id, model: san(block.input?.model), description: san(block.input?.description) });
         if (block.id) {
           pending.add(block.id); // resolved when its tool_result arrives
           if (entryTs) taskStart.set(block.id, entryTs);
@@ -136,12 +143,14 @@ export function collectTranscript(path?: string): TranscriptInfo {
       const start = a.id ? taskStart.get(a.id) : undefined;
       const end = a.id ? taskEnd.get(a.id) ?? Date.now() : undefined;
       const elapsedSec = start != null && end != null ? Math.max(0, Math.round((end - start) / 1000)) : undefined;
-      return { name: a.name, status: a.id && pending.has(a.id) ? "running" : "done", elapsedSec };
+      return { name: a.name, model: a.model, description: a.description, status: a.id && pending.has(a.id) ? "running" : "done", elapsedSec };
     }),
     todos,
     skills: [...skills],
     mcpServers: [...mcpServers],
     sessionName,
+    advisorModel,
+    sessionStart,
     sessionTokens,
     compactionCount,
     msSinceLastUser: lastUserMs ? Date.now() - lastUserMs : undefined,

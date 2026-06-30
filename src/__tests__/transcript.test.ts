@@ -112,6 +112,24 @@ test("agent elapsedSec is computed from Task tool_use → tool_result timestamps
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test("Task model + description are captured on the agent entry", () => {
+  const a = parse([
+    { type: "assistant", message: { content: [{ type: "tool_use", id: "g1", name: "Task", input: { subagent_type: "explore", model: "haiku", description: "trace the auth flow" } }] } },
+  ]).agents.find((x) => x.name === "explore");
+  assert.equal(a?.model, "haiku");
+  assert.equal(a?.description, "trace the auth flow");
+});
+
+test("advisorModel (latest assistant stamp) + sessionStart (first timestamp) are parsed", () => {
+  const t = parse([
+    { type: "user", timestamp: "2026-06-30T10:00:00.000Z", message: { content: "hi" } },
+    { type: "assistant", timestamp: "2026-06-30T10:00:05.000Z", advisorModel: "claude-sonnet-4-6", message: { content: [] } },
+    { type: "assistant", timestamp: "2026-06-30T10:01:00.000Z", advisorModel: "claude-opus-4-7", message: { content: [] } },
+  ]);
+  assert.equal(t.advisorModel, "claude-opus-4-7", "keeps the latest advisor stamp");
+  assert.equal(t.sessionStart, Date.parse("2026-06-30T10:00:00.000Z"), "sessionStart is the first timestamp");
+});
+
 test("agents resolve to done when their Task tool_result arrives", () => {
   const a = parse([
     { type: "assistant", message: { content: [{ type: "tool_use", id: "g1", name: "Task", input: { subagent_type: "explore" } }] } },

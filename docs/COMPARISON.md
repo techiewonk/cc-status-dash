@@ -11,7 +11,7 @@ and where cc-status-dash now stands. (Source of truth: local clones `D:\ccstatus
 | Paradigm | per-widget items in a pipeline | global `display.*` toggles | both — preset **or** per-widget pipeline |
 | Interactive TUI | ✅ multi-screen Ink | ❌ | ✅ multi-screen Ink (`--tui`) |
 | In-Claude-Code config | ❌ | ✅ slash command (LLM) | ✅ slash command + `--configure` wizard |
-| Widgets | ~80 (incl. Jujutsu, Vim, Voice) | fixed element set | **107** |
+| Widgets | ~80 (incl. Jujutsu, Vim, Voice) | fixed element set | **111** |
 
 ## Universal per-widget styling options
 
@@ -72,18 +72,18 @@ Examples:
 **Only in cc-status-dash (not ccstatusline):** `burn-rate`, `budget`, `cost-projection`,
 `daily/weekly/monthly-cost`, `token-breakdown`, `tokens-per-min`, `message-count`,
 `total-api-time`, `last-response-time`, `config-counts`, `mcp-count`, `session-duration`,
-`cache-timer`, `provider`, and more (107 total).
+`cache-timer`, `provider`, and more (111 total).
 
 ## Complete per-widget option reference (cc-status-dash)
 
-**Every one of the 107 widgets** also accepts the 7 universal options
+**Every one of the 111 widgets** also accepts the 7 universal options
 (`color`, `bgColor`, `bold`, `dim`, `rawValue`, `merge`, `maxWidth`) — not repeated below.
-These **23 widgets** add their own options:
+These **24 widgets** add their own options:
 
 | Widget | Widget-specific options |
 |---|---|
 | `model` | `show1M`, `format` (abbr/name/id/version) |
-| `cwd` / `current-working-dir` | `segments`, `style` (fish/basename/full), `home` (~) |
+| `cwd` / `current-working-dir` | `segments`, `style` (fish/basename/full), `home` (~), `link` (OSC-8 `file://`) |
 | `context.bar` | `mode` (remaining/used), `barStyle` (10 styles) |
 | `context-percentage` | `mode` (remaining/used), `barStyle` (none + 10) |
 | `context-percentage-usable` | `autocompactBuffer` |
@@ -94,6 +94,7 @@ These **23 widgets** add their own options:
 | `external-usage` | `path`, `label`, `mode`, `barStyle`, `maxAgeMs` |
 | `cache-roi` | `savedPerMTok` ($ estimate) |
 | `git.branch` | `showDirty`, `showAheadBehind`, `showDiff`, `link` |
+| `git.files` | `max` (per-file `+/-`, Claude HUD parity) |
 | `git-pr` | `showStatus`, `showTitle` |
 | `budget` | `amount`, `warningThreshold`, `scope` (session/today/month) |
 | `reset-timer` / `weekly-reset-timer` | `timestamp`, `hoursOnly` |

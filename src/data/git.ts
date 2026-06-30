@@ -12,9 +12,9 @@ import { clean as san } from "./sanitize.js";
 
 const GIT_CACHE_TTL_MS = 2000;
 
-function gitCacheFile(cwd: string): string {
+function gitCacheFile(cwd: string, suffix = ""): string {
   const base = process.env.XDG_CACHE_HOME ?? join(tmpdir(), "cc-status-dash");
-  return join(base, `git-${createHash("sha1").update(cwd).digest("hex").slice(0, 16)}.json`);
+  return join(base, `git-${createHash("sha1").update(cwd).digest("hex").slice(0, 16)}${suffix}.json`);
 }
 function readGitCache(file: string): GitInfo | null {
   try {
@@ -51,16 +51,34 @@ function parseRemote(url: string | null): { owner?: string; repo?: string } {
   return m ? { owner: m[1], repo: m[2] } : {};
 }
 
-export function collectGit(cwd: string): GitInfo {
-  const cf = gitCacheFile(cwd);
+export function collectGit(cwd: string, opts: { files?: boolean } = {}): GitInfo {
+  // The per-file detail is cached separately (`-f` suffix) so a layout with the
+  // `git.files` widget doesn't poison the cheaper cache used by other git widgets.
+  const cf = gitCacheFile(cwd, opts.files ? "-f" : "");
   const cached = readGitCache(cf);
   if (cached) return cached;
-  const fresh = computeGit(cwd);
+  const fresh = computeGit(cwd, opts);
   writeGitCache(cf, fresh);
   return fresh;
 }
 
-function computeGit(cwd: string): GitInfo {
+/** Per-file unstaged numstat, capped so a huge working tree can't blow up the line. */
+const MAX_GIT_FILES = 20;
+function collectFiles(cwd: string): GitInfo["files"] {
+  const out = git(["diff", "--numstat"], cwd);
+  if (!out) return undefined;
+  const files: NonNullable<GitInfo["files"]> = [];
+  for (const line of out.split("\n")) {
+    if (!line) continue;
+    const m = /^(\d+|-)\t(\d+|-)\t(.+)$/.exec(line);
+    if (!m) continue;
+    files.push({ path: san(m[3]) ?? m[3], added: m[1] === "-" ? 0 : Number(m[1]), removed: m[2] === "-" ? 0 : Number(m[2]) });
+    if (files.length >= MAX_GIT_FILES) break;
+  }
+  return files.length ? files : undefined;
+}
+
+function computeGit(cwd: string, opts: { files?: boolean } = {}): GitInfo {
   // One coalesced rev-parse instead of 5 separate spawns. (--short HEAD is kept
   // separate because it errors on an unborn HEAD, which would abort the batch.)
   const rp = git(["rev-parse", "--is-inside-work-tree", "--show-toplevel", "--git-dir", "--git-common-dir", "--abbrev-ref", "HEAD"], cwd);
@@ -135,9 +153,11 @@ function computeGit(cwd: string): GitInfo {
     ? { mode: true, name: rootDir ? basename(rootDir) : undefined, branch, originalBranch }
     : { mode: false };
 
+  const files = opts.files ? collectFiles(cwd) : undefined;
+
   return {
     isRepo: true, branch: san(branch), dirty, clean: !dirty, ahead, behind,
-    staged, unstaged, untracked, conflicts, insertions, deletions, sha: san(sha), rootDir: san(rootDir),
+    staged, unstaged, untracked, conflicts, insertions, deletions, files, sha: san(sha), rootDir: san(rootDir),
     originOwner: san(origin.owner), originRepo: san(origin.repo),
     upstreamOwner: san(upstream.owner), upstreamRepo: san(upstream.repo), isFork,
     stash, tag: san(tag), secondsSinceCommit, submodules, commitCount, operation: san(operation),

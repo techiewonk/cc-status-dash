@@ -6,7 +6,7 @@ import type { Config, LineConfig } from "../types.js";
 // then the flavor. Layouts support up to MAX_LAYERS lines.
 
 /** Hard cap on layers (status lines) per layout. */
-export const MAX_LAYERS = 5;
+export const MAX_LAYERS = 9;
 
 // ---- reusable building-block lines ----
 
@@ -117,6 +117,17 @@ const activityAgentsTodos = (): LineConfig => ({
   style: "inline",
   showWhen: "activity",
   widgets: [{ id: "activity.agents" }, { id: "activity.todos" }],
+});
+
+// System + health rows for the densest (6–9 line) dashboard presets.
+const systemLine = (): LineConfig => ({
+  style: "inline",
+  widgets: [{ id: "version" }, { id: "session-clock" }, { id: "free-memory" }],
+});
+
+const healthLine = (): LineConfig => ({
+  style: "inline",
+  widgets: [{ id: "session-health" }, { id: "cache-hit-rate" }],
 });
 
 // ---- dense single-line builders (pack many widgets into one inline line) ----
@@ -248,6 +259,16 @@ export const PRESET_CATALOG: PresetDef[] = [
   // 3 lines
   { id: "pace-focus", name: "Pace focus", lineCount: 3, description: "identity / context+pace / 7d+cost", lines: [idPL(false), ctxUsage(), weeklyCost()] },
   { id: "tokens-plus", name: "Tokens+", lineCount: 3, description: "identity / tokens / 5h+7d", lines: [idInline(), tokenLine(), usagePair()] },
+
+  // ---- ultra-dense dashboards (6–9 lines) ----
+  // 6 lines
+  { id: "mega", name: "Mega", lineCount: 6, description: "identity / context / 5h / 7d+cost / tools / agents+todos", lines: [idPL(true), ctx(), usage5h(), weeklyCost(), activityTools(), activityAgentsTodos()] },
+  // 7 lines
+  { id: "mega-tokens", name: "Mega (tokens)", lineCount: 7, description: "identity / context / tokens / 5h / 7d+cost / tools / agents+todos", lines: [idPL(true), ctx(), tokenLine(), usage5h(), weeklyCost(), activityTools(), activityAgentsTodos()] },
+  // 8 lines
+  { id: "mega-system", name: "Mega (system)", lineCount: 8, description: "identity / system / context / tokens / 5h / 7d+cost / tools / agents+todos", lines: [idPL(true), systemLine(), ctx(), tokenLine(), usage5h(), weeklyCost(), activityTools(), activityAgentsTodos()] },
+  // 9 lines
+  { id: "ultra", name: "Ultra", lineCount: 9, description: "identity / system / health / context / tokens / 5h / 7d+cost / tools / agents+todos", lines: [idPL(true), systemLine(), healthLine(), ctx(), tokenLine(), usage5h(), weeklyCost(), activityTools(), activityAgentsTodos()] },
 ];
 
 /** id -> lines, used by config loading. */

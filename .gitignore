@@ -1,6 +1,8 @@
 node_modules/
 dist/
 *.log
+# project-local user config (per-developer; never committed)
+.cc-status-dash.json
 _extra_unused.txt
 _stats_unused.txt
 _b3_unused.txt

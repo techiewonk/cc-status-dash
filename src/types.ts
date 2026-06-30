@@ -92,6 +92,8 @@ export interface GitInfo {
   conflicts?: number;
   insertions?: number;
   deletions?: number;
+  /** Per-file unstaged diff stats (only collected when a `git.files` widget is active). */
+  files?: { path: string; added: number; removed: number }[];
   sha?: string;
   rootDir?: string;
   originOwner?: string;
@@ -112,11 +114,15 @@ export interface TranscriptInfo {
   recentTools: { name: string; target?: string; done: boolean }[];
   /** Per-tool tallies (Claude HUD style): `Bash ×12`, with the in-flight tool flagged. */
   toolCounts: { name: string; count: number; running: boolean }[];
-  agents: { name: string; model?: string; status?: string; elapsedSec?: number }[];
+  agents: { name: string; model?: string; description?: string; status?: string; elapsedSec?: number }[];
   todos: { total: number; completed: number; current?: string };
   skills: string[];
   mcpServers: string[];
   sessionName?: string;
+  /** Canonical advisor model id (e.g. `claude-opus-4-7`) stamped on assistant records after `/advisor`. */
+  advisorModel?: string;
+  /** Epoch ms of the transcript's first entry (session start), for session-age widgets. */
+  sessionStart?: number;
   sessionTokens?: { input: number; output: number; cacheCreation: number; cacheRead: number };
   compactionCount?: number;
   msSinceLastUser?: number;
