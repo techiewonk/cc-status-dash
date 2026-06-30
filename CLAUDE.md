@@ -127,5 +127,8 @@ Then `npm run build` and `node dist/index.js --list-widgets | grep my-widget`. R
 Stack adoption progress is in docs/DEPENDENCIES.md (valibot, @clack, Ink, Biome adopted).
 
 The **Ink TUI** config editor is built (`src/tui/`, `--tui`) — pure reducer/picker are
-unit-tested and the Ink view is tested headlessly via ink-testing-library. Remaining polish:
-wrap-around nav, per-widget option editor, write `refreshInterval` from the TUI, VHS demo.
+unit-tested and the Ink view is tested headlessly via ink-testing-library. It is now
+multi-screen (ccstatusline-parity): **layout** (lines/widgets) · **options** (per-widget,
+spec-driven by `tui/optionSpec.ts` → `setWidgetOption`) · **global** (settings → `setGlobal`,
+incl. `refreshInterval`) · **colors** (palette overrides → `setColor`). Remaining polish:
+wrap-around nav, powerline separator/cap customization, install-into-settings.json screen.

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEFAULT_CONFIG } from "../config/defaults.js";
-import { initialState, reduce } from "../tui/reducer.js";
+import { initialState, reduce, fieldsFor, fieldValue } from "../tui/reducer.js";
 import { fuzzyFilter, fuzzyScore } from "../tui/picker.js";
 
 // Pure TUI core: editor reducer + fuzzy picker (the Ink view is covered separately
@@ -58,7 +58,7 @@ test("cycleStyle and cycleTheme rotate", () => {
   s = reduce(s, { type: "cycleStyle" });
   assert.equal(s.config.lines[0].style, "capsule");
   const themes = ["a", "b", "c"];
-  s = { config: { ...s.config, theme: "a" }, cursor: s.cursor };
+  s = { ...s, config: { ...s.config, theme: "a" } };
   s = reduce(s, { type: "cycleTheme", themes });
   assert.equal(s.config.theme, "b");
 });
@@ -68,6 +68,67 @@ test("setPreset replaces lines and resets cursor", () => {
   s = reduce(s, { type: "setPreset", id: "minimal" });
   assert.equal(s.config.preset, "minimal");
   assert.deepEqual(s.cursor, { line: 0, widget: 0 });
+});
+
+// ---- multi-screen editing (option / global / color editors) ----
+
+function withWidget(id: string) {
+  return initialState({ ...DEFAULT_CONFIG, lines: [{ style: "inline", widgets: [{ id }] }] });
+}
+
+test("options screen toggles, cycles enums, and edits numbers via the engine", () => {
+  let s = withWidget("git.branch");
+  s = reduce(s, { type: "openScreen", screen: "options" });
+  assert.equal(s.screen, "options");
+  // fields for git.branch: showDirty, showAheadBehind, showDiff, link (all toggles)
+  const fields = fieldsFor(s);
+  assert.deepEqual(fields.map((f) => f.key), ["showDirty", "showAheadBehind", "showDiff", "link"]);
+  s = reduce(s, { type: "fieldAdjust", dir: 1 }); // toggle showDirty on
+  assert.equal(s.config.lines[0].widgets[0].showDirty, true);
+  assert.equal(s.config.preset, "custom");
+
+  // enum cycling on context.bar barStyle
+  let c = withWidget("context.bar");
+  c = reduce(c, { type: "openScreen", screen: "options" });
+  c = reduce(c, { type: "fieldDown" }); // -> barStyle
+  const spec = fieldsFor(c)[c.field];
+  assert.equal(spec.key, "barStyle");
+  c = reduce(c, { type: "fieldAdjust", dir: 1 });
+  assert.equal(fieldValue(c, spec), "bar"); // blocks -> bar
+
+  // number editing on cwd segments via typing
+  let w = withWidget("cwd");
+  w = reduce(w, { type: "openScreen", screen: "options" }); // field 0 = segments (number)
+  w = reduce(w, { type: "fieldType", input: "3" });
+  assert.equal(w.config.lines[0].widgets[0].segments, 3);
+  w = reduce(w, { type: "fieldAdjust", dir: -1 });
+  assert.equal(w.config.lines[0].widgets[0].segments, 2);
+});
+
+test("global screen edits config-level settings", () => {
+  let s = initialState({ ...DEFAULT_CONFIG });
+  s = reduce(s, { type: "openScreen", screen: "global" });
+  // field 0 = charset (enum unicode|text)
+  s = reduce(s, { type: "fieldAdjust", dir: 1 });
+  assert.equal(s.config.charset, "text");
+  // navigate to minimalist (toggle) and flip
+  const idx = fieldsFor(s).findIndex((f) => f.key === "minimalist");
+  for (let i = 0; i < idx; i++) s = reduce(s, { type: "fieldDown" });
+  s = reduce(s, { type: "fieldAdjust", dir: 1 });
+  assert.equal(s.config.minimalist, true);
+});
+
+test("colors screen overrides a palette key and reset clears it", () => {
+  let s = initialState({ ...DEFAULT_CONFIG });
+  s = reduce(s, { type: "openScreen", screen: "colors" });
+  // clear the existing default (text fields append), then type a hex into key "model"
+  for (let i = 0; i < 10; i++) s = reduce(s, { type: "fieldBackspace" });
+  for (const ch of "#ff0000") s = reduce(s, { type: "fieldType", input: ch });
+  assert.equal(s.config.colors.model, "#ff0000");
+  s = reduce(s, { type: "fieldReset" }); // reset deletes the override entirely
+  assert.equal(s.config.colors.model, undefined);
+  s = reduce(s, { type: "back" });
+  assert.equal(s.screen, "layout");
 });
 
 test("fuzzyScore matches subsequences and rejects non-matches", () => {

@@ -84,3 +84,10 @@ export function setTheme(config: Config, theme: string): Config {
 export function setGlobal<K extends keyof Config>(config: Config, key: K, value: Config[K]): Config {
   return { ...clone(config), [key]: value };
 }
+/** Override a single semantic color key (empty string clears it back to the theme). */
+export function setColor(config: Config, key: string, value: string): Config {
+  const c = clone(config);
+  if (value === "") delete c.colors[key];
+  else c.colors[key] = value;
+  return c;
+}

@@ -6,13 +6,15 @@ import { render as renderLine } from "../render/renderer.js";
 import { listWidgets } from "../widgets/index.js";
 import { listThemes } from "../themes/index.js";
 import { PRESET_CATALOG } from "../config/defaults.js";
-import { initialState, reduce, type Action, type EditorState } from "./reducer.js";
+import { initialState, reduce, fieldsFor, fieldValue, type Action, type EditorState } from "./reducer.js";
+import { displayValue } from "./optionSpec.js";
 import { fuzzyFilter, type PickItem } from "./picker.js";
 import { writeConfig } from "../config/wizard.js";
 
 // Ink live-preview config editor. All edits go through the pure `reduce`; this
 // component is just keys-in / frame-out, so the logic stays testable headlessly
-// (see __tests__/tui.test.tsx, driven by ink-testing-library).
+// (see __tests__/tui.test.tsx, driven by ink-testing-library). Multi-screen:
+// layout (lines/widgets) · options (per-widget) · global · colors.
 
 const SAMPLE: StatuslineInput = {
   model: { display_name: "Claude Opus 4.8" },
@@ -42,7 +44,14 @@ export function App({ initial, savePath, onSaved }: AppProps) {
   const dispatch = (a: Action) => setState((s) => reduce(s, a));
   const results = picker.open ? fuzzyFilter(picker.query, ALL_ITEMS) : [];
 
+  const save = () => {
+    const res = writeConfig(savePath, state.config);
+    setStatus(res.ok ? `saved ${savePath}` : `save failed: ${res.error}`);
+    if (res.ok) onSaved?.(savePath);
+  };
+
   useInput((input, key) => {
+    // ---- add-widget fuzzy picker (layout screen) ----
     if (picker.open) {
       if (key.escape) return setPicker({ open: false, query: "", index: 0 });
       if (key.return) {
@@ -59,6 +68,23 @@ export function App({ initial, savePath, onSaved }: AppProps) {
       if (input) setPicker((p) => ({ ...p, query: p.query + input, index: 0 }));
       return;
     }
+
+    // Ctrl+S saves from any screen.
+    if (key.ctrl && input === "s") return save();
+
+    // ---- option / global / color editing screens ----
+    if (state.screen !== "layout") {
+      if (key.escape) return dispatch({ type: "back" });
+      if (key.upArrow) return dispatch({ type: "fieldUp" });
+      if (key.downArrow) return dispatch({ type: "fieldDown" });
+      if (key.leftArrow) return dispatch({ type: "fieldAdjust", dir: -1 });
+      if (key.rightArrow) return dispatch({ type: "fieldAdjust", dir: 1 });
+      if (key.backspace || key.delete) return dispatch({ type: "fieldBackspace" });
+      if (input) dispatch({ type: "fieldType", input });
+      return;
+    }
+
+    // ---- layout screen ----
     if (input === "q" || key.escape) return exit();
     if (key.upArrow) return dispatch({ type: "up" });
     if (key.downArrow) return dispatch({ type: "down" });
@@ -73,6 +99,9 @@ export function App({ initial, savePath, onSaved }: AppProps) {
     if (input === "x") return dispatch({ type: "removeLine" });
     if (input === "s") return dispatch({ type: "cycleStyle" });
     if (input === "t") return dispatch({ type: "cycleTheme", themes });
+    if (input === "o") return dispatch({ type: "openScreen", screen: "options" });
+    if (input === "g") return dispatch({ type: "openScreen", screen: "global" });
+    if (input === "c") return dispatch({ type: "openScreen", screen: "colors" });
     if (input === "p") {
       const ids = PRESET_CATALOG.map((pp) => pp.id);
       const next = ids[(ids.indexOf(state.config.preset) + 1) % ids.length];
@@ -80,16 +109,61 @@ export function App({ initial, savePath, onSaved }: AppProps) {
       setStatus(`preset ${next}`);
       return;
     }
-    if (input === "w") {
-      const res = writeConfig(savePath, state.config);
-      setStatus(res.ok ? `saved ${savePath}` : `save failed: ${res.error}`);
-      if (res.ok) onSaved?.(savePath);
-    }
+    if (input === "w") return save();
   });
 
   const ctx: RenderContext = { input: SAMPLE, data: {}, config: state.config };
   const preview = strip(renderLine(ctx)) || "(empty)";
 
+  // ---- editor screens (options / global / colors) ----
+  if (state.screen !== "layout") {
+    const fields = fieldsFor(state);
+    const selWidget = state.config.lines[state.cursor.line]?.widgets[state.cursor.widget];
+    const title =
+      state.screen === "options"
+        ? `options · ${selWidget?.id ?? "(no widget)"}`
+        : state.screen === "global"
+          ? "global settings"
+          : "colors (override theme)";
+    return (
+      <Box flexDirection="column">
+        <Text bold>cc-status-dash · {title}</Text>
+        <Box borderStyle="round" flexDirection="column" paddingX={1}>
+          {preview.split("\n").map((l, i) => (
+            <Text key={i}>{l || " "}</Text>
+          ))}
+        </Box>
+        <Box flexDirection="column" marginTop={1}>
+          {fields.length === 0 ? (
+            <Text dimColor>no editable options for this widget</Text>
+          ) : (
+            fields.map((spec, i) => {
+              const sel = i === state.field;
+              const val = displayValue(fieldValue(state, spec), spec);
+              return (
+                <Box key={spec.key}>
+                  <Text color={sel ? "green" : undefined}>{sel ? "▶ " : "  "}</Text>
+                  <Text color={sel ? "green" : undefined}>{spec.label}: </Text>
+                  <Text color={sel ? "cyan" : "gray"}>
+                    {val}
+                    {sel && (spec.kind === "text" || spec.kind === "number") ? <Text dimColor>▍</Text> : null}
+                  </Text>
+                </Box>
+              );
+            })
+          )}
+        </Box>
+        <Text dimColor>
+          ↑↓ field · ←→ change{" "}
+          {fields[state.field]?.kind === "text" || fields[state.field]?.kind === "number" ? "· type to edit · ⌫ delete " : ""}
+          · Ctrl+S save · ESC back
+        </Text>
+        {status ? <Text color="green">{status}</Text> : null}
+      </Box>
+    );
+  }
+
+  // ---- layout screen ----
   return (
     <Box flexDirection="column">
       <Text bold>cc-status-dash editor</Text>
@@ -138,7 +212,10 @@ export function App({ initial, savePath, onSaved }: AppProps) {
           {results.length === 0 ? <Text dimColor>no matches</Text> : null}
         </Box>
       ) : (
-        <Text dimColor>↑↓←→ move · a add · d del · k clone · [ ] reorder · n/x line · s style · t theme · p preset · w save · q quit</Text>
+        <Box flexDirection="column">
+          <Text dimColor>↑↓←→ move · a add · d del · k clone · [ ] reorder · n/x line · s style</Text>
+          <Text dimColor>o options · g global · c colors · t theme · p preset · w save · q quit</Text>
+        </Box>
       )}
       {status ? <Text color="green">{status}</Text> : null}
     </Box>
