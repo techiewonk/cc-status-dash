@@ -110,6 +110,10 @@ function lv(label: string | null, value: string | number | null | undefined, col
   return [{ text: `${label} `, color: "label" }, { text: String(value), color }];
 }
 
+/** Whole-number percent string. Floors out float artifacts like `7.000000000000001%`
+ * (raw API `used_percentage` / `100 - used` subtractions) into a clean `7%`. */
+const pctStr = (n: number): string => `${Math.round(n)}%`;
+
 function w(id: string, category: WidgetCategory, label: string, needs: DataSource[], render: Widget["render"]): Widget {
   return { id, category, label, needs, collect: () => null, render };
 }
@@ -161,12 +165,12 @@ add(w("context.bar", "context", "Context bar", ["stdin"], (_d, opts, ctx) => {
     const bar = renderBar(used, 10, opts.barStyle as BarStyle, ctx.config.charset);
     segs.push({ text: bar.filled, color }, { text: bar.empty, color: "barEmpty" }, { text: " " });
   }
-  segs.push({ text: `${shown}%${mode === "remaining" && !ctx.config.minimalist ? " left" : ""}`, color });
+  segs.push({ text: `${pctStr(shown)}${mode === "remaining" && !ctx.config.minimalist ? " left" : ""}`, color });
   return segs;
 }));
 add(w("context-percentage", "context", "Context %", ["stdin"], (_d, _o, ctx) => {
   const u = contextPct(ctx);
-  return u == null ? [] : lv("Ctx", `${u}%`, thresholdColor(u), ctx);
+  return u == null ? [] : lv("Ctx", pctStr(u), thresholdColor(u), ctx);
 }));
 add(w("context-percentage-usable", "context", "Context % (usable)", ["stdin"], (_d, opts, ctx) => {
   const cw = ctx.input.context_window;
@@ -174,7 +178,7 @@ add(w("context-percentage-usable", "context", "Context % (usable)", ["stdin"], (
   const buffer = Number(opts.autocompactBuffer ?? 33000);
   const used = usageTokens(ctx).total;
   const usablePct = Math.min(100, Math.round((used / Math.max(1, cw.context_window_size - buffer)) * 100));
-  return lv("Ctx", `${usablePct}%`, thresholdColor(usablePct), ctx);
+  return lv("Ctx", pctStr(usablePct), thresholdColor(usablePct), ctx);
 }));
 add(w("context-length", "context", "Context length (tokens)", ["stdin"], (_d, _o, ctx) => {
   const t = usageTokens(ctx).total;
@@ -202,7 +206,7 @@ add(w("cache-hit-rate", "tokens", "Cache hit rate", ["stdin"], (_d, _o, ctx) => 
   const t = usageTokens(ctx);
   const denom = t.input + t.cacheRead;
   if (denom === 0) return [];
-  return lv("Cache", `${Math.round((t.cacheRead / denom) * 100)}%`, "context", ctx);
+  return lv("Cache", pctStr((t.cacheRead / denom) * 100), "context", ctx);
 }));
 
 // ---------------- usage / cost / timers ----------------
@@ -220,7 +224,7 @@ const usageWindow = (id: string, label: string, key: "five_hour" | "seven_day", 
     const pct = win.used_percentage;
     if (pct < Number(opts.threshold ?? 0)) return [];
     const color = pct >= critAt ? "critical" : pct >= 60 ? "warning" : "usage";
-    const segs = lv(label, `${pct}%`, color, ctx);
+    const segs = lv(label, pctStr(pct), color, ctx);
     if (opts.showPace && win.resets_at != null) {
       const remMs = (epochMs(win.resets_at)) - Date.now();
       const WINDOW = WINDOW_MS[key];
@@ -588,7 +592,7 @@ add(w("budget", "usage", "Budget", ["stats"], (_d, opts, ctx) => {
   const warn = Number(opts.warningThreshold ?? 80);
   const color = pct >= 100 ? "critical" : pct >= warn ? "warning" : "usage";
   const mark = pct >= warn ? "!" : "";
-  return lv(sym("◱", "budget", ctx), `${mark}${pct}%`, color, ctx);
+  return lv(sym("◱", "budget", ctx), `${mark}${pctStr(pct)}`, color, ctx);
 }));
 
 add(w("cost-projection", "usage", "Cost projection (block)", ["stats", "rate_limits"], (_d, _o, ctx) => {

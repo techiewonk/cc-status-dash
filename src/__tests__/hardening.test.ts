@@ -157,6 +157,23 @@ test("displayWidth counts wide and zero-width chars correctly", () => {
   assert.equal(displayWidth("e" + String.fromCharCode(0x0301)), 1, "combining accent adds 0");
 });
 
+// ---- percentages render as whole numbers (no float artifacts) ----
+test("usage % renders a clean integer, not 7.000000000000001%", () => {
+  const ctx: RenderContext = { input: { rate_limits: { five_hour: { used_percentage: 7.000000000000001, resets_at: Math.floor(Date.now() / 1000) + 3600 } } }, data: {}, config: cfg() };
+  const w = getWidget("usage.block")!;
+  const out = w.render(w.collect(ctx), { showPace: true }, ctx).map((s) => s.text).join("");
+  assert.match(out, /\b7%/, `expected "7%", got ${out}`);
+  assert.ok(!/7\.0+/.test(out), `must not leak a float, got ${out}`);
+});
+test("context % and bar round to whole numbers", () => {
+  const ctx: RenderContext = { input: { context_window: { used_percentage: 46.000000000000007, context_window_size: 200000 } }, data: {}, config: cfg() };
+  for (const id of ["context-percentage", "context.bar"]) {
+    const w = getWidget(id)!;
+    const out = w.render(w.collect(ctx), {}, ctx).map((s) => s.text).join("");
+    assert.ok(!/\.\d/.test(out), `${id} must not show a fractional %, got ${out}`);
+  }
+});
+
 // ---- OSC8 git.branch only links when owner/repo are clean ----
 test("git.branch link is omitted for an invalid owner/repo", () => {
   const w = getWidget("git.branch")!;
