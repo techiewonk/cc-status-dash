@@ -222,6 +222,7 @@ export const GLOBAL_FIELD_SPECS: FieldSpec[] = [
   { key: "flexMode", label: "Flex width mode", kind: "enum", choices: ["full", "full-minus-40", "full-until-compact"] },
   { key: "compactThreshold", label: "Compact threshold %", kind: "number" },
   { key: "gitCacheTtlSeconds", label: "Git cache TTL (s)", kind: "number" },
+  { key: "alignLabels", label: "Align labels across lines", kind: "toggle" },
   { key: "padding", label: "Padding", kind: "number" },
   { key: "separator", label: "Separator", kind: "text" },
   { key: "powerlineSeparator", label: "Powerline separator", kind: "enum", choices: ["arrow", "round", "triangle", "flame", "pixel"] },

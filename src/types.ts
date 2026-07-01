@@ -226,6 +226,13 @@ export interface Config {
    * gitCacheTtlSeconds parity). Default 2. Lower = fresher branch/status data at
    * the cost of more `git` spawns per render; higher = fewer spawns. */
   gitCacheTtlSeconds?: number;
+  /** Right-pad every inline/panel line's leading label to the widest label across
+   * all such lines, so labels on separately-stacked lines start their values at
+   * the same column (Claude HUD `alignLabels` parity — generalized from HUD's
+   * fixed context/usage/weekly trio to any label-bearing line, since our widget
+   * set is far broader). No-op when a line has no leading label (minimalist,
+   * rawValue, or a widget with no label like `model`/`session-clock`). */
+  alignLabels?: boolean;
   lines: LineConfig[];
   /** Optional per-model context-window limits (tokens). */
   modelContextLimits?: { sonnet?: number; opus?: number; haiku?: number; default?: number };

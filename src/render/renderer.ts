@@ -349,22 +349,79 @@ function framePanel(content: string, painter: Painter, ctx: RenderContext): stri
   return [top, ...mid, bottom].join("\n");
 }
 
+/** Index of the first widget's own `lv()`-style label prefix, or -1 when that
+ * widget has no label (minimalist, rawValue, or a label-less widget like
+ * `model`/`session-clock`) — such lines are left out of alignment entirely.
+ * Matches `lv()`'s exact contract (`` `${label} ` `` followed by a distinct value
+ * segment) via the trailing space it always adds, rather than a bare
+ * `color === "label"` check — that would also match widgets whose own VALUE
+ * happens to default to the "label" color (e.g. `custom-text`) or a
+ * `dim:"parens"` wrapper's "(" / ")" segments (neither ends in a space). */
+function leadingLabelIndex(built: BuiltWidget[]): number {
+  const segs = built[0]?.segments;
+  if (!segs) return -1;
+  for (let i = 0; i < segs.length; i++) {
+    const s = segs[i];
+    if (s.color !== "label" || !s.text.endsWith(" ")) continue;
+    const next = segs[i + 1];
+    if (next && next.text.trim() !== "") return i;
+  }
+  return -1;
+}
+
+/** Right-pad a line's leading label to `targetWidth` display columns (Claude HUD
+ * `alignLabels` parity) so values on separately-stacked lines start at the same
+ * column. No-op if the line has no leading label or is already wide enough. */
+function padLeadingLabel(built: BuiltWidget[], targetWidth: number): BuiltWidget[] {
+  const idx = leadingLabelIndex(built);
+  if (idx < 0) return built;
+  const seg = built[0].segments[idx];
+  const width = plainLen(seg.text);
+  if (width >= targetWidth) return built;
+  const segments = [...built[0].segments];
+  segments[idx] = { ...seg, text: seg.text + " ".repeat(targetWidth - width) };
+  return [{ ...built[0], segments }, ...built.slice(1)];
+}
+
+/** Lines whose leading label is worth aligning: inline and panel (which wraps
+ * inline content) both render a plain-text label; powerline/capsule bars have no
+ * equivalent concept and are left untouched. */
+function alignableStyle(style: LineConfig["style"]): boolean {
+  return style !== "powerline" && style !== "capsule";
+}
+
 export function render(ctx: RenderContext): string {
   const config: Config = ctx.config;
   const painter = createPainter(config);
   const sep = config.charset === "text" && config.separator === "│" ? "|" : config.separator;
   const inherit = config.inheritSeparatorColors === true;
-  const out: string[] = [];
+
+  const entries: { line: LineConfig; built: BuiltWidget[] }[] = [];
   for (const line of config.lines) {
     const built = buildLineWidgets(line, ctx);
     if (line.showWhen === "activity" && built.length === 0) continue;
     if (built.length === 0) continue;
-    out.push(
+    entries.push({ line, built });
+  }
+
+  if (config.alignLabels === true) {
+    const widths = entries
+      .filter(({ line }) => alignableStyle(line.style))
+      .map(({ built }) => { const idx = leadingLabelIndex(built); return idx >= 0 ? plainLen(built[0].segments[idx].text) : 0; });
+    const maxWidth = widths.length ? Math.max(...widths) : 0;
+    if (maxWidth > 0) {
+      for (const entry of entries) {
+        if (alignableStyle(entry.line.style)) entry.built = padLeadingLabel(entry.built, maxWidth);
+      }
+    }
+  }
+
+  return entries
+    .map(({ line, built }) =>
       line.style === "powerline" ? renderPowerline(built, painter, ctx)
       : line.style === "capsule" ? renderCapsule(built, painter, ctx)
       : line.style === "panel" ? framePanel(renderInline(built, painter, sep, false, ctx, inherit), painter, ctx)
       : renderInline(built, painter, sep, config.autoWrap, ctx, inherit),
-    );
-  }
-  return out.join("\n");
+    )
+    .join("\n");
 }
