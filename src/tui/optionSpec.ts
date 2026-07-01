@@ -208,6 +208,8 @@ export const GLOBAL_FIELD_SPECS: FieldSpec[] = [
   { key: "icons", label: "Show widget icons", kind: "toggle" },
   { key: "globalBold", label: "Global bold", kind: "toggle" },
   { key: "autoWrap", label: "Auto-wrap to width", kind: "toggle" },
+  { key: "flexMode", label: "Flex width mode", kind: "enum", choices: ["full", "full-minus-40", "full-until-compact"] },
+  { key: "compactThreshold", label: "Compact threshold %", kind: "number" },
   { key: "padding", label: "Padding", kind: "number" },
   { key: "separator", label: "Separator", kind: "text" },
   { key: "powerlineSeparator", label: "Powerline separator", kind: "enum", choices: ["arrow", "round", "triangle", "flame", "pixel"] },

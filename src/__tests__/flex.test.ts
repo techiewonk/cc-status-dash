@@ -11,12 +11,12 @@ import { render, displayWidth } from "../render/renderer.js";
 
 const INPUT: StatuslineInput = { model: { display_name: "Opus" } };
 
-function runAtWidth(width: number, over: Partial<Config>): string {
+function runAtWidth(width: number, over: Partial<Config>, input: StatuslineInput = INPUT): string {
   const prev = process.env.CC_STATUS_DASH_WIDTH;
   process.env.CC_STATUS_DASH_WIDTH = String(width);
   try {
     const config = { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme), padding: 0, ...over };
-    return strip(render({ input: INPUT, data: {}, config } as RenderContext));
+    return strip(render({ input, data: {}, config } as RenderContext));
   } finally {
     if (prev === undefined) delete process.env.CC_STATUS_DASH_WIDTH; else process.env.CC_STATUS_DASH_WIDTH = prev;
   }
@@ -82,4 +82,73 @@ test("content wider than the terminal degrades gracefully (spacer collapses to e
     ] }],
   });
   assert.equal(out, "LEFTRIGHT"); // no room to fill; nothing crashes, content preserved
+});
+
+// ---- flexMode: effective-width policy (ccstatusline parity) ----
+
+test("flexMode unset keeps the raw terminal width (no margin trimmed)", () => {
+  const out = runAtWidth(30, {
+    lines: [{ style: "inline", widgets: [
+      { id: "custom-text", text: "L" }, { id: "flex-separator" }, { id: "custom-text", text: "R" },
+    ] }],
+  });
+  assert.equal(displayWidth(out), 30);
+});
+
+test('flexMode "full" trims a small (6-column) margin', () => {
+  const out = runAtWidth(30, {
+    flexMode: "full",
+    lines: [{ style: "inline", widgets: [
+      { id: "custom-text", text: "L" }, { id: "flex-separator" }, { id: "custom-text", text: "R" },
+    ] }],
+  });
+  assert.equal(displayWidth(out), 24, `30 - 6 margin: "${out}"`);
+});
+
+test('flexMode "full-minus-40" trims a large margin (clamped, never negative)', () => {
+  const wide = runAtWidth(100, {
+    flexMode: "full-minus-40",
+    lines: [{ style: "inline", widgets: [
+      { id: "custom-text", text: "L" }, { id: "flex-separator" }, { id: "custom-text", text: "R" },
+    ] }],
+  });
+  assert.equal(displayWidth(wide), 60, `100 - 40 margin: "${wide}"`);
+
+  const narrow = runAtWidth(20, {
+    flexMode: "full-minus-40",
+    lines: [{ style: "inline", widgets: [
+      { id: "custom-text", text: "L" }, { id: "flex-separator" }, { id: "custom-text", text: "R" },
+    ] }],
+  });
+  assert.ok(displayWidth(narrow) >= 2, `never collapses below content: "${narrow}"`); // clamped, not negative
+});
+
+test('flexMode "full-until-compact" uses the small margin below threshold, large margin at/above it', () => {
+  const line = { style: "inline" as const, widgets: [
+    { id: "custom-text", text: "L" }, { id: "flex-separator" }, { id: "custom-text", text: "R" },
+  ] };
+  const belowThreshold: StatuslineInput = { ...INPUT, context_window: { context_window_size: 200000, used_percentage: 40 } };
+  const atThreshold: StatuslineInput = { ...INPUT, context_window: { context_window_size: 200000, used_percentage: 60 } };
+
+  const below = runAtWidth(30, { flexMode: "full-until-compact", lines: [line] }, belowThreshold);
+  assert.equal(displayWidth(below), 24, `below threshold uses the small margin: "${below}"`);
+
+  const at = runAtWidth(30, { flexMode: "full-until-compact", lines: [line] }, atThreshold);
+  // 30-40 clamps to 1 column of budget, less than the 2 literal chars (L+R) — the
+  // flex fill collapses to empty and content floors at its own width (graceful
+  // degradation, same as the out-of-room case tested above).
+  assert.equal(displayWidth(at), 2, `at/above threshold uses the large margin (clamped, content floor): "${at}"`);
+});
+
+test('flexMode "full-until-compact" honors a custom compactThreshold', () => {
+  const line = { style: "inline" as const, widgets: [
+    { id: "custom-text", text: "L" }, { id: "flex-separator" }, { id: "custom-text", text: "R" },
+  ] };
+  const input: StatuslineInput = { ...INPUT, context_window: { context_window_size: 200000, used_percentage: 50 } };
+  // default threshold (60) → below it → small margin
+  const withDefault = runAtWidth(30, { flexMode: "full-until-compact", lines: [line] }, input);
+  assert.equal(displayWidth(withDefault), 24);
+  // custom threshold of 40 → 50% is now at/above it → large margin (content floor, see above)
+  const withCustom = runAtWidth(30, { flexMode: "full-until-compact", compactThreshold: 40, lines: [line] }, input);
+  assert.equal(displayWidth(withCustom), 2);
 });

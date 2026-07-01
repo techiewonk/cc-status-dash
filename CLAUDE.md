@@ -114,6 +114,9 @@ Then `npm run build` and `node dist/index.js --list-widgets | grep my-widget`. R
 ## Testing tips
 - Themes/charset: `--theme tokyo-night`, `"charset":"text"` for ASCII; `NO_COLOR=1` disables color.
 - Auto-wrap: piped stdout has no width — set `COLUMNS=40` to test wrapping.
+- `flexMode` (`"full"`/`"full-minus-40"`/`"full-until-compact"`, + `compactThreshold`) trims the
+  effective width used by auto-wrap and flex-separator fill (ccstatusline width-policy parity,
+  not a grid engine) — unset keeps the raw terminal width.
 - Stats widgets: set `XDG_STATE_HOME=/tmp/x` to use a throwaway stats file; render twice (>1s apart) so token-speed has samples.
 - Strip ANSI to eyeball output: `... | sed -r 's/\x1b\[[0-9;]*m//g'`.
 - Git/PR widgets need a real git repo as the payload's `workspace.current_dir`.

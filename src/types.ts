@@ -208,6 +208,14 @@ export interface Config {
   /** Show decorative widget icons (leading glyphs). Default true; set false to hide
    * them while keeping structural glyphs (separators, arrows, on/off, bars). */
   icons?: boolean;
+  /** ccstatusline flexMode parity: reserve width for Claude Code's own UI chrome when
+   * computing auto-wrap / flex-fill width. "full" trims a small margin; "full-minus-40"
+   * trims more (room for a wider input box); "full-until-compact" switches between the
+   * two once context usage crosses `compactThreshold`. Unset = raw terminal width. */
+  flexMode?: "full" | "full-minus-40" | "full-until-compact";
+  /** Context-usage % (0-100) at which "full-until-compact" switches to the wider
+   * margin. Default 60 (ccstatusline parity). */
+  compactThreshold?: number;
   lines: LineConfig[];
   /** Optional per-model context-window limits (tokens). */
   modelContextLimits?: { sonnet?: number; opus?: number; haiku?: number; default?: number };

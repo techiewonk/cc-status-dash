@@ -180,7 +180,28 @@ function termWidth(): number {
   return Number(process.env.CC_STATUS_DASH_WIDTH) || Number(process.env.COLUMNS) || process.stdout.columns || 80;
 }
 
-function renderInline(built: BuiltWidget[], painter: Painter, sep: string, autoWrap: boolean, inheritSep = false): string {
+/** Effective width for width-aware inline layout (auto-wrap, flex fill). `flexMode`
+ * reserves room for Claude Code's own UI chrome around the statusline (ccstatusline
+ * parity): "full" trims a small margin, "full-minus-40" trims more (room for a wider
+ * input box / compaction banner), "full-until-compact" switches between the two once
+ * context usage crosses `compactThreshold` — so the line only shrinks once Claude
+ * Code's own compaction UI is likely to appear. Unset `flexMode` keeps the raw
+ * terminal width (prior behavior, unaffected by this config).
+ */
+function effectiveWidth(ctx: RenderContext): number {
+  const base = termWidth();
+  const mode = ctx.config.flexMode;
+  if (mode === "full") return Math.max(1, base - 6);
+  if (mode === "full-minus-40") return Math.max(1, base - 40);
+  if (mode === "full-until-compact") {
+    const pct = ctx.input.context_window?.used_percentage ?? 0;
+    const threshold = ctx.config.compactThreshold ?? 60;
+    return Math.max(1, base - (pct >= threshold ? 40 : 6));
+  }
+  return base;
+}
+
+function renderInline(built: BuiltWidget[], painter: Painter, sep: string, autoWrap: boolean, ctx: RenderContext, inheritSep = false): string {
   const chunks: InlineChunk[] = [];
   for (const wgt of built) {
     const flexSeg = wgt.segments.find((s) => s.flex);
@@ -198,11 +219,11 @@ function renderInline(built: BuiltWidget[], painter: Painter, sep: string, autoW
 
   // Flex spacers expand to fill the terminal width (right-aligning trailing widgets).
   // This owns the full line, so it takes precedence over auto-wrap.
-  if (chunks.some((c) => c.flex)) return renderInlineFlex(chunks, painter, sepBefore, termWidth());
+  if (chunks.some((c) => c.flex)) return renderInlineFlex(chunks, painter, sepBefore, effectiveWidth(ctx));
 
   if (!autoWrap) return chunks.map((c, i) => (i === 0 ? c.str : sepBefore(i) + c.str)).join("");
 
-  const width = termWidth();
+  const width = effectiveWidth(ctx);
   const sepLen = plainLen(sepBefore(1));
   const lines: string[] = [];
   let cur = "", curLen = 0;
@@ -325,8 +346,8 @@ export function render(ctx: RenderContext): string {
     out.push(
       line.style === "powerline" ? renderPowerline(built, painter, ctx)
       : line.style === "capsule" ? renderCapsule(built, painter, ctx)
-      : line.style === "panel" ? framePanel(renderInline(built, painter, sep, false, inherit), painter, ctx)
-      : renderInline(built, painter, sep, config.autoWrap, inherit),
+      : line.style === "panel" ? framePanel(renderInline(built, painter, sep, false, ctx, inherit), painter, ctx)
+      : renderInline(built, painter, sep, config.autoWrap, ctx, inherit),
     );
   }
   return out.join("\n");
