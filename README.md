@@ -23,7 +23,7 @@ It fuses the two most popular Claude Code statusline tools into one:
 
 Plus the best ideas from the wider ecosystem: **pace delta** (burn vs. time-left) from claude-pace, multiple bar styles from claude-powerline, and up to a 5-layer dashboard.
 
-> **115 widgets · 10 themes · 35 presets (1–9 layers) · 3 render styles · 10 bar styles**
+> **115 widgets · 10 themes · 35 presets (1–9 layers) · 4 render styles · 10 bar styles**
 
 ---
 

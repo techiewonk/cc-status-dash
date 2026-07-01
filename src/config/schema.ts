@@ -14,7 +14,7 @@ import type { Config } from "../types.js";
 /** Bump when the config shape changes; add a step in `migrateConfig`. */
 export const CURRENT_CONFIG_VERSION = 1;
 
-const LineStyleSchema = v.picklist(["inline", "powerline", "capsule"]);
+const LineStyleSchema = v.picklist(["inline", "powerline", "capsule", "panel"]);
 const CharsetSchema = v.picklist(["unicode", "text"]);
 const ColorDepthSchema = v.picklist(["auto", "ansi", "ansi256", "truecolor", "none"]);
 const ShowWhenSchema = v.picklist(["always", "activity"]);

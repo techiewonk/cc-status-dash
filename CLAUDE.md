@@ -6,7 +6,7 @@ Guidance for Claude Code (and humans) working in this repo.
 A feature-rich **statusline + HUD** for Claude Code, in TypeScript. It fuses
 ccstatusline's widget-pipeline config with Claude HUD's clean look and live
 tools/agents/todos activity, plus pace-aware usage and a persistent stats store.
-**115 widgets**, 10 themes, 35 presets (1–9 layers), 3 render styles.
+**115 widgets**, 10 themes, 35 presets (1–9 layers), 4 render styles.
 
 Tagline: *ccstatusline's brain, Claude HUD's face.*
 
@@ -74,7 +74,7 @@ src/
     skills-cache.ts   skills hook cache (JSONL): `--hook` writer + mergeSkills reader
     providers.ts      figures out needed DataSources and invokes the right providers
   render/
-    renderer.ts       inline / powerline / capsule; merge + auto-wrap; padding/bold
+    renderer.ts       inline / powerline / capsule / panel; merge + auto-wrap + flex; padding/bold
     colors.ts         ANSI 16/256/truecolor, NO_COLOR/FORCE_COLOR, theme color resolution
     bars.ts           progress-bar styles + threshold colors
   themes/index.ts     built-in themes + resolvePalette (theme < custom colors)

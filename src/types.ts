@@ -174,7 +174,7 @@ export interface Widget<TData = unknown> {
 
 // ---- Configuration ----
 
-export type LineStyle = "inline" | "powerline" | "capsule";
+export type LineStyle = "inline" | "powerline" | "capsule" | "panel";
 export type Charset = "unicode" | "text";
 export type ColorDepth = "auto" | "ansi" | "ansi256" | "truecolor" | "none";
 

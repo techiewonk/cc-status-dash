@@ -68,7 +68,7 @@ export type Action =
   | { type: "fieldBackspace" }
   | { type: "fieldReset" };
 
-const STYLES: LineStyle[] = ["inline", "powerline", "capsule"];
+const STYLES: LineStyle[] = ["inline", "powerline", "capsule", "panel"];
 
 function clampCursor(config: Config, c: Cursor): Cursor {
   const line = Math.max(0, Math.min(c.line, config.lines.length - 1));

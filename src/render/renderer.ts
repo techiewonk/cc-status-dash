@@ -296,9 +296,27 @@ function renderPowerline(built: BuiltWidget[], painter: Painter, ctx: RenderCont
   return out;
 }
 
+// Panel style: frame a line's inline content in a box (Claude HUD panel look).
+// Charset-aware (rounded box vs ASCII). One config line → three output rows; the
+// border is painted via the painter so NO_COLOR / colorDepth are honored.
+function framePanel(content: string, painter: Painter, ctx: RenderContext): string {
+  const text = ctx.config.charset === "text";
+  const tl = text ? "+" : "╭", tr = text ? "+" : "╮", bl = text ? "+" : "╰", br = text ? "+" : "╯";
+  const hz = text ? "-" : "─", vt = text ? "|" : "│";
+  const rows = content.split("\n");
+  const inner = Math.max(...rows.map((r) => plainLen(r)));
+  const bar = (s: string) => painter.paint(s, { color: "label" });
+  const top = bar(tl + hz.repeat(inner + 2) + tr);
+  const bottom = bar(bl + hz.repeat(inner + 2) + br);
+  const mid = rows.map((r) => `${bar(vt)} ${r}${" ".repeat(inner - plainLen(r))} ${bar(vt)}`);
+  return [top, ...mid, bottom].join("\n");
+}
+
 export function render(ctx: RenderContext): string {
   const config: Config = ctx.config;
   const painter = createPainter(config);
+  const sep = config.charset === "text" && config.separator === "│" ? "|" : config.separator;
+  const inherit = config.inheritSeparatorColors === true;
   const out: string[] = [];
   for (const line of config.lines) {
     const built = buildLineWidgets(line, ctx);
@@ -307,7 +325,8 @@ export function render(ctx: RenderContext): string {
     out.push(
       line.style === "powerline" ? renderPowerline(built, painter, ctx)
       : line.style === "capsule" ? renderCapsule(built, painter, ctx)
-      : renderInline(built, painter, config.charset === "text" && config.separator === "│" ? "|" : config.separator, config.autoWrap, config.inheritSeparatorColors === true),
+      : line.style === "panel" ? framePanel(renderInline(built, painter, sep, false, inherit), painter, ctx)
+      : renderInline(built, painter, sep, config.autoWrap, inherit),
     );
   }
   return out.join("\n");
