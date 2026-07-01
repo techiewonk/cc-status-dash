@@ -635,6 +635,13 @@ add(w("custom-text", "custom", "Custom text", [], (_d, opts, _ctx) => {
   const t = opts.text as string | undefined;
   return t ? [{ text: t, color: (opts.color as string) ?? "label" }] : [];
 }));
+add(w("flex-separator", "custom", "Flex spacer (fill width)", [], (_d, opts, _ctx) => {
+  // Inline-only: expands to fill the terminal width so widgets after it are pushed
+  // to the right edge (ccstatusline flexSeparator parity). `fill` is the repeated
+  // glyph (default space); the renderer computes how many to emit.
+  const fill = typeof opts.fill === "string" && opts.fill.length ? opts.fill[0] : " ";
+  return [{ text: fill, flex: true, color: (opts.color as string) ?? "label" }];
+}));
 add(w("custom-symbol", "custom", "Custom symbol", [], (_d, opts, _ctx) => {
   const s = opts.symbol as string | undefined;
   return s ? [{ text: s, color: (opts.color as string) ?? "label" }] : [];

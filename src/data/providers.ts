@@ -4,6 +4,7 @@ import { collectGit } from "./git.js";
 import { collectTranscript } from "./transcript.js";
 import { collectSystem } from "./system.js";
 import { collectStats } from "./stats.js";
+import { mergeSkills } from "./skills-cache.js";
 
 // Run only the providers the active config needs.
 function neededSources(config: Config): Set<DataSource> {
@@ -21,7 +22,16 @@ export function collectProviderData(input: StatuslineInput, config: Config): Pro
   // statusline (it just leaves that source undefined; widgets already null-check).
   const wantGitFiles = config.lines.some((l) => l.widgets.some((wc) => wc.id === "git.files"));
   try { if (needed.has("git")) data.git = collectGit(cwd, { files: wantGitFiles }); } catch { /* ignore */ }
-  try { if (needed.has("transcript")) data.transcript = collectTranscript(input.transcript_path); } catch { /* ignore */ }
+  try {
+    if (needed.has("transcript")) {
+      data.transcript = collectTranscript(input.transcript_path);
+      // Fold in the skills hook cache (accurate + compaction-proof) when a skills
+      // widget is present. No-op when no hook is installed (cache empty).
+      if (data.transcript && config.lines.some((l) => l.widgets.some((wc) => wc.id === "skills"))) {
+        data.transcript = { ...data.transcript, skills: mergeSkills(data.transcript.skills, input.session_id) };
+      }
+    }
+  } catch { /* ignore */ }
   try { if (needed.has("system")) data.system = collectSystem(cwd, input.session_id); } catch { /* ignore */ }
   try { if (needed.has("stats")) data.stats = collectStats(input); } catch { /* ignore */ }
   return data;

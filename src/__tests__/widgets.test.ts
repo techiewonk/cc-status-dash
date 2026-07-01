@@ -163,7 +163,7 @@ test("registry has the full widget set", () => {
 });
 
 test("widget count snapshot (bump deliberately when adding widgets)", () => {
-  assert.equal(listWidgets().length, 114, "widget count changed — update docs (README/OPTIONS/COMPARISON) + this snapshot");
+  assert.equal(listWidgets().length, 115, "widget count changed — update docs (README/OPTIONS/COMPARISON) + this snapshot");
 });
 
 test("Phase 1 HUD widgets render from real data", () => {

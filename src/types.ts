@@ -62,6 +62,9 @@ export interface Segment {
   color?: string;
   bgColor?: string;
   bold?: boolean;
+  /** Flex spacer (inline lines): `text` is the unit fill char, repeated at render
+   * time to fill the remaining terminal width so following widgets are pushed right. */
+  flex?: boolean;
 }
 
 export interface WidgetOptions {

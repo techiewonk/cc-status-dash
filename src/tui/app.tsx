@@ -7,9 +7,10 @@ import { listWidgets } from "../widgets/index.js";
 import { listThemes } from "../themes/index.js";
 import { PRESET_CATALOG } from "../config/defaults.js";
 import { initialState, reduce, fieldsFor, fieldValue, type Action, type EditorState } from "./reducer.js";
-import { displayValue } from "./optionSpec.js";
+import { displayValue, swatchColor } from "./optionSpec.js";
 import { fuzzyFilter, type PickItem } from "./picker.js";
 import { writeConfig } from "../config/wizard.js";
+import { installStatusline, settingsPath, detectCommand } from "../config/install.js";
 
 // Ink live-preview config editor. All edits go through the pure `reduce`; this
 // component is just keys-in / frame-out, so the logic stays testable headlessly
@@ -39,6 +40,7 @@ export function App({ initial, savePath, onSaved }: AppProps) {
   const { exit } = useApp();
   const [state, setState] = useState<EditorState>(() => initialState(initial));
   const [picker, setPicker] = useState({ open: false, query: "", index: 0 });
+  const [install, setInstall] = useState({ open: false, hooks: false });
   const [status, setStatus] = useState("");
   const themes = listThemes();
   const dispatch = (a: Action) => setState((s) => reduce(s, a));
@@ -51,6 +53,27 @@ export function App({ initial, savePath, onSaved }: AppProps) {
   };
 
   useInput((input, key) => {
+    // ---- install-to-settings.json overlay ----
+    if (install.open) {
+      if (key.escape) return setInstall((s) => ({ ...s, open: false }));
+      if (input === "h") return setInstall((s) => ({ ...s, hooks: !s.hooks }));
+      if (key.return) {
+        const res = installStatusline({
+          command: detectCommand(),
+          refreshInterval: state.config.refreshInterval,
+          padding: state.config.padding,
+          installHooks: install.hooks,
+        });
+        setStatus(
+          res.ok
+            ? `installed${install.hooks ? " + hooks" : ""} → ${res.path}${res.backedUp ? " (.bak saved)" : ""} — restart Claude Code`
+            : `install failed: ${res.error}`,
+        );
+        return setInstall((s) => ({ ...s, open: false }));
+      }
+      return;
+    }
+
     // ---- add-widget fuzzy picker (layout screen) ----
     if (picker.open) {
       if (key.escape) return setPicker({ open: false, query: "", index: 0 });
@@ -62,8 +85,8 @@ export function App({ initial, savePath, onSaved }: AppProps) {
         }
         return setPicker({ open: false, query: "", index: 0 });
       }
-      if (key.upArrow) return setPicker((p) => ({ ...p, index: Math.max(0, p.index - 1) }));
-      if (key.downArrow) return setPicker((p) => ({ ...p, index: Math.max(0, Math.min(results.length - 1, p.index + 1)) }));
+      if (key.upArrow) return setPicker((p) => ({ ...p, index: results.length ? (p.index - 1 + results.length) % results.length : 0 }));
+      if (key.downArrow) return setPicker((p) => ({ ...p, index: results.length ? (p.index + 1) % results.length : 0 }));
       if (key.backspace || key.delete) return setPicker((p) => ({ ...p, query: p.query.slice(0, -1), index: 0 }));
       if (input) setPicker((p) => ({ ...p, query: p.query + input, index: 0 }));
       return;
@@ -102,6 +125,7 @@ export function App({ initial, savePath, onSaved }: AppProps) {
     if (input === "o") return dispatch({ type: "openScreen", screen: "options" });
     if (input === "g") return dispatch({ type: "openScreen", screen: "global" });
     if (input === "c") return dispatch({ type: "openScreen", screen: "colors" });
+    if (input === "i") return setInstall((s) => ({ ...s, open: true }));
     if (input === "p") {
       const ids = PRESET_CATALOG.map((pp) => pp.id);
       const next = ids[(ids.indexOf(state.config.preset) + 1) % ids.length];
@@ -139,23 +163,30 @@ export function App({ initial, savePath, onSaved }: AppProps) {
           ) : (
             fields.map((spec, i) => {
               const sel = i === state.field;
-              const val = displayValue(fieldValue(state, spec), spec);
+              const raw = fieldValue(state, spec);
+              const val = displayValue(raw, spec);
+              const sw = spec.kind === "color" ? swatchColor(raw) : null;
+              const typing = spec.kind === "text" || spec.kind === "number" || spec.kind === "color";
               return (
                 <Box key={spec.key}>
                   <Text color={sel ? "green" : undefined}>{sel ? "▶ " : "  "}</Text>
                   <Text color={sel ? "green" : undefined}>{spec.label}: </Text>
                   <Text color={sel ? "cyan" : "gray"}>
                     {val}
-                    {sel && (spec.kind === "text" || spec.kind === "number") ? <Text dimColor>▍</Text> : null}
+                    {sel && typing ? <Text dimColor>▍</Text> : null}
                   </Text>
+                  {sw ? <Text color={sw}> ██</Text> : null}
                 </Box>
               );
             })
           )}
         </Box>
         <Text dimColor>
-          ↑↓ field · ←→ change{" "}
-          {fields[state.field]?.kind === "text" || fields[state.field]?.kind === "number" ? "· type to edit · ⌫ delete " : ""}
+          ↑↓ field · ←→ {fields[state.field]?.kind === "color" ? "cycle palette" : "change"}{" "}
+          {(() => {
+            const k = fields[state.field]?.kind;
+            return k === "text" || k === "number" || k === "color" ? "· type to edit · ⌫ delete " : "";
+          })()}
           · Ctrl+S save · ESC back
         </Text>
         {status ? <Text color="green">{status}</Text> : null}
@@ -198,7 +229,22 @@ export function App({ initial, savePath, onSaved }: AppProps) {
           </Box>
         </Box>
       ))}
-      {picker.open ? (
+      {install.open ? (
+        <Box borderStyle="single" flexDirection="column" paddingX={1}>
+          <Text bold>install into Claude Code settings.json</Text>
+          <Text>
+            target: <Text color="cyan">{settingsPath()}</Text>
+          </Text>
+          <Text>
+            command: <Text color="cyan">{detectCommand()}</Text>
+          </Text>
+          <Text>
+            skills hooks: <Text color={install.hooks ? "green" : "gray"}>{install.hooks ? "on" : "off"}</Text>{" "}
+            <Text dimColor>(records /slash + Skill invocations)</Text>
+          </Text>
+          <Text dimColor>h toggle hooks · Enter write (backs up .bak) · Esc cancel</Text>
+        </Box>
+      ) : picker.open ? (
         <Box borderStyle="single" flexDirection="column" paddingX={1}>
           <Text>
             add widget: <Text color="yellow">{picker.query}</Text>
@@ -214,7 +260,7 @@ export function App({ initial, savePath, onSaved }: AppProps) {
       ) : (
         <Box flexDirection="column">
           <Text dimColor>↑↓←→ move · a add · d del · k clone · [ ] reorder · n/x line · s style</Text>
-          <Text dimColor>o options · g global · c colors · t theme · p preset · w save · q quit</Text>
+          <Text dimColor>o options · g global · c colors · t theme · p preset · i install · w save · q quit</Text>
         </Box>
       )}
       {status ? <Text color="green">{status}</Text> : null}

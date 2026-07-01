@@ -6,7 +6,7 @@ Guidance for Claude Code (and humans) working in this repo.
 A feature-rich **statusline + HUD** for Claude Code, in TypeScript. It fuses
 ccstatusline's widget-pipeline config with Claude HUD's clean look and live
 tools/agents/todos activity, plus pace-aware usage and a persistent stats store.
-**114 widgets**, 10 themes, 35 presets (1–9 layers), 3 render styles.
+**115 widgets**, 10 themes, 35 presets (1–9 layers), 3 render styles.
 
 Tagline: *ccstatusline's brain, Claude HUD's face.*
 
@@ -29,7 +29,9 @@ echo '{ ... }' | bun run src/index.ts
 # Node fallback (no Bun): npm install && npm run build:node ; node dist/index.js < sample-input.json
 ```
 Useful flags: `--list-widgets`, `--list-themes`, `--preset <id>`, `--theme <id>`, `--config <path>`,
-`--validate` (check config files), `--configure`/`--wizard` (@clack preset wizard), `--tui`/`--edit` (Ink editor).
+`--validate` (check config files), `--configure`/`--wizard` (@clack preset wizard), `--tui`/`--edit` (Ink editor),
+`--hook` (consume a Claude Code hook payload on stdin → append to the skills cache; prints nothing),
+`--install [--install-hooks] [--dry-run]` (write the statusLine block + opt-in skills hooks into settings.json).
 
 `dist/` and `node_modules/` are gitignored — always build before testing.
 Source must stay **runtime-agnostic** (no Bun-only APIs) so it runs on Node too.
@@ -57,6 +59,7 @@ src/
     defaults.ts       preset catalog (PRESET_CATALOG/PRESET_LINES), DEFAULT_CONFIG, MAX_LAYERS
     load.ts           config resolution chain (CLI > env > project > user > XDG > defaults) + validation
     schema.ts         valibot partial-config schema, version/migrations, validatePartialConfig
+    install.ts        write statusLine block (+ skills hooks) into Claude Code settings.json
     mutations.ts      PURE config edits the TUI/`/configure` drive (add/move/clone/...)
     wizard.ts         @clack/prompts preset wizard (buildWizardConfig is pure/tested)
   tui/                Ink editor (lazy-loaded; never on the render path)
@@ -68,6 +71,7 @@ src/
     transcript.ts     JSONL tail parse (tools/agents/todos/skills/mcp/tokens/compaction)
     system.ts         memory, tmux, terminal width, ~/.claude config (email/mcp/hooks/rules)
     stats.ts          persistent stats store (~/.local/state/cc-status-dash/stats.json)
+    skills-cache.ts   skills hook cache (JSONL): `--hook` writer + mergeSkills reader
     providers.ts      figures out needed DataSources and invokes the right providers
   render/
     renderer.ts       inline / powerline / capsule; merge + auto-wrap; padding/bold
@@ -132,4 +136,7 @@ multi-screen (ccstatusline-parity): **layout** (lines/widgets) · **options** (p
 spec-driven by `tui/optionSpec.ts` → `setWidgetOption`) · **global** (settings → `setGlobal`,
 incl. `refreshInterval` + `powerlineSeparator`) · **colors** (palette overrides → `setColor`).
 Powerline separator glyph is configurable (`powerlineSeparator`: arrow/round/triangle/flame/pixel).
-Remaining polish: wrap-around nav, powerline cap customization, install-into-settings.json screen.
+Nav wraps around (widgets/lines/field-rows/picker); color fields use a palette **picker** (`"color"`
+field kind, ←→ cycles `COLOR_CHOICES`, custom hex still typeable) with **in-frame swatches**.
+The `i` key opens an **install overlay** → writes the `statusLine` block (+ opt-in skills hooks) into
+`settings.json` via `config/install.ts` (`h` toggles hooks). Same as the `--install` CLI flag.

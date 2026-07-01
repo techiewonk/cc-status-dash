@@ -1,6 +1,6 @@
 {
   "name": "cc-status-dash",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "A feature-rich Claude Code statusline + HUD: widget formatter (ccstatusline-style) fused with live tool/agent/todo activity (Claude HUD-style). Bun-first, Node-compatible.",
   "type": "module",
   "module": "dist/index.js",
@@ -43,12 +43,33 @@
     "react-dom": "^19.2.7",
     "typescript": "^5.9.3"
   },
-  "keywords": ["claude-code", "statusline", "hud", "powerline", "cli", "terminal", "bun"],
+  "keywords": [
+    "claude-code",
+    "statusline",
+    "hud",
+    "powerline",
+    "cli",
+    "terminal",
+    "bun"
+  ],
   "license": "MIT",
   "author": "Hemprasad Badgujar",
-  "repository": { "type": "git", "url": "git+https://github.com/techiewonk/cc-status-dash.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/techiewonk/cc-status-dash.git"
+  },
   "homepage": "https://github.com/techiewonk/cc-status-dash#readme",
-  "bugs": { "url": "https://github.com/techiewonk/cc-status-dash/issues" },
-  "publishConfig": { "access": "public" },
-  "files": ["dist", "commands", ".claude-plugin", "README.md", "LICENSE"]
+  "bugs": {
+    "url": "https://github.com/techiewonk/cc-status-dash/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "commands",
+    ".claude-plugin",
+    "README.md",
+    "LICENSE"
+  ]
 }

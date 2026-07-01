@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEFAULT_CONFIG } from "../config/defaults.js";
 import { initialState, reduce, fieldsFor, fieldValue } from "../tui/reducer.js";
+import { swatchColor } from "../tui/optionSpec.js";
 import { fuzzyFilter, fuzzyScore } from "../tui/picker.js";
 
 // Pure TUI core: editor reducer + fuzzy picker (the Ink view is covered separately
@@ -11,13 +12,32 @@ function base() {
   return initialState({ ...DEFAULT_CONFIG, lines: [{ style: "inline", widgets: [{ id: "model" }, { id: "context.bar" }] }] });
 }
 
-test("navigation clamps within bounds", () => {
-  let s = base();
+test("navigation wraps around bounds", () => {
+  let s = base(); // 1 line, widgets [model, context.bar], cursor (0,0)
   s = reduce(s, { type: "right" });
   assert.deepEqual(s.cursor, { line: 0, widget: 1 });
-  s = reduce(s, { type: "right" }); // clamp at last widget
+  s = reduce(s, { type: "right" }); // wraps past last -> first widget
+  assert.deepEqual(s.cursor, { line: 0, widget: 0 });
+  s = reduce(s, { type: "left" }); // wraps before first -> last widget
   assert.deepEqual(s.cursor, { line: 0, widget: 1 });
-  s = reduce(s, { type: "up" }); // clamp at first line
+  s = reduce(s, { type: "up" }); // single line -> stays on line 0
+  assert.equal(s.cursor.line, 0);
+});
+
+test("line navigation wraps top↔bottom and clamps the widget", () => {
+  let s = initialState({
+    ...DEFAULT_CONFIG,
+    lines: [
+      { style: "inline", widgets: [{ id: "model" }, { id: "cost" }, { id: "git.branch" }] },
+      { style: "inline", widgets: [{ id: "version" }] },
+    ],
+  });
+  s = reduce(s, { type: "right" });
+  s = reduce(s, { type: "right" }); // (0,2)
+  assert.deepEqual(s.cursor, { line: 0, widget: 2 });
+  s = reduce(s, { type: "up" }); // wrap to last line, widget clamps to 0
+  assert.deepEqual(s.cursor, { line: 1, widget: 0 });
+  s = reduce(s, { type: "down" }); // wrap back to first line
   assert.equal(s.cursor.line, 0);
 });
 
@@ -132,6 +152,46 @@ test("colors screen overrides a palette key and reset clears it", () => {
   assert.equal(s.config.colors.model, undefined);
   s = reduce(s, { type: "back" });
   assert.equal(s.screen, "layout");
+});
+
+test("color picker cycles the palette and still accepts a typed hex", () => {
+  // colors screen: every key is now a "color" field (←→ cycles the curated palette).
+  let s = initialState({ ...DEFAULT_CONFIG, colors: {} });
+  s = reduce(s, { type: "openScreen", screen: "colors" });
+  const spec = fieldsFor(s)[s.field];
+  assert.equal(spec.kind, "color");
+  s = reduce(s, { type: "fieldAdjust", dir: 1 }); // "" -> "black"
+  assert.equal(fieldValue(s, spec), "black");
+  s = reduce(s, { type: "fieldAdjust", dir: -1 }); // wraps back to "" -> unsets the key
+  assert.equal(fieldValue(s, spec), undefined);
+  s = reduce(s, { type: "fieldAdjust", dir: -1 }); // wraps to last palette entry
+  assert.equal(fieldValue(s, spec), "#ffb86c");
+  // typing a custom hex still works on a color field
+  for (let i = 0; i < 12; i++) s = reduce(s, { type: "fieldBackspace" });
+  for (const ch of "#123456") s = reduce(s, { type: "fieldType", input: ch });
+  assert.equal(fieldValue(s, spec), "#123456");
+});
+
+test("universal color option is a picker; swatch resolves for named/hex only", () => {
+  let s = withWidget("model");
+  s = reduce(s, { type: "openScreen", screen: "options" });
+  const colorSpec = fieldsFor(s).find((f) => f.key === "color");
+  assert.equal(colorSpec?.kind, "color");
+  assert.equal(swatchColor("red"), "red");
+  assert.equal(swatchColor("#8be9fd"), "#8be9fd");
+  assert.equal(swatchColor(""), null);
+  assert.equal(swatchColor("none"), null);
+  assert.equal(swatchColor("240"), null); // ansi-256 index → no swatch
+});
+
+test("field navigation wraps around the row list", () => {
+  let s = withWidget("git.branch");
+  s = reduce(s, { type: "openScreen", screen: "options" });
+  const n = fieldsFor(s).length;
+  s = reduce(s, { type: "fieldUp" }); // from 0 wraps to last
+  assert.equal(s.field, n - 1);
+  s = reduce(s, { type: "fieldDown" }); // wraps back to 0
+  assert.equal(s.field, 0);
 });
 
 test("fuzzyScore matches subsequences and rejects non-matches", () => {

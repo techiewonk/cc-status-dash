@@ -14,6 +14,7 @@ import {
   setWidgetOption,
 } from "../config/mutations.js";
 import {
+  COLOR_CHOICES,
   COLOR_KEYS,
   GLOBAL_FIELD_SPECS,
   globalValue,
@@ -76,6 +77,22 @@ function clampCursor(config: Config, c: Cursor): Cursor {
   return { line, widget };
 }
 
+/** Move the cursor across widgets within the current line, wrapping at both ends. */
+function wrapWidget(config: Config, c: Cursor, dir: 1 | -1): Cursor {
+  const count = config.lines[c.line]?.widgets.length ?? 0;
+  if (count <= 1) return { line: c.line, widget: 0 };
+  return { line: c.line, widget: ((c.widget + dir) % count + count) % count };
+}
+
+/** Move the cursor across lines, wrapping top↔bottom; widget clamps into the new line. */
+function wrapLine(config: Config, c: Cursor, dir: 1 | -1): Cursor {
+  const n = config.lines.length;
+  if (n <= 1) return { line: 0, widget: clampCursor(config, c).widget };
+  const line = ((c.line + dir) % n + n) % n;
+  const count = config.lines[line]?.widgets.length ?? 0;
+  return { line, widget: Math.min(c.widget, Math.max(0, count - 1)) };
+}
+
 export function initialState(config: Config): EditorState {
   return { config, cursor: { line: 0, widget: 0 }, screen: "layout", field: 0 };
 }
@@ -90,7 +107,7 @@ export function fieldsFor(state: EditorState): FieldSpec[] {
     case "global":
       return GLOBAL_FIELD_SPECS;
     case "colors":
-      return COLOR_KEYS.map((key) => ({ key, label: key, kind: "text" as const }));
+      return COLOR_KEYS.map((key) => ({ key, label: key, kind: "color" as const }));
     default:
       return [];
   }
@@ -124,6 +141,13 @@ function writeField(state: EditorState, spec: FieldSpec, value: unknown): Config
   }
 }
 
+/** Cycle a value through a fixed choice list, wrapping in both directions. */
+function cycle(choices: readonly string[], cur: unknown, dir: 1 | -1): string {
+  const len = choices.length;
+  const i = choices.indexOf(String(cur));
+  return choices[(((i < 0 ? 0 : i) + dir) % len + len) % len];
+}
+
 function adjust(state: EditorState, dir: 1 | -1): EditorState {
   const fields = fieldsFor(state);
   const spec = fields[state.field];
@@ -133,9 +157,10 @@ function adjust(state: EditorState, dir: 1 | -1): EditorState {
   if (spec.kind === "toggle") {
     next = !cur;
   } else if (spec.kind === "enum" && spec.choices) {
-    const i = spec.choices.indexOf(String(cur));
-    const len = spec.choices.length;
-    next = spec.choices[(((i < 0 ? 0 : i) + dir) % len + len) % len];
+    next = cycle(spec.choices, cur, dir);
+  } else if (spec.kind === "color") {
+    // ←→ steps through the curated palette (typing a custom hex still works).
+    next = cycle(COLOR_CHOICES, cur, dir);
   } else if (spec.kind === "number") {
     next = Math.max(0, (typeof cur === "number" ? cur : Number(cur) || 0) + dir);
   } else {
@@ -154,7 +179,7 @@ function typeInto(state: EditorState, input: string): EditorState {
     const next = Number(`${typeof cur === "number" ? cur : ""}${input}`);
     return { ...state, config: writeField(state, spec, next) };
   }
-  if (spec.kind === "text") {
+  if (spec.kind === "text" || spec.kind === "color") {
     return { ...state, config: writeField(state, spec, `${cur == null ? "" : String(cur)}${input}`) };
   }
   return state;
@@ -163,7 +188,7 @@ function typeInto(state: EditorState, input: string): EditorState {
 function backspace(state: EditorState): EditorState {
   const fields = fieldsFor(state);
   const spec = fields[state.field];
-  if (!spec || (spec.kind !== "text" && spec.kind !== "number")) return state;
+  if (!spec || (spec.kind !== "text" && spec.kind !== "number" && spec.kind !== "color")) return state;
   const cur = fieldValue(state, spec);
   const s = cur == null ? "" : String(cur);
   const trimmed = s.slice(0, -1);
@@ -181,10 +206,14 @@ export function reduce(state: EditorState, action: Action): EditorState {
     switch (action.type) {
       case "back":
         return { ...state, screen: "layout", field: 0 };
-      case "fieldUp":
-        return { ...state, field: Math.max(0, state.field - 1) };
-      case "fieldDown":
-        return { ...state, field: Math.min(Math.max(0, fields.length - 1), state.field + 1) };
+      case "fieldUp": {
+        const n = fields.length;
+        return n === 0 ? state : { ...state, field: (state.field - 1 + n) % n };
+      }
+      case "fieldDown": {
+        const n = fields.length;
+        return n === 0 ? state : { ...state, field: (state.field + 1) % n };
+      }
       case "fieldAdjust":
         return adjust(state, action.dir);
       case "fieldType":
@@ -208,13 +237,13 @@ export function reduce(state: EditorState, action: Action): EditorState {
     case "openScreen":
       return { ...state, screen: action.screen, field: 0 };
     case "up":
-      return { ...state, cursor: clampCursor(config, { ...cursor, line: cursor.line - 1 }) };
+      return { ...state, cursor: wrapLine(config, cursor, -1) };
     case "down":
-      return { ...state, cursor: clampCursor(config, { ...cursor, line: cursor.line + 1 }) };
+      return { ...state, cursor: wrapLine(config, cursor, 1) };
     case "left":
-      return { ...state, cursor: clampCursor(config, { ...cursor, widget: cursor.widget - 1 }) };
+      return { ...state, cursor: wrapWidget(config, cursor, -1) };
     case "right":
-      return { ...state, cursor: clampCursor(config, { ...cursor, widget: cursor.widget + 1 }) };
+      return { ...state, cursor: wrapWidget(config, cursor, 1) };
     case "addWidget": {
       const next = addWidget(config, cursor.line, action.id, cursor.widget + 1);
       return { ...state, config: next, cursor: clampCursor(next, { ...cursor, widget: cursor.widget + 1 }) };

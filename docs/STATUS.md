@@ -2,7 +2,7 @@
 
 _Last updated: 2026-07-01. Living tracker of what is done, in progress, and remaining._
 
-Snapshot: **114 widgets**, 10 themes, 35 presets (1–9 layers), persistent stats store, config-mutation engine, valibot-validated config. Builds clean (`bun build` split + `tsc`), **335 tests pass** (incl. preset×style + config-location matrices + a security/resilience hardening suite), renders all presets, Ink TUI editor + @clack wizard. See [PARITY.md](PARITY.md) for the full feature-by-feature matrix.
+Snapshot: **115 widgets**, 10 themes, 35 presets (1–9 layers), persistent stats store, config-mutation engine, valibot-validated config. Builds clean (`bun build` split + `tsc`), **360 tests pass** (incl. preset×style + config-location matrices + a security/resilience hardening suite), renders all presets, Ink TUI editor + @clack wizard. See [PARITY.md](PARITY.md) for the full feature-by-feature matrix.
 
 ### v0.5→v0.6 feature push (2026-07-01) — HUD/ccstatusline closure across all plan phases
 - **New widgets**: `git.files` (per-file +/- via gated numstat), `advisor`, `session-start-date`, `activity.separator`, `vim-mode`, `voice-status`, `remote-control-status` (107→114).
@@ -11,7 +11,10 @@ Snapshot: **114 widgets**, 10 themes, 35 presets (1–9 layers), persistent stat
 - **Render safety**: OSC-8-safe `maxWidth` truncation (closes dangling links, atomic escape segments), clickable `cwd` (`file://`).
 - **Config**: **profiles** (named snapshots via `--profile`/env/`activeProfile`), **MAX_LAYERS 9** (+4 dense presets).
 - **Data/perf**: transcript **block-cache** (size+mtime), **JSONL token dedupe**, agent/advisor/sessionStart parsing, **budget scope:block**, **usage sidecar writer** (`CC_STATUS_DASH_USAGE_SIDECAR`).
-- **Deferred (large or need-unavailable-data)**: live usage API + weekly-opus/sonnet (needs Anthropic OAuth), flexMode/auto-align (full layout engine), TUI install-to-settings screen, skills hook cache (no stable CC cache format), Jujutsu/i18n (per original plan).
+- **Skills hook cache — done** (ccstatusline parity): `src/data/skills-cache.ts` + `--hook` mode record every skill invocation (PreToolUse:Skill **and** UserPromptSubmit `/slash`) to a per-session JSONL under `$XDG_CACHE_HOME/cc-status-dash/skills/`; `mergeSkills()` folds the cache into the transcript-derived list (dedupe keep-most-recent-last) so the `skills` widget is accurate and compaction-proof, degrading to the transcript scan when no hook is installed. `/setup` optionally registers the managed hooks. Path-traversal-guarded, control-char sanitized, best-effort (never throws/prints).
+- **Flex separators (auto-align) — done**: new `flex-separator` widget + renderer support on inline lines. A flex spacer fills the remaining terminal width so trailing widgets right-align; multiple spacers split the gap evenly (center/spread layouts), with a configurable `fill` glyph. No separator is drawn adjacent to a spacer, and content wider than the terminal degrades to no fill (never overflows/crashes). Tested at fixed widths. (Full flexMode/grid layout engine remains deferred; this covers the common right-align/spread case.)
+- **Install-to-settings.json — done**: `src/config/install.ts` writes the `statusLine` block (and, opt-in, the managed skills hooks) into Claude Code's `settings.json`. Pure `buildSettings()` deep-merges — every unmanaged key preserved, our own hooks strip-then-re-added so re-installs are idempotent, toggling hooks off cleanly removes them. IO wrapper backs up (`.bak`), writes atomically, refuses to clobber invalid JSON, never throws. Exposed as **`--install [--install-hooks] [--dry-run]`** and as a **TUI overlay** (`i` key, `h` toggles hooks). $CLAUDE_CONFIG_DIR-aware; command auto-detected.
+- **Deferred (large or need-unavailable-data)**: live usage API + weekly-opus/sonnet (needs Anthropic OAuth), flexMode/auto-align (full layout engine), Jujutsu/i18n (per original plan).
 
 ## ✅ Done
 - **Runtime: Bun-first**, Node-compatible (`bun build --target=node` → single `dist/index.js`; `build:node` tsc fallback). Source stays runtime-agnostic.
@@ -49,13 +52,13 @@ Snapshot: **114 widgets**, 10 themes, 35 presets (1–9 layers), persistent stat
 
 ## 🔄 In progress
 - Stack adoption (docs/DEPENDENCIES.md): Done — bun build (split), node:test + ink-testing-library, Biome, **valibot validation**, **@clack/prompts wizard**, **Ink TUI**. Remaining: VHS demo, typedoc, eslint-react (only if needed).
-- **Ink TUI polish**: wrap-around navigation, per-widget option editor (color/mode picker), write `refreshInterval` from the TUI, color preview in-frame. Core editor (`src/tui/`) is built + headlessly tested; final UX best confirmed in a real terminal.
+- **Ink TUI polish — done**: wrap-around navigation (widgets, lines, field rows, and the add-widget picker all wrap at both ends), per-widget **color picker** (new `"color"` field kind: ←→ cycles a curated palette on the universal `color`/`bgColor` options and the colors screen; a custom hex is still typeable), **in-frame color swatches** next to every color field (Ink-native `<Text color>`), and `refreshInterval` editable from the global screen (persisted via `writeConfig`). Pure reducer/optionSpec unit-tested; headless swatch render verified via ink-testing-library. Final UX best confirmed in a real terminal.
 
 ## 🗺️ Remaining (roadmap)
 - Ink TUI UI layer (see above) + write `refreshInterval` from TUI.
 - Metrics: burn-rate `auto-reset` mode, per-model weekly (sonnet/opus), usage-API fallback for non-subscriber accounts, tokens/min.
 - Git: auto clickable PR/branch links (OSC8), worktree original-branch.
-- Layout: TUI-panel (CSS-grid) style, flex separators, powerline caps + auto-align, per-segment icon toggles.
+- Layout: TUI-panel (CSS-grid) style, full flexMode/auto-align layout engine (flex separators for right-align/spread are **done**), per-segment icon toggles.
 - Context: real-time compaction via hooks.
 - Misc: vim mode, voice status, rules-count, git/usage caching TTL, COLORTERM detection.
 - Engineering: JSONL dedupe, HTTPS_PROXY, hook integration, npm provenance/version pinning, Windows UTF-8 codepage.

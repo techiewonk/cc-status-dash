@@ -174,27 +174,40 @@ function buildLineWidgets(line: LineConfig, ctx: RenderContext): BuiltWidget[] {
   return built;
 }
 
+interface InlineChunk { str: string; color?: string; flex: boolean; fill: string; fillColor?: string }
+
+function termWidth(): number {
+  return Number(process.env.CC_STATUS_DASH_WIDTH) || Number(process.env.COLUMNS) || process.stdout.columns || 80;
+}
+
 function renderInline(built: BuiltWidget[], painter: Painter, sep: string, autoWrap: boolean, inheritSep = false): string {
-  const chunks: string[] = [];
-  const chunkColors: (string | undefined)[] = [];
+  const chunks: InlineChunk[] = [];
   for (const wgt of built) {
+    const flexSeg = wgt.segments.find((s) => s.flex);
+    const isFlex = Boolean(flexSeg);
     const str = wgt.segments.map((s) => painter.paint(s.text, s)).join("");
-    if (wgt.merge && chunks.length) chunks[chunks.length - 1] += str;
-    else { chunks.push(str); chunkColors.push(wgt.color); }
+    // A flex spacer is never merged into a neighbor — it must stay a standalone gap.
+    if (wgt.merge && chunks.length && !isFlex) chunks[chunks.length - 1].str += str;
+    else chunks.push({ str, color: wgt.color, flex: isFlex, fill: flexSeg?.text || " ", fillColor: flexSeg?.color });
   }
   // Separator before chunk i takes the previous widget's color when inheritSeparatorColors
   // is on (ccstatusline parity); otherwise the dim "label" color. Color codes are
   // zero-width, so wrap math is unaffected.
   const sepBefore = (i: number) =>
-    ` ${painter.paint(sep, { color: inheritSep ? (chunkColors[i - 1] ?? "label") : "label" })} `;
-  if (!autoWrap) return chunks.map((c, i) => (i === 0 ? c : sepBefore(i) + c)).join("");
+    ` ${painter.paint(sep, { color: inheritSep ? (chunks[i - 1]?.color ?? "label") : "label" })} `;
 
-  const width = Number(process.env.CC_STATUS_DASH_WIDTH) || Number(process.env.COLUMNS) || process.stdout.columns || 80;
+  // Flex spacers expand to fill the terminal width (right-aligning trailing widgets).
+  // This owns the full line, so it takes precedence over auto-wrap.
+  if (chunks.some((c) => c.flex)) return renderInlineFlex(chunks, painter, sepBefore, termWidth());
+
+  if (!autoWrap) return chunks.map((c, i) => (i === 0 ? c.str : sepBefore(i) + c.str)).join("");
+
+  const width = termWidth();
   const sepLen = plainLen(sepBefore(1));
   const lines: string[] = [];
   let cur = "", curLen = 0;
   for (let i = 0; i < chunks.length; i++) {
-    const c = chunks[i];
+    const c = chunks[i].str;
     const cl = plainLen(c);
     if (cur === "") { cur = c; curLen = cl; }
     else if (curLen + sepLen + cl <= width) { cur += sepBefore(i) + c; curLen += sepLen + cl; }
@@ -202,6 +215,43 @@ function renderInline(built: BuiltWidget[], painter: Painter, sep: string, autoW
   }
   if (cur) lines.push(cur);
   return lines.join("\n");
+}
+
+/**
+ * Assemble an inline line containing one or more flex spacers. Normal separators are
+ * placed only between two adjacent non-flex chunks (a flex spacer provides its own
+ * gap). Remaining width is split evenly across the flex spacers; each fills its share
+ * by repeating its unit glyph (the leftover columns go to the trailing spacers).
+ */
+function renderInlineFlex(chunks: InlineChunk[], painter: Painter, sepBefore: (i: number) => string, width: number): string {
+  interface Piece { text?: string; vis: number; flex?: { fill: string; color?: string } }
+  const pieces: Piece[] = [];
+  for (let i = 0; i < chunks.length; i++) {
+    const cur = chunks[i];
+    if (i > 0 && !chunks[i - 1].flex && !cur.flex) {
+      const s = sepBefore(i);
+      pieces.push({ text: s, vis: plainLen(s) });
+    }
+    if (cur.flex) pieces.push({ vis: 0, flex: { fill: cur.fill, color: cur.fillColor } });
+    else pieces.push({ text: cur.str, vis: plainLen(cur.str) });
+  }
+  const fixed = pieces.reduce((n, p) => n + (p.flex ? 0 : p.vis), 0);
+  const nFlex = pieces.filter((p) => p.flex).length;
+  const remaining = Math.max(0, width - fixed);
+  const base = Math.floor(remaining / nFlex);
+  const leftover = remaining - base * nFlex; // give the last `leftover` spacers +1 column
+  let seen = 0;
+  for (const p of pieces) {
+    if (!p.flex) continue;
+    seen++;
+    const cols = base + (seen > nFlex - leftover ? 1 : 0);
+    const unit = p.flex.fill || " ";
+    const uw = Math.max(1, displayWidth(unit));
+    const count = Math.floor(cols / uw);
+    const fillStr = unit.repeat(count) + " ".repeat(cols - count * uw);
+    p.text = fillStr ? painter.paint(fillStr, { color: p.flex.color ?? "label" }) : "";
+  }
+  return pieces.map((p) => p.text ?? "").join("");
 }
 
 function renderCapsule(built: BuiltWidget[], painter: Painter, ctx: RenderContext): string {

@@ -31,3 +31,17 @@ test("typing 'a' then a query opens the picker and filters", async () => {
   assert.ok(/git\./.test(lastFrame() ?? ""), `expected git widgets:\n${lastFrame()}`);
   unmount();
 });
+
+test("'i' opens the install overlay and 'h' toggles the skills hooks", async () => {
+  const { lastFrame, stdin, unmount } = render(createElement(App, { initial: cfg, savePath: "/tmp/ccsd-test.json" }));
+  stdin.write("i");
+  await tick();
+  let f = lastFrame() ?? "";
+  assert.ok(f.includes("install into Claude Code settings.json"), `overlay missing:\n${f}`);
+  assert.ok(/skills hooks:\s*off/.test(f), "hooks should default off");
+  stdin.write("h");
+  await tick();
+  f = lastFrame() ?? "";
+  assert.ok(/skills hooks:\s*on/.test(f), `toggle to on failed:\n${f}`);
+  unmount();
+});

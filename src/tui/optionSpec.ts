@@ -5,13 +5,34 @@ import type { Config } from "../types.js";
 // unit-testable. Mirrors ccstatusline's ItemsEditor / GlobalOverridesMenu /
 // ColorMenu, adapted to our widget-option model.
 
-export type FieldKind = "toggle" | "enum" | "number" | "text";
+export type FieldKind = "toggle" | "enum" | "number" | "text" | "color";
 
 export interface FieldSpec {
   key: string;
   label: string;
   kind: FieldKind;
   choices?: readonly string[]; // for kind === "enum"
+}
+
+/** Curated palette the color picker cycles through with ←→. "" is unset; a custom
+ * hex can still be typed. Values are valid for both our renderer (NAMED / hex) and
+ * Ink's `<Text color>` swatch preview. */
+export const COLOR_CHOICES = [
+  "", "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white", "gray",
+  "#ff5555", "#50fa7b", "#f1fa8c", "#8be9fd", "#bd93f9", "#ffb86c",
+] as const;
+
+/** Ink-acceptable color for an in-frame swatch, or null when unset/unpreviewable.
+ * Named base colors and hex pass through; numeric 256 / unknowns get no swatch. */
+export function swatchColor(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const v = value.trim();
+  if (v === "" || v === "none" || v === "transparent") return null;
+  if (v.startsWith("#")) return /^#[0-9a-fA-F]{6}$/.test(v) ? v : null;
+  if (/^\d+$/.test(v)) return null; // ansi-256 index — Ink swatch can't render reliably
+  // Only preview names Ink can safely resolve (our curated palette). Unknown names
+  // still render/edit fine on the widget; they just don't get a swatch.
+  return COLOR_CHOICES.includes(v as (typeof COLOR_CHOICES)[number]) ? v : null;
 }
 
 /** All progress-bar styles (keep in sync with render/bars.ts STYLES). */
@@ -129,6 +150,7 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "prefix", label: "Prefix", kind: "text" },
   ],
   "custom-symbol": [{ key: "symbol", label: "Symbol", kind: "text" }],
+  "flex-separator": [{ key: "fill", label: "Fill glyph (inline lines)", kind: "text" }],
   "custom-command": [{ key: "command", label: "Shell command", kind: "text" }],
   link: [
     { key: "url", label: "URL", kind: "text" },
@@ -164,8 +186,8 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
  * WidgetItemSchema parity: color/background/bold/dim/rawValue/merge). Appended to each
  * widget's option list so any widget can be individually styled. */
 export const UNIVERSAL_OPTION_SPECS: FieldSpec[] = [
-  { key: "color", label: "Color override", kind: "text" },
-  { key: "bgColor", label: "Background", kind: "text" },
+  { key: "color", label: "Color override", kind: "color" },
+  { key: "bgColor", label: "Background", kind: "color" },
   { key: "bold", label: "Bold", kind: "toggle" },
   { key: "dim", label: "Dim", kind: "toggle" },
   { key: "rawValue", label: "Raw (drop label)", kind: "toggle" },
@@ -203,7 +225,8 @@ export const COLOR_KEYS = [
 /** Format a config/option value for display in an editor row. */
 export function displayValue(value: unknown, spec: FieldSpec): string {
   if (spec.kind === "toggle") return value ? "on" : "off";
-  if (value == null || value === "") return spec.kind === "text" ? "(unset)" : "(default)";
+  if (value == null || value === "")
+    return spec.kind === "text" || spec.kind === "color" ? "(unset)" : "(default)";
   return String(value);
 }
 
