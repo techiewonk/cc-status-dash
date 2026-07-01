@@ -87,6 +87,8 @@ function parseTranscript(path: string): { info: TranscriptInfo; lastUserMs?: num
   let sessionTokens = { input: 0, output: 0, cacheCreation: 0, cacheRead: 0 };
   const seenUsage = new Set<string>(); // dedupe duplicate API-response writes by id
   let compactionCount = 0;
+  const compactionByTrigger = { auto: 0, manual: 0, unknown: 0 };
+  let compactionTokensReclaimed = 0;
   let sessionName: string | undefined;
   let advisorModel: string | undefined;
   let sessionStart: number | undefined;
@@ -120,7 +122,23 @@ function parseTranscript(path: string): { info: TranscriptInfo; lastUserMs?: num
       const t = Date.parse(entry.timestamp);
       if (!Number.isNaN(t)) lastAssistantMs = t;
     }
-    if (entry.type === "compact_boundary" || entry.subtype === "compact_boundary") compactionCount++;
+    if (entry.type === "compact_boundary" || entry.subtype === "compact_boundary") {
+      compactionCount++;
+      // ccstatusline compaction.ts parity: summarize compactMetadata.trigger
+      // (auto/manual, else unknown — never guessed) and sum preTokens-postTokens
+      // reclaimed across every boundary (only when both are finite numbers).
+      const meta = entry.compactMetadata;
+      const trigger = meta && typeof meta === "object" ? meta.trigger : undefined;
+      if (trigger === "auto") compactionByTrigger.auto++;
+      else if (trigger === "manual") compactionByTrigger.manual++;
+      else compactionByTrigger.unknown++;
+      const pre = meta && typeof meta === "object" ? meta.preTokens : undefined;
+      const post = meta && typeof meta === "object" ? meta.postTokens : undefined;
+      if (typeof pre === "number" && typeof post === "number") {
+        const reclaimed = pre - post;
+        if (Number.isFinite(reclaimed)) compactionTokensReclaimed += Math.max(0, reclaimed);
+      }
+    }
     if (typeof entry.sessionName === "string") sessionName = san(entry.sessionName);
 
     const usage = entry?.message?.usage;
@@ -203,6 +221,8 @@ function parseTranscript(path: string): { info: TranscriptInfo; lastUserMs?: num
     sessionStart,
     sessionTokens,
     compactionCount,
+    compactionByTrigger,
+    compactionTokensReclaimed,
     msSinceLastUser: lastUserMs ? Date.now() - lastUserMs : undefined,
     lastResponseMs: (lastAssistantMs && lastUserMs && lastAssistantMs > lastUserMs) ? lastAssistantMs - lastUserMs : undefined,
   };

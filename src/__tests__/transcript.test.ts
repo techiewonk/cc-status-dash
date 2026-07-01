@@ -170,6 +170,42 @@ test("session token tallies dedupe duplicate API-response writes by id", () => {
   assert.equal(t.sessionTokens?.cacheRead, 400, "cacheRead deduped too");
 });
 
+// ---- compaction: byTrigger + tokensReclaimed (ccstatusline compaction.ts parity) ----
+
+test("compaction boundaries are counted, split by trigger, and reclaimed tokens summed", () => {
+  const t = parse([
+    { type: "system", subtype: "compact_boundary", compactMetadata: { trigger: "auto", preTokens: 180000, postTokens: 60000 } },
+    { type: "system", subtype: "compact_boundary", compactMetadata: { trigger: "manual", preTokens: 150000, postTokens: 90000 } },
+    { type: "system", subtype: "compact_boundary" }, // no metadata at all -> unknown trigger, 0 reclaimed
+  ]);
+  assert.equal(t.compactionCount, 3);
+  assert.deepEqual(t.compactionByTrigger, { auto: 1, manual: 1, unknown: 1 });
+  assert.equal(t.compactionTokensReclaimed, 120000 + 60000);
+});
+
+test("an unrecognized trigger value counts as unknown, never guessed", () => {
+  const t = parse([
+    { type: "system", subtype: "compact_boundary", compactMetadata: { trigger: "something-new" } },
+  ]);
+  assert.deepEqual(t.compactionByTrigger, { auto: 0, manual: 0, unknown: 1 });
+});
+
+test("a compaction boundary inside a sidechain (subagent) transcript is excluded", () => {
+  const t = parse([
+    { type: "system", subtype: "compact_boundary", isSidechain: true, compactMetadata: { trigger: "auto" } },
+  ]);
+  assert.equal(t.compactionCount, 0);
+  assert.deepEqual(t.compactionByTrigger, { auto: 0, manual: 0, unknown: 0 });
+});
+
+test("reclaimed tokens only count when both preTokens and postTokens are finite numbers", () => {
+  const t = parse([
+    { type: "system", subtype: "compact_boundary", compactMetadata: { trigger: "auto", preTokens: 100000 } }, // postTokens missing
+    { type: "system", subtype: "compact_boundary", compactMetadata: { trigger: "auto", preTokens: "oops", postTokens: 1000 } }, // non-numeric
+  ]);
+  assert.equal(t.compactionTokensReclaimed, 0);
+});
+
 test("agents resolve to done when their Task tool_result arrives", () => {
   const a = parse([
     { type: "assistant", message: { content: [{ type: "tool_use", id: "g1", name: "Task", input: { subagent_type: "explore" } }] } },

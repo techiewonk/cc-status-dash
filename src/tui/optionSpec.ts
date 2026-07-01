@@ -161,7 +161,11 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "url", label: "URL", kind: "text" },
     { key: "label", label: "Label", kind: "text" },
   ],
-  "compaction-counter": [{ key: "hideWhenZero", label: "Hide when zero", kind: "toggle" }],
+  "compaction-counter": [
+    { key: "hideWhenZero", label: "Hide when zero", kind: "toggle" },
+    { key: "showTriggers", label: "Show auto/manual split", kind: "toggle" },
+    { key: "showReclaimed", label: "Show tokens reclaimed", kind: "toggle" },
+  ],
   "reset-timer": [
     { key: "timestamp", label: "Show clock time", kind: "toggle" },
     { key: "hoursOnly", label: "Hours only", kind: "toggle" },

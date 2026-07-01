@@ -273,9 +273,21 @@ add(w("thinking-effort", "model", "Thinking effort", ["stdin"], (_d, opts, ctx) 
   return lv(ic("✦", "T", ctx), level, "usage", ctx);
 }));
 add(w("compaction-counter", "context", "Compaction count", ["transcript"], (_d, o, ctx) => {
-  const c = ctx.data.transcript?.compactionCount ?? 0;
+  const t = ctx.data.transcript;
+  const c = t?.compactionCount ?? 0;
   if (c === 0 && o.hideWhenZero !== false) return [];
-  return lv(ic("⟳", "compact", ctx), c, "label", ctx);
+  let suffix = "";
+  // ccstatusline CompactionCounter parity: optional "(N auto, N manual)" trigger
+  // split and "↓120K" tokens-reclaimed suffix, each independently toggleable.
+  if (o.showTriggers === true && t?.compactionByTrigger) {
+    const { auto, manual, unknown } = t.compactionByTrigger;
+    const parts = [auto > 0 ? `${auto} auto` : "", manual > 0 ? `${manual} manual` : "", unknown > 0 ? `${unknown} unknown` : ""].filter(Boolean);
+    if (parts.length) suffix += ` (${parts.join(", ")})`;
+  }
+  if (o.showReclaimed === true && t?.compactionTokensReclaimed) {
+    suffix += ` ${ic("↓", "reclaimed:", ctx)}${fmtTokens(t.compactionTokensReclaimed)}`;
+  }
+  return lv(ic("⟳", "compact", ctx), `${c}${suffix}`, "label", ctx);
 }));
 
 // ---------------- context ----------------

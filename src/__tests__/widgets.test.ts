@@ -172,6 +172,21 @@ test("provider override replaces Bedrock/Vertex/API auto-detection (Claude HUD p
   assert.equal(out, "MyGateway", `override should take full precedence: ${out}`);
 });
 
+test("compaction-counter shows the trigger split and tokens-reclaimed suffixes when toggled on (ccstatusline parity)", () => {
+  const config = { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme) };
+  const data = { ...DATA, transcript: { ...DATA.transcript!, compactionCount: 2, compactionByTrigger: { auto: 1, manual: 1, unknown: 0 }, compactionTokensReclaimed: 120000 } };
+  const ctx: RenderContext = { input: INPUT, data, config };
+  const w = getWidget("compaction-counter")!;
+  const plain = w.render(w.collect(ctx), {}, ctx).map((s) => s.text).join("");
+  assert.ok(!plain.includes("auto") && !plain.includes("reclaimed"), `suffixes off by default: ${plain}`);
+
+  const withTriggers = w.render(w.collect(ctx), { showTriggers: true }, ctx).map((s) => s.text).join("");
+  assert.ok(withTriggers.includes("1 auto") && withTriggers.includes("1 manual"), `trigger split shown: ${withTriggers}`);
+
+  const withReclaimed = w.render(w.collect(ctx), { showReclaimed: true }, ctx).map((s) => s.text).join("");
+  assert.ok(withReclaimed.includes("120.0k") || withReclaimed.includes("120k"), `reclaimed tokens shown: ${withReclaimed}`);
+});
+
 test("registry has the full widget set", () => {
   const ids = new Set(listWidgets().map((w) => w.id));
   for (const must of ["model", "context.bar", "usage.block", "git.branch", "activity.tools", "cost", "skills", "budget", "burn-rate"]) {

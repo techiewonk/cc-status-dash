@@ -130,6 +130,12 @@ export interface TranscriptInfo {
   sessionStart?: number;
   sessionTokens?: { input: number; output: number; cacheCreation: number; cacheRead: number };
   compactionCount?: number;
+  /** Compaction-trigger breakdown (ccstatusline `compactMetadata.trigger` parity):
+   * missing/unrecognized triggers count as "unknown", never guessed. */
+  compactionByTrigger?: { auto: number; manual: number; unknown: number };
+  /** Total tokens reclaimed across every compaction boundary (sum of
+   * max(0, preTokens - postTokens), only where both are present as numbers). */
+  compactionTokensReclaimed?: number;
   msSinceLastUser?: number;
   lastResponseMs?: number;
 }
