@@ -154,6 +154,24 @@ for (const [id, opts, sub] of CASES) {
   });
 }
 
+// config-counts total (from DATA.system above) = 2 + 3 + 1 + 4 = 10.
+test("config-counts threshold suppresses the line below N total items (Claude HUD environmentThreshold parity)", () => {
+  assert.ok(renderWidget("config-counts", { threshold: 10 }).length > 0, "shows at the exact threshold");
+  assert.equal(renderWidget("config-counts", { threshold: 11 }), "", "hides below the threshold");
+  assert.ok(renderWidget("config-counts", {}).length > 0, "unset threshold (0) always shows when non-zero");
+});
+
+test("model override replaces the auto-detected name entirely (Claude HUD modelOverride parity)", () => {
+  const out = renderWidget("model", { override: "MyProxy-GPT" });
+  assert.ok(out.includes("MyProxy-GPT"), `override should appear: ${out}`);
+  assert.ok(!out.includes("Opus"), `auto-detected name should be replaced: ${out}`);
+});
+
+test("provider override replaces Bedrock/Vertex/API auto-detection (Claude HUD providerName parity)", () => {
+  const out = renderWidget("provider", { override: "MyGateway", showApi: true });
+  assert.equal(out, "MyGateway", `override should take full precedence: ${out}`);
+});
+
 test("registry has the full widget set", () => {
   const ids = new Set(listWidgets().map((w) => w.id));
   for (const must of ["model", "context.bar", "usage.block", "git.branch", "activity.tools", "cost", "skills", "budget", "burn-rate"]) {

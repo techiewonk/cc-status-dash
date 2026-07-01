@@ -21,7 +21,7 @@ export function collectProviderData(input: StatuslineInput, config: Config): Pro
   // Isolate each provider: a throw in one data source must not wipe the whole
   // statusline (it just leaves that source undefined; widgets already null-check).
   const wantGitFiles = config.lines.some((l) => l.widgets.some((wc) => wc.id === "git.files"));
-  try { if (needed.has("git")) data.git = collectGit(cwd, { files: wantGitFiles }); } catch { /* ignore */ }
+  try { if (needed.has("git")) data.git = collectGit(cwd, { files: wantGitFiles, cacheTtlSeconds: config.gitCacheTtlSeconds }); } catch { /* ignore */ }
   try {
     if (needed.has("transcript")) {
       data.transcript = collectTranscript(input.transcript_path);

@@ -41,6 +41,15 @@ test("widget merge removes the separator", () => {
   assert.ok(out.includes("Opus 4.8") && out.includes("v2.1.97"));
 });
 
+test('merge: "no-padding" also closes the padding gap at the seam (ccstatusline parity)', () => {
+  // plain merge:true still pads up to the (now-dropped) separator on both sides
+  const padded = run({ padding: 1, lines: [{ style: "inline", widgets: [{ id: "custom-text", text: "A" }, { id: "custom-text", text: "B", merge: true }] }] });
+  assert.equal(padded, " A  B ", `plain merge keeps both widgets' own padding: ${JSON.stringify(padded)}`);
+
+  const tight = run({ padding: 1, lines: [{ style: "inline", widgets: [{ id: "custom-text", text: "A" }, { id: "custom-text", text: "B", merge: "no-padding" }] }] });
+  assert.equal(tight, " AB ", `no-padding merge closes the seam on both sides: ${JSON.stringify(tight)}`);
+});
+
 test("autoWrap splits a long line", () => {
   process.env.COLUMNS = "18";
   const out = run({ autoWrap: true, lines: [{ style: "inline", widgets: [{ id: "model" }, { id: "version" }, { id: "context-percentage" }] }] });

@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { basename } from "node:path";
+import { stripVTControlCharacters } from "node:util";
 import type { DataSource, RenderContext, Segment, Widget, WidgetCategory, WidgetOptions } from "../types.js";
 import { renderBar, thresholdColor, type BarStyle } from "../render/bars.js";
 import { clean as san } from "../data/sanitize.js";
@@ -205,7 +206,11 @@ function thirdPartyProvider(ctx: RenderContext): boolean {
 // ---------------- model / session ----------------
 
 add(w("model", "model", "Model", ["stdin"], (_d, o, ctx) => {
-  let text = `${icp("✱", "M", ctx)}${san(modelText(ctx, o.format))}`;
+  // Claude HUD `modelOverride` parity: a manual label takes full precedence over
+  // auto-detection (`format`), for custom proxies/gateways where the reported
+  // model id/name is wrong or unhelpful.
+  const override = typeof o.override === "string" ? o.override.trim() : "";
+  let text = `${icp("✱", "M", ctx)}${override ? san(override) : san(modelText(ctx, o.format))}`;
   if (o.show1M && has1M(ctx)) text += " 1M"; // append a 1M-context badge when present
   return [{ text, color: "model", bold: true }];
 }));
@@ -662,9 +667,16 @@ add(w("custom-symbol", "custom", "Custom symbol", [], (_d, opts, _ctx) => {
 add(w("custom-command", "custom", "Custom command", [], (_d, opts, _ctx) => {
   const cmd = opts.command as string | undefined;
   if (!cmd) return [];
+  // ccstatusline CustomCommand parity: `timeout` (ms) overrides the default kill
+  // time; `preserveColors` lets the command's own ANSI drive coloring (skips our
+  // stripping AND the color override below) instead of stripping to plain text.
+  const timeout = typeof opts.timeout === "number" && opts.timeout > 0 ? opts.timeout : 300;
+  const preserve = opts.preserveColors === true;
   try {
-    const out = execSync(cmd, { timeout: 300, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8", windowsHide: true }).trim();
-    return out ? [{ text: out, color: (opts.color as string) ?? "label" }] : [];
+    let out = execSync(cmd, { timeout, stdio: ["ignore", "pipe", "ignore"], encoding: "utf8", windowsHide: true }).trim();
+    if (!preserve) out = stripVTControlCharacters(out);
+    if (!out) return [];
+    return preserve ? [{ text: out }] : [{ text: out, color: (opts.color as string) ?? "label" }];
   } catch { return []; }
 }));
 add(w("link", "custom", "Link (OSC8)", [], (_d, opts, _ctx) => {
@@ -825,6 +837,10 @@ add(w("env", "system", "Environment variable", [], (_d, opts, ctx) => {
   return lv((opts.prefix as string) ?? name, val, "label", ctx);
 }));
 add(w("provider", "model", "Provider/auth label", ["stdin"], (_d, opts, ctx) => {
+  // Claude HUD `providerName` parity: a manual override takes full precedence over
+  // Bedrock/Vertex auto-detection (custom proxy/gateway naming).
+  const override = typeof opts.override === "string" ? opts.override.trim() : "";
+  if (override) return lv(null, san(override), "label", ctx);
   const bedrock = process.env.CLAUDE_CODE_USE_BEDROCK === "1" || /bedrock/i.test(ctx.input.model?.id ?? "");
   const vertex = process.env.CLAUDE_CODE_USE_VERTEX === "1";
   const label = bedrock ? "Bedrock" : vertex ? "Vertex" : (opts.showApi ? "API" : null);
@@ -941,9 +957,14 @@ add(w("total-api-time", "activity", "Total API time", ["stdin"], (_d, _o, ctx) =
 // ---------------- claude config / response time ----------------
 add(w("claude-account-email", "model", "Account email", ["system"], (_d, _o, ctx) =>
   lv(ic("✉", "@", ctx), ctx.data.system?.accountEmail, "label", ctx)));
-add(w("config-counts", "system", "Config counts (CLAUDE.md/MCP/hooks)", ["system"], (_d, _o, ctx) => {
+add(w("config-counts", "system", "Config counts (CLAUDE.md/MCP/hooks)", ["system"], (_d, opts, ctx) => {
   const s = ctx.data.system;
   if (!s) return [];
+  const total = (s.claudeMdCount ?? 0) + (s.mcpConfigCount ?? 0) + (s.hooksCount ?? 0) + (s.rulesCount ?? 0);
+  // Claude HUD environmentThreshold parity: suppress the whole line below N total
+  // items, so a small project with e.g. just one CLAUDE.md doesn't add noise.
+  const threshold = typeof opts.threshold === "number" ? opts.threshold : 0;
+  if (total === 0 || total < threshold) return [];
   const parts: string[] = [];
   if (s.claudeMdCount) parts.push(`${ic("⌘", "md", ctx)}${s.claudeMdCount}`);
   if (s.mcpConfigCount) parts.push(`${ic("⚙", "mcp", ctx)}${s.mcpConfigCount}`);

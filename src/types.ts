@@ -216,6 +216,10 @@ export interface Config {
   /** Context-usage % (0-100) at which "full-until-compact" switches to the wider
    * margin. Default 60 (ccstatusline parity). */
   compactThreshold?: number;
+  /** How long the git provider's disk cache stays fresh, in seconds (ccstatusline
+   * gitCacheTtlSeconds parity). Default 2. Lower = fresher branch/status data at
+   * the cost of more `git` spawns per render; higher = fewer spawns. */
+  gitCacheTtlSeconds?: number;
   lines: LineConfig[];
   /** Optional per-model context-window limits (tokens). */
   modelContextLimits?: { sonnet?: number; opus?: number; haiku?: number; default?: number };

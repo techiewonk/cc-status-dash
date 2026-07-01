@@ -45,6 +45,7 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
   model: [
     { key: "show1M", label: "1M badge", kind: "toggle" },
     { key: "format", label: "Format", kind: "enum", choices: ["abbr", "name", "id", "version"] },
+    { key: "override", label: "Manual override (custom proxy)", kind: "text" },
   ],
   cwd: [
     { key: "segments", label: "Path segments", kind: "number" },
@@ -137,7 +138,7 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
   "cache-roi": [{ key: "savedPerMTok", label: "$ saved / 1M tok", kind: "number" }],
   "provider": [
     { key: "showApi", label: "Show API label", kind: "toggle" },
-    { key: "prefix", label: "Label prefix", kind: "text" },
+    { key: "override", label: "Manual override (custom proxy)", kind: "text" },
   ],
   budget: [
     { key: "amount", label: "Budget $", kind: "number" },
@@ -150,8 +151,12 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "prefix", label: "Prefix", kind: "text" },
   ],
   "custom-symbol": [{ key: "symbol", label: "Symbol", kind: "text" }],
+  "custom-command": [
+    { key: "command", label: "Shell command", kind: "text" },
+    { key: "timeout", label: "Timeout (ms)", kind: "number" },
+    { key: "preserveColors", label: "Preserve command's own ANSI colors", kind: "toggle" },
+  ],
   "flex-separator": [{ key: "fill", label: "Fill glyph (inline lines)", kind: "text" }],
-  "custom-command": [{ key: "command", label: "Shell command", kind: "text" }],
   link: [
     { key: "url", label: "URL", kind: "text" },
     { key: "label", label: "Label", kind: "text" },
@@ -210,6 +215,7 @@ export const GLOBAL_FIELD_SPECS: FieldSpec[] = [
   { key: "autoWrap", label: "Auto-wrap to width", kind: "toggle" },
   { key: "flexMode", label: "Flex width mode", kind: "enum", choices: ["full", "full-minus-40", "full-until-compact"] },
   { key: "compactThreshold", label: "Compact threshold %", kind: "number" },
+  { key: "gitCacheTtlSeconds", label: "Git cache TTL (s)", kind: "number" },
   { key: "padding", label: "Padding", kind: "number" },
   { key: "separator", label: "Separator", kind: "text" },
   { key: "powerlineSeparator", label: "Powerline separator", kind: "enum", choices: ["arrow", "round", "triangle", "flame", "pixel"] },

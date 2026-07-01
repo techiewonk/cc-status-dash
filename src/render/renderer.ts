@@ -133,8 +133,10 @@ function truncateSegments(segments: Segment[], maxWidth: number): Segment[] {
 }
 
 function buildLineWidgets(line: LineConfig, ctx: RenderContext): BuiltWidget[] {
-  const built: BuiltWidget[] = [];
   const pad = " ".repeat(Math.max(0, ctx.config.padding));
+  // Pass 1: render + rawValue-filter each widget (no padding yet — deciding the pad
+  // at a merge seam needs to look at the NEXT widget's config, see pass 2).
+  const rendered: { wc: WidgetConfig; segments: Segment[] }[] = [];
   for (const wc of line.widgets) {
     const widget = getWidget(wc.id);
     if (!widget) continue;
@@ -153,15 +155,29 @@ function buildLineWidgets(line: LineConfig, ctx: RenderContext): BuiltWidget[] {
       segments = segments.filter((s) => s.color !== "label" && s.text.trim() !== "");
       if (segments.length === 0) continue;
     }
-    // Pad first so a per-widget bgColor/bold covers the padding too (no unstyled gaps).
-    if (pad) segments = [{ text: pad }, ...segments, { text: pad }];
+    rendered.push({ wc, segments });
+  }
+  // Pass 2: pad (skipping the seam pad on either side of a `merge: "no-padding"`
+  // join — ccstatusline WidgetItem.merge parity: plain `merge: true` still pads up
+  // to the dropped separator, "no-padding" also closes that gap), then style/truncate.
+  const built: BuiltWidget[] = [];
+  rendered.forEach(({ wc, segments }, i) => {
+    const dropLeadPad = wc.merge === "no-padding";
+    const dropTrailPad = i + 1 < rendered.length && rendered[i + 1].wc.merge === "no-padding";
+    if (pad) {
+      segments = [
+        ...(dropLeadPad ? [] : [{ text: pad }]),
+        ...segments,
+        ...(dropTrailPad ? [] : [{ text: pad }]),
+      ];
+    }
     if (ctx.config.globalBold) segments = segments.map((s) => ({ ...s, bold: true }));
     segments = applyWidgetStyle(segments, wc);
     if (typeof wc.maxWidth === "number") segments = truncateSegments(segments, wc.maxWidth);
     // Primary color = first non-label value segment (used by inheritSeparatorColors).
     const primary = segments.find((s) => s.color && s.color !== "label" && s.text.trim() !== "")?.color;
-    built.push({ segments, merge: wc.merge === true, color: primary });
-  }
+    built.push({ segments, merge: wc.merge === true || wc.merge === "no-padding", color: primary });
+  });
   // Line gradient: recolor each widget's value segments by interpolated position
   // across the gradient stops (left → right). Labels/padding keep their styling.
   const grad = Array.isArray(line.gradient) ? line.gradient.filter((c) => typeof c === "string" && c.startsWith("#")) : [];

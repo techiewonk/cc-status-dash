@@ -56,6 +56,7 @@ export const PartialConfigSchema = v.looseObject({
   icons: v.optional(v.boolean()),
   flexMode: v.optional(v.picklist(["full", "full-minus-40", "full-until-compact"])),
   compactThreshold: v.optional(v.pipe(v.number(), v.minValue(1), v.maxValue(99))),
+  gitCacheTtlSeconds: v.optional(v.pipe(v.number(), v.minValue(0))),
   lines: v.optional(v.array(LineConfigSchema)),
   modelContextLimits: v.optional(ModelContextLimitsSchema),
   powerlineSeparator: v.optional(v.picklist(["arrow", "round", "triangle", "flame", "pixel"])),

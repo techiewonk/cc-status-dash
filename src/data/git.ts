@@ -10,16 +10,16 @@ import { clean as san } from "./sanitize.js";
 // never blocks. Covers the full ccstatusline git widget set. Results are cached to
 // disk with a short TTL so the ~300ms render cadence doesn't re-spawn git every time.
 
-const GIT_CACHE_TTL_MS = 2000;
+const DEFAULT_GIT_CACHE_TTL_MS = 2000;
 
 function gitCacheFile(cwd: string, suffix = ""): string {
   const base = process.env.XDG_CACHE_HOME ?? join(tmpdir(), "cc-status-dash");
   return join(base, `git-${createHash("sha1").update(cwd).digest("hex").slice(0, 16)}${suffix}.json`);
 }
-function readGitCache(file: string): GitInfo | null {
+function readGitCache(file: string, ttlMs: number): GitInfo | null {
   try {
     const { ts, data } = JSON.parse(readFileSync(file, "utf8")) as { ts: number; data: GitInfo };
-    if (typeof ts === "number" && Date.now() - ts < GIT_CACHE_TTL_MS) return data;
+    if (typeof ts === "number" && Date.now() - ts < ttlMs) return data;
   } catch { /* miss */ }
   return null;
 }
@@ -51,11 +51,12 @@ function parseRemote(url: string | null): { owner?: string; repo?: string } {
   return m ? { owner: m[1], repo: m[2] } : {};
 }
 
-export function collectGit(cwd: string, opts: { files?: boolean } = {}): GitInfo {
+export function collectGit(cwd: string, opts: { files?: boolean; cacheTtlSeconds?: number } = {}): GitInfo {
   // The per-file detail is cached separately (`-f` suffix) so a layout with the
   // `git.files` widget doesn't poison the cheaper cache used by other git widgets.
+  const ttlMs = typeof opts.cacheTtlSeconds === "number" ? Math.max(0, opts.cacheTtlSeconds) * 1000 : DEFAULT_GIT_CACHE_TTL_MS;
   const cf = gitCacheFile(cwd, opts.files ? "-f" : "");
-  const cached = readGitCache(cf);
+  const cached = readGitCache(cf, ttlMs);
   if (cached) return cached;
   const fresh = computeGit(cwd, opts);
   writeGitCache(cf, fresh);
