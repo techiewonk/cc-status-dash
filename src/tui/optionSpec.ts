@@ -167,12 +167,14 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
     { key: "showReclaimed", label: "Show tokens reclaimed", kind: "toggle" },
   ],
   "reset-timer": [
+    { key: "timeFormat", label: "Time format", kind: "enum", choices: ["relative", "absolute", "both", "elapsed", "elapsedAndAbsolute"] },
     { key: "timestamp", label: "Show clock time", kind: "toggle" },
     { key: "hoursOnly", label: "Hours only", kind: "toggle" },
     { key: "hour12", label: "12-hour clock", kind: "toggle" },
     { key: "timezone", label: "Timezone (IANA)", kind: "text" },
   ],
   "weekly-reset-timer": [
+    { key: "timeFormat", label: "Time format", kind: "enum", choices: ["relative", "absolute", "both", "elapsed", "elapsedAndAbsolute"] },
     { key: "timestamp", label: "Show clock time", kind: "toggle" },
     { key: "hoursOnly", label: "Hours only", kind: "toggle" },
     { key: "hour12", label: "12-hour clock", kind: "toggle" },

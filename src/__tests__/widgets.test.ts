@@ -172,6 +172,34 @@ test("provider override replaces Bedrock/Vertex/API auto-detection (Claude HUD p
   assert.equal(out, "MyGateway", `override should take full precedence: ${out}`);
 });
 
+// reset-timer's rate_limits.five_hour.resets_at = now + 3h (see INPUT above).
+test("timeFormat modes on reset-timer (Claude HUD timeFormat parity)", () => {
+  const relative = renderWidget("reset-timer", { timeFormat: "relative" });
+  assert.ok(/\dh \d+m/.test(relative), `relative is a plain countdown: ${relative}`);
+  assert.ok(!relative.includes("%") && !relative.includes(","), `relative has no elapsed/absolute noise: ${relative}`);
+
+  const absolute = renderWidget("reset-timer", { timeFormat: "absolute" });
+  assert.ok(/\d{1,2}:\d{2}/.test(absolute), `absolute shows a clock time: ${absolute}`);
+  assert.ok(!/\dh \d+m/.test(absolute), `absolute has no countdown: ${absolute}`);
+
+  const both = renderWidget("reset-timer", { timeFormat: "both" });
+  assert.ok(/\dh \d+m/.test(both) && /\d{1,2}:\d{2}/.test(both) && both.includes(","), `both combines countdown + clock: ${both}`);
+
+  const elapsed = renderWidget("reset-timer", { timeFormat: "elapsed" });
+  assert.ok(/\d+% elapsed/.test(elapsed), `elapsed shows a % of the window passed: ${elapsed}`);
+  assert.ok(!/:\d{2}/.test(elapsed), `elapsed alone has no clock time: ${elapsed}`);
+
+  const elapsedAndAbsolute = renderWidget("reset-timer", { timeFormat: "elapsedAndAbsolute" });
+  assert.ok(/\d+% elapsed/.test(elapsedAndAbsolute) && /\d{1,2}:\d{2}/.test(elapsedAndAbsolute), `elapsedAndAbsolute combines both: ${elapsedAndAbsolute}`);
+});
+
+test("unset timeFormat keeps the legacy hoursOnly/timestamp behavior (no config = no change)", () => {
+  const plain = renderWidget("reset-timer", {});
+  assert.ok(!plain.includes("%") && !plain.includes(","), `default stays a plain countdown: ${plain}`);
+  const withTimestamp = renderWidget("reset-timer", { timestamp: true });
+  assert.ok(withTimestamp.includes("(") && /\d{1,2}:\d{2}/.test(withTimestamp), `legacy timestamp option still works: ${withTimestamp}`);
+});
+
 test("compaction-counter shows the trigger split and tokens-reclaimed suffixes when toggled on (ccstatusline parity)", () => {
   const config = { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme) };
   const data = { ...DATA, transcript: { ...DATA.transcript!, compactionCount: 2, compactionByTrigger: { auto: 1, manual: 1, unknown: 0 }, compactionTokensReclaimed: 120000 } };

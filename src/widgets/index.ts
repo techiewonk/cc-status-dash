@@ -473,22 +473,47 @@ add(w("external-usage", "usage", "External usage", ["stdin"], (_d, o, ctx) => {
   return pctSegments(label, clamped, text, color, o, ctx);
 }));
 
+/** Wall-clock reset time (12/24h + IANA tz), Claude HUD `absolute` mode. */
+function formatClock(resetsAtMs: number, opts: WidgetOptions): string {
+  return new Date(resetsAtMs).toLocaleTimeString([], {
+    hour: "2-digit", minute: "2-digit",
+    hour12: opts.hour12 === true,
+    timeZone: typeof opts.timezone === "string" ? opts.timezone : undefined,
+  });
+}
+/** % of the window elapsed so far, clamped [0,100] — Claude HUD `elapsed` mode
+ * (distinct concept from countdown: how much of the window has passed, not
+ * how much is left). */
+function pctWindowElapsed(resetsAtMs: number, windowMs: number): string {
+  const windowStart = resetsAtMs - windowMs;
+  const pct = Math.max(0, Math.min(100, Math.round(((Date.now() - windowStart) / windowMs) * 100)));
+  return `${pct}% elapsed`;
+}
+
 const timerWidget = (id: string, label: string, key: "five_hour" | "seven_day", elapsed: boolean) =>
   add(w(id, "usage", label, ["rate_limits"], (_d, opts, ctx) => {
     const win = ctx.input.rate_limits?.[key];
     if (!win?.resets_at) return [];
     if (!elapsed) {
+      const resetsAtMs = epochMs(win.resets_at);
+      // Claude HUD timeFormat parity: relative (default, our existing countdown)
+      // | absolute | both | elapsed (% of window passed) | elapsedAndAbsolute.
+      // Takes priority over the legacy hoursOnly/timestamp options when set.
+      const tf = typeof opts.timeFormat === "string" ? opts.timeFormat : undefined;
+      if (tf && tf !== "relative") {
+        const clock = formatClock(resetsAtMs, opts);
+        if (tf === "absolute") return lv(ic("⏱", label, ctx), clock, "label", ctx);
+        if (tf === "both") return lv(ic("⏱", label, ctx), `${fmtCountdown(win.resets_at) ?? ""}, ${clock}`.replace(/^, /, ""), "label", ctx);
+        const pct = pctWindowElapsed(resetsAtMs, WINDOW_MS[key]);
+        if (tf === "elapsed") return lv(ic("⏱", label, ctx), pct, "label", ctx);
+        if (tf === "elapsedAndAbsolute") return lv(ic("⏱", label, ctx), `${pct}, ${clock}`, "label", ctx);
+      }
       // hoursOnly: show the countdown as total hours (e.g. "27h") instead of "1d 3h".
-      const hrsOnly = opts.hoursOnly === true ? (() => { const m = epochMs(win.resets_at) - Date.now(); return m > 0 ? `${Math.ceil(m / 3_600_000)}h` : undefined; })() : undefined;
+      const hrsOnly = opts.hoursOnly === true ? (() => { const m = resetsAtMs - Date.now(); return m > 0 ? `${Math.ceil(m / 3_600_000)}h` : undefined; })() : undefined;
       const cd = hrsOnly ?? fmtCountdown(win.resets_at) ?? undefined;
       // Optional exact reset timestamp (ccstatusline parity): 12/24h + IANA tz.
       if (opts.timestamp) {
-        const at = new Date(epochMs(win.resets_at));
-        const t = at.toLocaleTimeString([], {
-          hour: "2-digit", minute: "2-digit",
-          hour12: opts.hour12 === true,
-          timeZone: typeof opts.timezone === "string" ? opts.timezone : undefined,
-        });
+        const t = formatClock(resetsAtMs, opts);
         return lv(ic("⏱", label, ctx), cd ? `${cd} (${t})` : t, "label", ctx);
       }
       return lv(ic("⏱", label, ctx), cd, "label", ctx);
