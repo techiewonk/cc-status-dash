@@ -93,6 +93,7 @@ Every widget implements `Widget` (see `src/types.ts`):
 - `needs` lists data sources (`"git" | "transcript" | "system" | "stats" | "rate_limits" | "stdin"`) so providers run lazily.
 - `render` returns `Segment[]`; return `[]` to render nothing (empty widgets are auto-culled).
 - Honor `ctx.config.minimalist` (drop labels) and `ctx.config.charset` (unicode vs ASCII) — use the `sym()` and `lv()` helpers at the top of `widgets/index.ts`.
+- For a **decorative leading icon** use `ic()`/`icp()` (not `sym()`) so the global `icons:false` can hide it; keep structural glyphs (separators, arrows, on/off, bars) on `sym()`.
 
 ### Add a widget (recipe)
 In `src/widgets/index.ts`:

@@ -10,6 +10,19 @@ import { clean as san } from "../data/sanitize.js";
 function sym(unicode: string, text: string, ctx: RenderContext): string {
   return ctx.config.charset === "text" ? text : unicode;
 }
+// Decorative widget icon (a leading glyph). Same charset behavior as sym(), but a
+// global `icons: false` hides it entirely — so users can drop the emoji/glyph flair
+// while structural glyphs (separators, arrows, on/off, bars) stay on sym(). Empty
+// return flows cleanly through lv() (label "" → value-only) and icp() (no stray space).
+function ic(unicode: string, text: string, ctx: RenderContext): string {
+  if (ctx.config.icons === false) return "";
+  return ctx.config.charset === "text" ? text : unicode;
+}
+/** Icon plus a trailing space, or "" when hidden — for `${icp(...)}value` prefixes. */
+function icp(unicode: string, text: string, ctx: RenderContext): string {
+  const g = ic(unicode, text, ctx);
+  return g ? `${g} ` : "";
+}
 function fmtTokens(n: number): string {
   // Round up to "1.0M" once k-formatting would otherwise print "1000.0k"
   // (ccstatusline parity: 999950+ renders as 1.0M).
@@ -192,7 +205,7 @@ function thirdPartyProvider(ctx: RenderContext): boolean {
 // ---------------- model / session ----------------
 
 add(w("model", "model", "Model", ["stdin"], (_d, o, ctx) => {
-  let text = `${sym("✱", "M", ctx)} ${san(modelText(ctx, o.format))}`;
+  let text = `${icp("✱", "M", ctx)}${san(modelText(ctx, o.format))}`;
   if (o.show1M && has1M(ctx)) text += " 1M"; // append a 1M-context badge when present
   return [{ text, color: "model", bold: true }];
 }));
@@ -204,7 +217,7 @@ add(w("advisor", "model", "Advisor model", ["transcript"], (_d, opts, ctx) => {
   const override = typeof opts.override === "string" ? san(opts.override) : undefined;
   const raw = ctx.data.transcript?.advisorModel;
   const value = override || (raw ? prettifyModelId(raw) : undefined);
-  return value ? lv(sym("✦", "advisor", ctx), value, "model", ctx) : [];
+  return value ? lv(ic("✦", "advisor", ctx), value, "model", ctx) : [];
 }));
 add(w("version", "system", "Claude Code version", ["stdin"], (_d, _o, ctx) =>
   lv(null, ctx.input.version ? `v${ctx.input.version}` : null, "label", ctx)));
@@ -228,18 +241,18 @@ add(w("voice-status", "system", "Voice status", ["system"], (_d, opts, ctx) => {
   const fmt = (opts.format as string) ?? "icon";
   const icon = sym(en ? "◉" : "○", en ? "on" : "off", ctx);
   const word = en ? "on" : "off";
-  if (fmt === "text") return lv(sym("🎤", "voice", ctx), word, en ? "doneTool" : "label", ctx);
-  if (fmt === "both") return [{ text: `${sym("🎤", "voice", ctx)} ${icon} ${word}`, color: en ? "doneTool" : "label" }];
-  return [{ text: `${sym("🎤", "voice", ctx)}${icon}`, color: en ? "doneTool" : "label" }];
+  if (fmt === "text") return lv(ic("🎤", "voice", ctx), word, en ? "doneTool" : "label", ctx);
+  if (fmt === "both") return [{ text: `${icp("🎤", "voice", ctx)}${icon} ${word}`, color: en ? "doneTool" : "label" }];
+  return [{ text: `${ic("🎤", "voice", ctx)}${icon}`, color: en ? "doneTool" : "label" }];
 }));
 // Remote-control bridge attached to this session (ccstatusline RemoteControlStatus parity).
 add(w("remote-control-status", "system", "Remote control", ["system"], (_d, _o, ctx) => {
   const en = ctx.data.system?.remoteControlEnabled;
   if (en == null) return [];
-  return [{ text: `${sym("⇄", "remote", ctx)} ${sym(en ? "◉" : "○", en ? "on" : "off", ctx)}`, color: en ? "agent" : "label" }];
+  return [{ text: `${icp("⇄", "remote", ctx)}${sym(en ? "◉" : "○", en ? "on" : "off", ctx)}`, color: en ? "agent" : "label" }];
 }));
 add(w("claude-session-id", "system", "Session id", ["stdin"], (_d, _o, ctx) =>
-  lv(sym("⌗", "#", ctx), ctx.input.session_id?.slice(0, 8), "label", ctx)));
+  lv(ic("⌗", "#", ctx), ctx.input.session_id?.slice(0, 8), "label", ctx)));
 add(w("thinking-effort", "model", "Thinking effort", ["stdin"], (_d, opts, ctx) => {
   const e = ctx.input.effort;
   // Fallback chain: stdin effort → configured `default` → `?` (when showUnknown) → cull.
@@ -252,12 +265,12 @@ add(w("thinking-effort", "model", "Thinking effort", ["stdin"], (_d, opts, ctx) 
     const glyph: Record<string, string> = { none: "○", low: "◔", medium: "◑", high: "●", max: "⬤" };
     return [{ text: glyph[level] ?? "◑", color: "usage" }];
   }
-  return lv(sym("✦", "T", ctx), level, "usage", ctx);
+  return lv(ic("✦", "T", ctx), level, "usage", ctx);
 }));
 add(w("compaction-counter", "context", "Compaction count", ["transcript"], (_d, o, ctx) => {
   const c = ctx.data.transcript?.compactionCount ?? 0;
   if (c === 0 && o.hideWhenZero !== false) return [];
-  return lv(sym("⟳", "compact", ctx), c, "label", ctx);
+  return lv(ic("⟳", "compact", ctx), c, "label", ctx);
 }));
 
 // ---------------- context ----------------
@@ -334,7 +347,7 @@ add(w("cache-roi", "tokens", "Cache ROI", ["stdin"], (_d, opts, ctx) => {
   if (!t.cacheRead) return [];
   const rate = Number(opts.savedPerMTok ?? 0); // $ saved per 1M tokens served from cache
   const saved = rate > 0 ? `$${((t.cacheRead / 1_000_000) * rate).toFixed(2)}` : fmtTokens(t.cacheRead);
-  return lv(sym("♻", "roi", ctx), `${saved} saved`, "paceGood", ctx);
+  return lv(ic("♻", "roi", ctx), `${saved} saved`, "paceGood", ctx);
 }));
 // cc-status-dash exclusive: one-glance health — context left · 5h usage + pace · time to reset.
 add(w("session-health", "context", "Session health", ["stdin", "rate_limits"], (_d, _o, ctx) => {
@@ -342,7 +355,7 @@ add(w("session-health", "context", "Session health", ["stdin", "rate_limits"], (
   const used = contextPct(ctx);
   if (used != null) {
     const c = thresholdColor(used);
-    segs.push({ text: `${sym("◉", "health", ctx)} `, color: c }, { text: pctStr(100 - used), color: c });
+    segs.push({ text: `${icp("◉", "health", ctx)}`, color: c }, { text: pctStr(100 - used), color: c });
     if (!ctx.config.minimalist) segs.push({ text: " ctx", color: "label" });
   }
   const win = ctx.input.rate_limits?.five_hour;
@@ -382,7 +395,7 @@ const usageWindow = (id: string, label: string, key: "five_hour" | "seven_day", 
     if (pct < Number(opts.threshold ?? 0)) return [];
     // Limit reached (Claude HUD parity): at/over 100% show a clear warning + reset time.
     if (pct >= 100) {
-      const seg: Segment[] = [{ text: `${sym("⚠", "!", ctx)} ${label} limit`, color: "usageCritical" }];
+      const seg: Segment[] = [{ text: `${icp("⚠", "!", ctx)}${label} limit`, color: "usageCritical" }];
       const cd = win.resets_at != null ? fmtCountdown(win.resets_at) : null;
       if (cd) seg.push({ text: ` (${cd})`, color: "label" });
       return seg;
@@ -459,13 +472,13 @@ const timerWidget = (id: string, label: string, key: "five_hour" | "seven_day", 
           hour12: opts.hour12 === true,
           timeZone: typeof opts.timezone === "string" ? opts.timezone : undefined,
         });
-        return lv(sym("⏱", label, ctx), cd ? `${cd} (${t})` : t, "label", ctx);
+        return lv(ic("⏱", label, ctx), cd ? `${cd} (${t})` : t, "label", ctx);
       }
-      return lv(sym("⏱", label, ctx), cd, "label", ctx);
+      return lv(ic("⏱", label, ctx), cd, "label", ctx);
     }
     const remMs = (epochMs(win.resets_at)) - Date.now();
     const WINDOW = WINDOW_MS[key];
-    return lv(sym("⏱", label, ctx), fmtDuration(Math.max(0, WINDOW - remMs)), "label", ctx);
+    return lv(ic("⏱", label, ctx), fmtDuration(Math.max(0, WINDOW - remMs)), "label", ctx);
   }));
 timerWidget("block-timer", "Block", "five_hour", true);
 timerWidget("reset-timer", "Resets", "five_hour", false);
@@ -479,7 +492,7 @@ add(w("added-dirs", "system", "Added directories", ["stdin"], (_d, opts, ctx) =>
   const names = dirs.slice(0, max).map((d) => san(basename(String(d)))).filter((n): n is string => !!n);
   if (!names.length) return [];
   const extra = dirs.length > max ? ` +${dirs.length - max}` : "";
-  return lv(sym("⊕", "+", ctx), names.map((n) => `+${n}`).join(" ") + extra, "cwd", ctx);
+  return lv(ic("⊕", "+", ctx), names.map((n) => `+${n}`).join(" ") + extra, "cwd", ctx);
 }));
 // Cumulative session tokens (Claude HUD parity): input / output from the transcript.
 add(w("session-tokens", "tokens", "Session tokens", ["transcript"], (_d, _o, ctx) => {
@@ -548,7 +561,7 @@ add(w("git.files", "git", "Git files (per-file +/-)", ["git"], (_d, opts, ctx) =
   const out: Segment[] = [];
   files.slice(0, max).forEach((f, i) => {
     if (i > 0) out.push({ text: sym(" │ ", " | ", ctx), color: "label" });
-    out.push({ text: `${sym("≡", "", ctx)}${ctx.config.charset === "text" ? "" : " "}${basename(f.path)}`, color: "gitBranch" });
+    out.push({ text: `${icp("≡", "", ctx)}${basename(f.path)}`, color: "gitBranch" });
     if (f.added) out.push({ text: ` +${f.added}`, color: "context" });
     if (f.removed) out.push({ text: ` -${f.removed}`, color: "critical" });
   });
@@ -716,15 +729,15 @@ add(w("activity.agents", "activity", "Agent activity", ["transcript"], (_d, opts
 add(w("activity.todos", "activity", "Todo progress", ["transcript"], (_d, _o, ctx) => {
   const t = ctx.data.transcript?.todos;
   if (!t || t.total === 0) return [];
-  return [{ text: `${sym("▸", ">", ctx)} ${t.current ?? "Tasks"} `, color: "todo" }, { text: `(${t.completed}/${t.total})`, color: "label" }];
+  return [{ text: `${icp("▸", ">", ctx)}${t.current ?? "Tasks"} `, color: "todo" }, { text: `(${t.completed}/${t.total})`, color: "label" }];
 }));
 add(w("skills", "activity", "Skills used", ["transcript"], (_d, opts, ctx) => {
   const sk = ctx.data.transcript?.skills ?? [];
   if (!sk.length) return [];
   const mode = (opts.mode as string) ?? "count";
-  if (mode === "last") return lv(sym("✦", "skill", ctx), sk[sk.length - 1], "todo", ctx);
-  if (mode === "list") return lv(sym("✦", "skills", ctx), sk.slice(-3).join(", "), "todo", ctx);
-  return lv(sym("✦", "skills", ctx), sk.length, "todo", ctx);
+  if (mode === "last") return lv(ic("✦", "skill", ctx), sk[sk.length - 1], "todo", ctx);
+  if (mode === "list") return lv(ic("✦", "skills", ctx), sk.slice(-3).join(", "), "todo", ctx);
+  return lv(ic("✦", "skills", ctx), sk.length, "todo", ctx);
 }));
 add(w("mcp-count", "activity", "MCP servers", ["transcript"], (_d, _o, ctx) => {
   const m = ctx.data.transcript?.mcpServers ?? [];
@@ -736,7 +749,7 @@ add(w("activity.mcp", "activity", "MCP servers (live)", ["transcript"], (_d, opt
   if (!m.length) return [];
   const max = typeof opts.max === "number" ? opts.max : 3;
   const extra = m.length > max ? ` +${m.length - max}` : "";
-  return lv(sym("⚙", "mcp", ctx), m.slice(0, max).join(", ") + extra, "agent", ctx);
+  return lv(ic("⚙", "mcp", ctx), m.slice(0, max).join(", ") + extra, "agent", ctx);
 }));
 // Composable visual break (Claude HUD's activity separator) — emit a rule of `length`
 // glyphs. Always renders (never culled), letting users insert a divider before activity lines.
@@ -747,7 +760,7 @@ add(w("activity.separator", "activity", "Activity separator", ["stdin"], (_d, op
 }));
 add(w("session-duration", "activity", "Session duration", ["stdin"], (_d, _o, ctx) => {
   const ms = ctx.input.cost?.total_duration_ms;
-  return ms ? lv(sym("⏱", "dur", ctx), fmtDuration(ms), "label", ctx) : [];
+  return ms ? lv(ic("⏱", "dur", ctx), fmtDuration(ms), "label", ctx) : [];
 }));
 // Session age from the transcript's first entry (Claude HUD parity). `mode:"date"`
 // shows the start time (locale HH:MM); default "age" shows elapsed since start.
@@ -779,13 +792,13 @@ add(w("cache-timer", "activity", "Cache TTL timer", ["transcript"], (_d, opts, c
   const ttl = typeof opts.ttlSeconds === "number" ? opts.ttlSeconds : undefined;
   if (ttl) {
     const remMs = ttl * 1000 - ms;
-    if (remMs <= 0) return lv(sym("◴", "cache", ctx), "expired", "critical", ctx);
+    if (remMs <= 0) return lv(ic("◴", "cache", ctx), "expired", "critical", ctx);
     const color = remMs <= 60_000 ? "critical" : remMs <= 120_000 ? "warning" : "context";
-    return lv(sym("◴", "cache", ctx), fmtDuration(remMs), color, ctx);
+    return lv(ic("◴", "cache", ctx), fmtDuration(remMs), color, ctx);
   }
   const min = ms / 60000;
   const color = min >= 5 ? "critical" : min >= 3 ? "warning" : "context";
-  return lv(sym("◴", "cache", ctx), fmtDuration(ms), color, ctx);
+  return lv(ic("◴", "cache", ctx), fmtDuration(ms), color, ctx);
 }));
 
 
@@ -886,7 +899,7 @@ add(w("budget", "usage", "Budget", ["stats"], (_d, opts, ctx) => {
   const warn = Number(opts.warningThreshold ?? 80);
   const color = pct >= 100 ? "critical" : pct >= warn ? "warning" : "usage";
   const mark = pct >= warn ? "!" : "";
-  return lv(sym("◱", "budget", ctx), `${mark}${pctStr(pct)}`, color, ctx);
+  return lv(ic("◱", "budget", ctx), `${mark}${pctStr(pct)}`, color, ctx);
 }));
 
 add(w("cost-projection", "usage", "Cost projection (block)", ["stats", "rate_limits"], (_d, _o, ctx) => {
@@ -927,15 +940,15 @@ add(w("total-api-time", "activity", "Total API time", ["stdin"], (_d, _o, ctx) =
 
 // ---------------- claude config / response time ----------------
 add(w("claude-account-email", "model", "Account email", ["system"], (_d, _o, ctx) =>
-  lv(sym("✉", "@", ctx), ctx.data.system?.accountEmail, "label", ctx)));
+  lv(ic("✉", "@", ctx), ctx.data.system?.accountEmail, "label", ctx)));
 add(w("config-counts", "system", "Config counts (CLAUDE.md/MCP/hooks)", ["system"], (_d, _o, ctx) => {
   const s = ctx.data.system;
   if (!s) return [];
   const parts: string[] = [];
-  if (s.claudeMdCount) parts.push(`${sym("⌘", "md", ctx)}${s.claudeMdCount}`);
-  if (s.mcpConfigCount) parts.push(`${sym("⚙", "mcp", ctx)}${s.mcpConfigCount}`);
-  if (s.hooksCount) parts.push(`${sym("⚓", "hk", ctx)}${s.hooksCount}`);
-  if (s.rulesCount) parts.push(`${sym("§", "rules", ctx)}${s.rulesCount}`);
+  if (s.claudeMdCount) parts.push(`${ic("⌘", "md", ctx)}${s.claudeMdCount}`);
+  if (s.mcpConfigCount) parts.push(`${ic("⚙", "mcp", ctx)}${s.mcpConfigCount}`);
+  if (s.hooksCount) parts.push(`${ic("⚓", "hk", ctx)}${s.hooksCount}`);
+  if (s.rulesCount) parts.push(`${ic("§", "rules", ctx)}${s.rulesCount}`);
   return parts.length ? [{ text: parts.join(" "), color: "label" }] : [];
 }));
 add(w("last-response-time", "activity", "Last response time", ["transcript"], (_d, _o, ctx) => {

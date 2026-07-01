@@ -53,6 +53,7 @@ export const PartialConfigSchema = v.looseObject({
   globalBold: v.optional(v.boolean()),
   padding: v.optional(v.pipe(v.number(), v.minValue(0))),
   autoWrap: v.optional(v.boolean()),
+  icons: v.optional(v.boolean()),
   lines: v.optional(v.array(LineConfigSchema)),
   modelContextLimits: v.optional(ModelContextLimitsSchema),
   powerlineSeparator: v.optional(v.picklist(["arrow", "round", "triangle", "flame", "pixel"])),

@@ -308,6 +308,7 @@ export const DEFAULT_CONFIG: Config = {
   globalBold: false,
   padding: 1,
   autoWrap: false,
+  icons: true,
   lines: PRESET_LINES["essential"],
   colors: DEFAULT_COLORS,
 };

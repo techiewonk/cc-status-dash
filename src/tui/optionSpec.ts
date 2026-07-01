@@ -205,6 +205,7 @@ export const GLOBAL_FIELD_SPECS: FieldSpec[] = [
   { key: "charset", label: "Charset", kind: "enum", choices: ["unicode", "text"] },
   { key: "colorDepth", label: "Color depth", kind: "enum", choices: ["auto", "ansi", "ansi256", "truecolor", "none"] },
   { key: "minimalist", label: "Minimalist (no labels)", kind: "toggle" },
+  { key: "icons", label: "Show widget icons", kind: "toggle" },
   { key: "globalBold", label: "Global bold", kind: "toggle" },
   { key: "autoWrap", label: "Auto-wrap to width", kind: "toggle" },
   { key: "padding", label: "Padding", kind: "number" },

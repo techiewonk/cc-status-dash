@@ -205,6 +205,9 @@ export interface Config {
   globalBold: boolean;   // force bold on all segments
   padding: number;       // spaces of padding around each segment's text
   autoWrap: boolean;     // wrap inline lines to terminal width
+  /** Show decorative widget icons (leading glyphs). Default true; set false to hide
+   * them while keeping structural glyphs (separators, arrows, on/off, bars). */
+  icons?: boolean;
   lines: LineConfig[];
   /** Optional per-model context-window limits (tokens). */
   modelContextLimits?: { sonnet?: number; opus?: number; haiku?: number; default?: number };
