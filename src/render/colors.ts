@@ -32,8 +32,8 @@ function colorsEnabled(depth: ColorDepth): boolean {
 }
 
 /** Effective depth: resolves "auto" from COLORTERM / FORCE_COLOR / TERM. */
-type RealDepth = "truecolor" | "ansi256" | "ansi";
-function effectiveDepth(depth: ColorDepth): RealDepth {
+export type RealDepth = "truecolor" | "ansi256" | "ansi";
+export function effectiveDepth(depth: ColorDepth): RealDepth {
   if (depth === "truecolor" || depth === "ansi256" || depth === "ansi") return depth;
   // depth === "auto" (or "none", handled earlier): sniff the environment.
   const ct = process.env.COLORTERM;

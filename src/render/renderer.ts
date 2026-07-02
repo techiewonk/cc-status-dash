@@ -1,7 +1,8 @@
 import type { Config, LineConfig, RenderContext, Segment, WidgetConfig } from "../types.js";
 import { getWidget } from "../widgets/index.js";
 import { stripVTControlCharacters } from "node:util";
-import { createPainter, gradientAt, type Painter } from "./colors.js";
+import { createPainter, effectiveDepth, gradientAt, type Painter } from "./colors.js";
+import { getPowerlineTheme } from "./powerlineThemes.js";
 
 // Renders the resolved config into the final multi-line string.
 // Line styles: inline / powerline / capsule. Global options honored:
@@ -315,18 +316,24 @@ function renderPowerline(built: BuiltWidget[], painter: Painter, ctx: RenderCont
     ? POWERLINE_SEP_TEXT
     : (POWERLINE_SEPS[ctx.config.powerlineSeparator ?? ""] ?? POWERLINE_SEP);
   const caps = ctx.config.charset !== "text" ? POWERLINE_CAPS[ctx.config.powerlineCaps ?? ""] : undefined;
+  // Powerline color-cycling theme (ccstatusline parity): when set, both fg AND bg
+  // cycle together through the theme's 5 depth-aware slots by widget position,
+  // replacing the default 3-role bgCycle + fixed dim "label" fg.
+  const theme = getPowerlineTheme(ctx.config.powerlineTheme, effectiveDepth(ctx.config.colorDepth));
+  const bgAt = (i: number) => theme ? theme.bg[i % theme.bg.length] : bgCycle[i % bgCycle.length];
+  const fgAt = (i: number) => theme ? theme.fg[i % theme.fg.length] : "label";
   let out = "";
   // Left cap: a glyph in the first segment's bg, on the terminal's default bg.
-  if (caps && built.length) out += painter.paint(caps.left, { color: bgCycle[0] });
+  if (caps && built.length) out += painter.paint(caps.left, { color: bgAt(0) });
   built.forEach((wgt, i) => {
-    const bg = bgCycle[i % bgCycle.length];
+    const bg = bgAt(i);
     const text = " " + wgt.segments.map((s) => s.text).join("") + " ";
-    out += painter.paint(text, { bgColor: bg, color: "label", bold: true });
+    out += painter.paint(text, { bgColor: bg, color: fgAt(i), bold: true });
     const last = i + 1 >= built.length;
     if (last && caps) {
       out += painter.paint(caps.right, { color: bg }); // right cap closes the bar
     } else {
-      const nextBg = !last ? bgCycle[(i + 1) % bgCycle.length] : undefined;
+      const nextBg = !last ? bgAt(i + 1) : undefined;
       out += painter.paint(arrow, { color: bg, bgColor: nextBg });
     }
   });

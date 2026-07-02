@@ -76,6 +76,7 @@ src/
   render/
     renderer.ts       inline / powerline / capsule / panel; merge + auto-wrap + flex; padding/bold
     colors.ts         ANSI 16/256/truecolor, NO_COLOR/FORCE_COLOR, theme color resolution
+    powerlineThemes.ts  10 depth-aware color-cycling palettes (powerlineTheme option)
     bars.ts           progress-bar styles + threshold colors
   themes/index.ts     built-in themes + resolvePalette (theme < custom colors)
   widgets/index.ts    ALL widgets + registry (getWidget/listWidgets)

@@ -233,6 +233,12 @@ export interface Config {
    * set is far broader). No-op when a line has no leading label (minimalist,
    * rawValue, or a widget with no label like `model`/`session-clock`). */
   alignLabels?: boolean;
+  /** Powerline color-cycling theme (ccstatusline parity, distinct from the
+   * role-based `theme` field): when set, both fg and bg cycle together through a
+   * depth-aware named palette by widget position, replacing the default 3-role
+   * bgCycle. One of `render/powerlineThemes.ts`'s `POWERLINE_THEMES` keys; unset
+   * or unrecognized falls back to the default bgCycle (no behavior change). */
+  powerlineTheme?: string;
   lines: LineConfig[];
   /** Optional per-model context-window limits (tokens). */
   modelContextLimits?: { sonnet?: number; opus?: number; haiku?: number; default?: number };

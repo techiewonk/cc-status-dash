@@ -1,4 +1,5 @@
 import type { Config } from "../types.js";
+import { listPowerlineThemes } from "../render/powerlineThemes.js";
 
 // Pure, data-only specs that drive the TUI's option / global / color editors.
 // Keeping them here (not in the Ink view) means the editor reducer is fully
@@ -223,6 +224,7 @@ export const GLOBAL_FIELD_SPECS: FieldSpec[] = [
   { key: "compactThreshold", label: "Compact threshold %", kind: "number" },
   { key: "gitCacheTtlSeconds", label: "Git cache TTL (s)", kind: "number" },
   { key: "alignLabels", label: "Align labels across lines", kind: "toggle" },
+  { key: "powerlineTheme", label: "Powerline color theme", kind: "enum", choices: ["custom", ...listPowerlineThemes()] },
   { key: "padding", label: "Padding", kind: "number" },
   { key: "separator", label: "Separator", kind: "text" },
   { key: "powerlineSeparator", label: "Powerline separator", kind: "enum", choices: ["arrow", "round", "triangle", "flame", "pixel"] },
