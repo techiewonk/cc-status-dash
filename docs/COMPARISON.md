@@ -77,7 +77,7 @@ Examples:
 
 ## Complete per-widget option reference (cc-status-dash)
 
-**Every one of the 114 widgets** also accepts the 7 universal options
+**Every one of the 116 widgets** also accepts the 7 universal options
 (`color`, `bgColor`, `bold`, `dim`, `rawValue`, `merge`, `maxWidth`) — not repeated below.
 These **24 widgets** add their own options:
 

@@ -9,6 +9,7 @@ piece works locally — before you push or publish.
 - [Automated tests](#automated-tests)
 - [One-command functionality check (smoke)](#one-command-functionality-check)
 - [Manual testing matrix](#manual-testing-matrix)
+- [Plugin testing & debugging](#plugin-testing--debugging)
 - [Testing live inside Claude Code](#testing-live-inside-claude-code)
 - [Linux / CI parity (Docker)](#linux--ci-parity)
 - [Extending: widgets, presets, themes](#extending)
@@ -87,12 +88,12 @@ node dist/index.js < sample-input.json | sed -r 's/\x1b\[[0-9;]*m//g'
 | `npm run lint` | Biome |
 
 ```bash
-bun test src           # 283 tests across 13 files
+bun test src           # run to see the current count — grows every release, don't hardcode it here
 npm run typecheck
 ```
 
-The suite covers: the render matrix (every preset × every style × themes/charsets), all
-101 widgets under all themes, config resolution & precedence, schema validation, security
+The suite covers: the render matrix (every preset × every style × themes/charsets), every
+widget under every theme, config resolution & precedence, schema validation, security
 hardening (control-char sanitization, untrusted-config widget stripping), the pure TUI
 reducer/picker, and the wizard.
 
@@ -111,13 +112,16 @@ bun run build && bun run smoke      # or: bash scripts/smoke.sh
 ```
 ▸ inspection flags
 ▸ every preset (x default theme)
-  (30 presets)
+  (35 presets)
 ▸ every theme (x full preset)
 ▸ env + edge cases
 ▸ stats persistence (throwaway XDG_STATE_HOME, stats-backed widget)
 ▸ charset=text (ASCII) + minimalist via --config
-smoke: 45 passed, 0 failed
+smoke: 55 passed, 0 failed
 ```
+
+(these counts grow every release — this is a snapshot, not a guarantee; run
+`bun run smoke` yourself for the current numbers rather than trusting this block)
 
 It asserts **exit 0 + non-empty render** across the matrix and checks the fallbacks
 (invalid JSON → `Claude`, empty stdin still renders, `NO_COLOR` emits no ANSI, stats.json
@@ -132,17 +136,28 @@ Work through these to exercise each subsystem by hand.
 
 ### Presets, themes, styles
 
+**Don't hardcode these counts anywhere** (this file, `commands/*.md`, README) —
+run the list flags for the live catalog instead. A hardcoded subset silently
+goes stale as the catalog grows (this file itself said "30/5/101" for a long
+time after the real counts reached 35/10/116 — a user-reported "themes are
+limited" bug traced straight back to a stale list like this one):
+
 ```bash
-node dist/index.js --list-presets               # 30 presets
-node dist/index.js --list-themes                # 5 themes
-node dist/index.js --list-widgets               # 101 widgets
+node dist/index.js --list-presets               # 35 presets (grows over time — don't hardcode the count)
+node dist/index.js --list-themes                # 10 themes  (same — always list, don't hardcode)
+node dist/index.js --list-widgets               # 116 widgets (same)
 
 node dist/index.js --preset oneline   < sample-input.json   # dense single line
 node dist/index.js --preset dashboard < sample-input.json   # 4 layers
 node dist/index.js --preset max       < sample-input.json   # 5 layers
 
-for t in hud-clean tokyo-night gruvbox nord mono; do
+for t in $(node dist/index.js --list-themes); do
   echo "== $t =="; node dist/index.js --preset full --theme "$t" < sample-input.json
+done
+
+for s in inline powerline capsule panel; do
+  printf '{"colorDepth":"truecolor","lines":[{"style":"%s","widgets":[{"id":"model"},{"id":"cwd"}]}]}' "$s" > /tmp/style.json
+  echo "== $s =="; node dist/index.js --config /tmp/style.json < sample-input.json
 done
 ```
 
@@ -199,6 +214,121 @@ node dist/index.js --validate --config /tmp/bad.json   # FAIL + reason; exit 1
 node dist/index.js --configure      # @clack preset wizard
 node dist/index.js --tui            # Ink config editor (fuzzy widget picker)
 ```
+
+---
+
+## Plugin testing & debugging
+
+This project ships as a Claude Code **plugin** (`.claude-plugin/plugin.json` +
+`marketplace.json`, slash commands in `commands/`). Testing the plugin itself
+(manifest correctness, `/setup`, `/configure`, release tagging) is a different
+surface from testing the *statusline binary* above — here's the full flow.
+
+### 1. Validate the manifests
+
+```bash
+claude plugin validate .              # syntax + schema
+claude plugin validate . --strict     # also fails on warnings (missing fields, typos) — use this in CI
+```
+
+Common failure: `author`/`owner` must be **objects**, not bare strings:
+```json
+"author": { "name": "Your Name", "email": "...", "url": "..." }   // plugin.json
+"owner":  { "name": "Your Org" }                                   // marketplace.json (email optional)
+```
+
+### 2. Load the plugin locally (no marketplace install needed)
+
+```bash
+claude --plugin-dir .              # starts an interactive session with this plugin loaded, THIS SESSION ONLY
+claude --plugin-dir . --debug      # same, plus plugin/manifest loading errors printed as they happen
+```
+
+Inside that session: `/help` should list `/setup` and `/configure`. If they're
+missing, re-run with `--debug` and read the plugin-loading errors.
+
+**`claude plugin details <name>`** does *not* work with `--plugin-dir`-loaded
+plugins — it only reads the persistent installed-plugins registry (marketplace
+installs or `claude plugin init`-scaffolded skills-dir plugins). To inspect a
+`--plugin-dir` plugin's component inventory, ask the agent from *inside* that
+same session instead (e.g. "list the commands this plugin exposes").
+
+For a quick non-interactive smoke check (bounded, so it can't hang a script):
+
+```bash
+timeout 30 claude --plugin-dir . -p "reply with exactly: PLUGIN_LOADED_OK"
+```
+
+### 3. Sandbox-test `/setup`'s existing-statusline detection without touching your real config
+
+`/setup` reads and writes `~/.claude/settings.json` (via `--install`, see
+below). To test the detection/consent logic safely, point `CLAUDE_CONFIG_DIR`
+at a disposable temp directory — **note this also isolates your login
+credentials**, so a `-p`/interactive nested session run this way won't be
+authenticated. Use it to test the non-interactive CLI layer directly instead:
+
+```bash
+# clean install (no existing statusLine)
+SANDBOX="$(mktemp -d)"
+CLAUDE_CONFIG_DIR="$SANDBOX" node dist/index.js --install --dry-run
+# -> "# existing statusLine: none (clean install)"
+
+# existing OTHER tool configured
+echo '{"statusLine":{"command":"npx ccstatusline@latest"}}' > "$SANDBOX/settings.json"
+CLAUDE_CONFIG_DIR="$SANDBOX" node dist/index.js --install --dry-run
+# -> "# existing statusLine: ccstatusline — ask before replacing"
+
+# existing unrecognized custom script
+echo '{"statusLine":{"command":"/home/me/my-statusline.sh"}}' > "$SANDBOX/settings.json"
+CLAUDE_CONFIG_DIR="$SANDBOX" node dist/index.js --install --dry-run
+# -> "# existing statusLine: custom/unknown script — ask before replacing"
+
+# real write: preserves unrelated keys, backs up automatically
+echo '{"statusLine":{"command":"bunx cc-status-dash@latest"},"permissions":{"allow":["Bash"]}}' > "$SANDBOX/settings.json"
+CLAUDE_CONFIG_DIR="$SANDBOX" node dist/index.js --install
+cat "$SANDBOX/settings.json"          # permissions.allow still there
+ls "$SANDBOX"                          # settings.json.bak exists
+```
+
+This exercises `describeExistingStatusline()` / `installStatusline()`
+(`src/config/install.ts`) directly — the same logic `/setup`'s instructions
+read via `--install --dry-run`'s first output line before deciding whether to
+call `AskUserQuestion`. It's unit-tested (`src/__tests__/install.test.ts`),
+but running it live against a throwaway `CLAUDE_CONFIG_DIR` is the fastest way
+to confirm a change to the classification logic actually behaves as intended
+without any risk to your real settings.json.
+
+### 4. Test `/setup` and `/configure` for real
+
+These are inherently interactive (`AskUserQuestion`) — run them yourself in a
+normal, already-authenticated session:
+
+```bash
+claude --plugin-dir .
+# then inside the session:
+/setup
+/configure
+```
+
+Confirm `/setup` runs the binary and shows real output *before* writing
+anything, correctly classifies your current statusLine, and (if you already
+have cc-status-dash configured) proceeds without asking since that's a safe
+idempotent reinstall. Confirm `/configure` shows Flow B (update, scoped
+questions) rather than the full new-user wizard when a config already exists.
+
+### 5. Release tagging
+
+```bash
+claude plugin tag --dry-run          # shows what WOULD be tagged, or why it refuses (dirty tree, tag exists)
+claude plugin tag -m "cc-status-dash v%s"   # creates {name}--v{version}, validating plugin.json/marketplace.json agree
+```
+
+**Important**: `claude plugin tag` creates a `{name}--v{version}` tag (e.g.
+`cc-status-dash--v0.17.0`) for the Claude Code plugin marketplace ecosystem.
+This is a **different tag** from the bare `vX.Y.Z` this repo's own npm-publish
+CI watches for (`.github/workflows/release.yml`, `on: push: tags: ["v*"]`).
+Pushing only the `claude plugin tag`-created tag will **not** trigger an npm
+publish — see [Release](#release) below for the tag that does.
 
 ---
 
@@ -302,16 +432,37 @@ re-run `demo:build` + the VHS command.
 
 ## Release
 
-CI publishes to npm when a `v*` tag is pushed:
+**CI publishes to npm when a bare `vX.Y.Z` tag is pushed — this is a real,
+irreversible publish, not a dry-run.** Confirmed live via the npm registry:
+every `v*` tag pushed to this repo has resulted in an actual published
+package. Don't push a `v*` tag casually.
 
 ```bash
-# 1. bump version in package.json AND .claude-plugin/plugin.json
+# 1. bump version in BOTH package.json AND .claude-plugin/plugin.json.
+#    (these drifting apart is a real mistake that happened in this repo —
+#    plugin.json sat stuck at an old version for six releases before anyone
+#    noticed, because nothing enforced them staying in sync)
 # 2. make sure it's green on Linux:
 docker run --rm -v "$PWD:/app" -v /app/node_modules -w /app oven/bun:latest \
   sh -c "bun install --frozen-lockfile && bun run typecheck && bun test src"
-# 3. tag + push -> .github/workflows/release.yml runs npm publish --provenance
+# 3. validate the plugin manifests agree on version (recommended over hand-editing +
+#    trusting yourself — this is exactly the check that would have caught the drift above):
+claude plugin tag --dry-run
+# 4. tag + push -> .github/workflows/release.yml runs npm publish --provenance
 git tag -a vX.Y.Z -m "cc-status-dash vX.Y.Z" && git push origin vX.Y.Z
 ```
+
+**Two independent tag systems exist on this repo, don't confuse them:**
+
+| Tag format | Created by | Triggers npm publish? | Purpose |
+|---|---|---|---|
+| `vX.Y.Z` (e.g. `v0.17.0`) | `git tag` (manual) | **Yes** | This repo's own CI release |
+| `{name}--vX.Y.Z` (e.g. `cc-status-dash--v0.17.0`) | `claude plugin tag` | No | Claude Code plugin marketplace versioning |
+
+Optionally push both — `claude plugin tag` is worth running regardless of
+whether you push its tag, since it validates `plugin.json`/`marketplace.json`
+version agreement before creating anything (`--dry-run` alone is a free
+pre-flight check with no tag created).
 
 The release workflow re-runs typecheck + tests, then `npm publish --provenance` (needs the
 `NPM_TOKEN` repo secret + a public repo). See `.github/workflows/`.

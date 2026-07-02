@@ -238,7 +238,7 @@ render path **never throws** — worst case it prints `Claude`.
 bun install
 bun run build            # code-split bundle -> dist/
 bun run demo             # render sample-input.json
-bun test src             # 283 tests
+bun test src             # run for the current count (grows every release)
 bun run smoke            # full functionality check: every preset/theme/style/flag (45 checks)
 ```
 

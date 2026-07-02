@@ -104,7 +104,7 @@ Each entry in `lines` is one rendered row.
 A widget is `{ "id": "<id>", ...options }`. List every id locally:
 
 ```bash
-cc-status-dash --list-widgets     # 114 widgets: id, category, label
+cc-status-dash --list-widgets     # 116 widgets: id, category, label (grows every release)
 ```
 
 ### Universal options (any widget)
