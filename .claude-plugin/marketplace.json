@@ -1,6 +1,7 @@
 {
   "name": "cc-status-dash",
-  "owner": "techiewonk",
+  "description": "Statusline + HUD dashboard for Claude Code — ccstatusline's brain, Claude HUD's face.",
+  "owner": { "name": "techiewonk" },
   "plugins": [
     {
       "name": "cc-status-dash",
