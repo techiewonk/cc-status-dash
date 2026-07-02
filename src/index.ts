@@ -91,13 +91,20 @@ async function main(): Promise<void> {
   // `--install` [--install-hooks] [--dry-run]: write the statusLine block (and,
   // with --install-hooks, the skills-cache hooks) into Claude Code's settings.json.
   if (flags.install || flags.installHooks) {
-    const { installStatusline, buildSettings, detectCommand, settingsPath } = await import("./config/install.js");
+    const { installStatusline, buildSettings, detectCommand, settingsPath, describeExistingStatusline } = await import("./config/install.js");
     const opts = { command: detectCommand(), refreshInterval: 10, padding: 0, installHooks: Boolean(flags.installHooks) };
     if (flags.dryRun) {
       const { readFileSync, existsSync } = await import("node:fs");
       const p = settingsPath();
       let existing: Record<string, unknown> = {};
       try { if (existsSync(p)) existing = JSON.parse(readFileSync(p, "utf8")) as Record<string, unknown>; } catch { /* show merge over {} */ }
+      // Surface any existing statusLine first — a /setup-driving agent (or a human)
+      // should see this before deciding to run the real (non-dry-run) install.
+      const existingLine = describeExistingStatusline();
+      if (existingLine.kind === "own") process.stdout.write(`# existing statusLine: cc-status-dash (reinstall/update — safe to replace)\n`);
+      else if (existingLine.kind === "known") process.stdout.write(`# existing statusLine: ${existingLine.knownAs} — ask before replacing\n# command: ${existingLine.command}\n`);
+      else if (existingLine.kind === "custom") process.stdout.write(`# existing statusLine: custom/unknown script — ask before replacing\n# command: ${existingLine.command}\n`);
+      else process.stdout.write(`# existing statusLine: none (clean install)\n`);
       process.stdout.write(`# would write ${p}\n${JSON.stringify(buildSettings(existing, opts), null, 2)}\n`);
       return;
     }

@@ -88,6 +88,43 @@ export function buildSettings(existing: Record<string, unknown>, opts: InstallOp
   return next;
 }
 
+export type ExistingStatuslineKind = "none" | "own" | "known" | "custom";
+
+export interface ExistingStatusline {
+  kind: ExistingStatuslineKind;
+  /** The raw command string, when kind !== "none". */
+  command?: string;
+  /** Name of the recognized tool, when kind === "known" (e.g. "ccstatusline"). */
+  knownAs?: string;
+}
+
+/** Tool names whose statusLine.command we can recognize by substring (Claude HUD
+ * setup.md's classification table parity) — lets /setup tell the user what's
+ * currently installed instead of silently clobbering it. */
+const KNOWN_TOOLS = ["claude-hud", "ccstatusline", "cc-statusline", "claude-pace", "claude-powerline", "claudia-statusline"];
+
+/**
+ * Inspect the current settings.json for an existing statusLine WITHOUT writing
+ * anything — so a caller (the /setup command, driven by an agent) can decide
+ * whether to ask the user for consent before installStatusline() overwrites it.
+ * Best-effort: a missing/unreadable settings.json reads as "none", never throws.
+ */
+export function describeExistingStatusline(): ExistingStatusline {
+  const path = settingsPath();
+  try {
+    if (!existsSync(path)) return { kind: "none" };
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as { statusLine?: { command?: unknown } };
+    const command = parsed.statusLine?.command;
+    if (typeof command !== "string" || command.trim() === "") return { kind: "none" };
+    if (command.includes(HOOK_TAG)) return { kind: "own", command };
+    const known = KNOWN_TOOLS.find((t) => command.includes(t));
+    if (known) return { kind: "known", command, knownAs: known };
+    return { kind: "custom", command };
+  } catch {
+    return { kind: "none" };
+  }
+}
+
 export interface InstallResult { ok: boolean; path: string; error?: string; backedUp?: boolean }
 
 /** Read → merge → back up (.bak) → atomic write. Best-effort; returns an error string, never throws. */

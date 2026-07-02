@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildSettings, installStatusline, settingsPath, HOOK_TAG } from "../config/install.js";
+import { buildSettings, installStatusline, settingsPath, describeExistingStatusline, HOOK_TAG } from "../config/install.js";
 
 const OPTS = { command: 'node "/x/dist/index.js"', refreshInterval: 10, padding: 0 };
 
@@ -95,5 +95,54 @@ test("installStatusline creates settings.json when none exists", () => {
     assert.equal(res.ok, true);
     assert.equal(res.backedUp, false); // nothing to back up
     assert.ok(existsSync(join(dir, "settings.json")));
+  });
+});
+
+// ---- describeExistingStatusline: pre-write detection so /setup can ask consent
+// before installStatusline() overwrites something the user didn't expect ----
+
+test("describeExistingStatusline reports \"none\" when settings.json doesn't exist", () => {
+  withSettingsDir(() => {
+    assert.deepEqual(describeExistingStatusline(), { kind: "none" });
+  });
+});
+
+test("describeExistingStatusline reports \"none\" for a settings.json with no statusLine", () => {
+  withSettingsDir((dir) => {
+    writeFileSync(join(dir, "settings.json"), JSON.stringify({ theme: "dark" }), "utf8");
+    assert.deepEqual(describeExistingStatusline(), { kind: "none" });
+  });
+});
+
+test('describeExistingStatusline reports "own" for a cc-status-dash statusLine (safe reinstall)', () => {
+  withSettingsDir((dir) => {
+    writeFileSync(join(dir, "settings.json"), JSON.stringify({ statusLine: { command: 'bun "/x/cc-status-dash/dist/index.js"' } }), "utf8");
+    const out = describeExistingStatusline();
+    assert.equal(out.kind, "own");
+  });
+});
+
+test('describeExistingStatusline recognizes other known statusline tools', () => {
+  withSettingsDir((dir) => {
+    writeFileSync(join(dir, "settings.json"), JSON.stringify({ statusLine: { command: "npx ccstatusline@latest" } }), "utf8");
+    const out = describeExistingStatusline();
+    assert.equal(out.kind, "known");
+    assert.equal(out.knownAs, "ccstatusline");
+  });
+});
+
+test("describeExistingStatusline reports \"custom\" for an unrecognized command", () => {
+  withSettingsDir((dir) => {
+    writeFileSync(join(dir, "settings.json"), JSON.stringify({ statusLine: { command: "/home/me/my-statusline.sh" } }), "utf8");
+    const out = describeExistingStatusline();
+    assert.equal(out.kind, "custom");
+    assert.equal(out.command, "/home/me/my-statusline.sh");
+  });
+});
+
+test("describeExistingStatusline never throws on unreadable/corrupt settings.json", () => {
+  withSettingsDir((dir) => {
+    writeFileSync(join(dir, "settings.json"), "{ not json", "utf8");
+    assert.deepEqual(describeExistingStatusline(), { kind: "none" });
   });
 });
