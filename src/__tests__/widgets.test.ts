@@ -200,6 +200,37 @@ test("unset timeFormat keeps the legacy hoursOnly/timestamp behavior (no config 
   assert.ok(withTimestamp.includes("(") && /\d{1,2}:\d{2}/.test(withTimestamp), `legacy timestamp option still works: ${withTimestamp}`);
 });
 
+test("repo-cost and budget scope:repo read the per-repo cumulative cost (claude-code-statusline parity)", () => {
+  const config = { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme) };
+  const data = { ...DATA, stats: { ...DATA.stats!, repoCost: 42 } };
+  const ctx: RenderContext = { input: INPUT, data, config };
+  const repoWidget = getWidget("repo-cost")!;
+  const out = repoWidget.render(repoWidget.collect(ctx), {}, ctx).map((s) => s.text).join("");
+  assert.ok(out.includes("$42"), `repo-cost shows the aggregated total: ${out}`);
+
+  const budgetWidget = getWidget("budget")!;
+  const budgetOut = budgetWidget.render(budgetWidget.collect(ctx), { amount: 50, scope: "repo" }, ctx).map((s) => s.text).join("");
+  assert.ok(budgetOut.includes("84%"), `42/50 = 84%: ${budgetOut}`);
+});
+
+test("cache-hit-rate scope:block reads the block-wide ratio from stats instead of this turn's snapshot (claude-code-statusline parity)", () => {
+  const config = { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme) };
+  const data = { ...DATA, stats: { ...DATA.stats!, blockCacheHitRate: 73 } };
+  const ctx: RenderContext = { input: INPUT, data, config };
+  const w = getWidget("cache-hit-rate")!;
+  const blockScoped = w.render(w.collect(ctx), { scope: "block" }, ctx).map((s) => s.text).join("");
+  assert.ok(blockScoped.includes("73%"), `block scope shows the stats-derived ratio: ${blockScoped}`);
+  const turnScoped = w.render(w.collect(ctx), {}, ctx).map((s) => s.text).join("");
+  assert.ok(!turnScoped.includes("73%"), `default scope is unaffected: ${turnScoped}`);
+});
+
+test("cache-hit-rate scope:block renders nothing when no block cache-hit rate is available", () => {
+  const config = { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme) };
+  const ctx: RenderContext = { input: INPUT, data: { ...DATA, stats: { ...DATA.stats!, blockCacheHitRate: undefined } }, config };
+  const w = getWidget("cache-hit-rate")!;
+  assert.equal(w.render(w.collect(ctx), { scope: "block" }, ctx).length, 0);
+});
+
 test("compaction-counter shows the trigger split and tokens-reclaimed suffixes when toggled on (ccstatusline parity)", () => {
   const config = { ...DEFAULT_CONFIG, colors: resolvePalette(DEFAULT_CONFIG.theme) };
   const data = { ...DATA, transcript: { ...DATA.transcript!, compactionCount: 2, compactionByTrigger: { auto: 1, manual: 1, unknown: 0 }, compactionTokensReclaimed: 120000 } };
@@ -224,7 +255,7 @@ test("registry has the full widget set", () => {
 });
 
 test("widget count snapshot (bump deliberately when adding widgets)", () => {
-  assert.equal(listWidgets().length, 115, "widget count changed — update docs (README/OPTIONS/COMPARISON) + this snapshot");
+  assert.equal(listWidgets().length, 116, "widget count changed — update docs (README/OPTIONS/COMPARISON) + this snapshot");
 });
 
 test("Phase 1 HUD widgets render from real data", () => {

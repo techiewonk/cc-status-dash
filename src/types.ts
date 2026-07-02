@@ -145,8 +145,15 @@ export interface StatsInfo {
   dailyCost: number;
   weeklyCost: number;
   monthlyCost: number;
+  /** cumulative cost across every recorded session in this project (matched by
+   * workspace cwd), not date-scoped — claude-code-statusline `cost_repo.sh`
+   * parity. Undefined when the current session has no cwd to bucket by. */
+  repoCost?: number;
   /** cost accrued in the current 5h rate-limit window (budget scope:block) */
   blockCost?: number;
+  /** cacheRead / (input + cacheRead) as a percentage, summed over the current 5h
+   * block rather than the current turn (claude-code-statusline parity). */
+  blockCacheHitRate?: number;
   /** tokens per second over the configured window */
   tokenSpeed: { input: number; output: number; total: number };
   messageCount: number;

@@ -351,7 +351,13 @@ tokenWidget("tokens-cached", "Cached tokens", (t) => t.cacheRead + t.cacheCreati
 tokenWidget("tokens-total", "Total tokens", (t) => t.total);
 tokenWidget("cache-read", "Cache read", (t) => t.cacheRead);
 tokenWidget("cache-write", "Cache write", (t) => t.cacheCreation);
-add(w("cache-hit-rate", "tokens", "Cache hit rate", ["stdin"], (_d, _o, ctx) => {
+add(w("cache-hit-rate", "tokens", "Cache hit rate", ["stdin", "stats"], (_d, opts, ctx) => {
+  // scope:"block" (claude-code-statusline cache_efficiency.sh parity): the ratio
+  // over the whole current 5h block instead of just this turn's snapshot.
+  if (opts.scope === "block") {
+    const rate = ctx.data.stats?.blockCacheHitRate;
+    return rate == null ? [] : lv("Cache", pctStr(rate), "context", ctx);
+  }
   const t = usageTokens(ctx);
   const denom = t.input + t.cacheRead;
   if (denom === 0) return [];
@@ -934,6 +940,7 @@ const aggCost = (id: string, label: string, pick: (s: NonNullable<RenderContext[
 aggCost("daily-cost", "Today", (s) => s.dailyCost);
 aggCost("weekly-cost", "7d cost", (s) => s.weeklyCost);
 aggCost("monthly-cost", "30d cost", (s) => s.monthlyCost);
+aggCost("repo-cost", "Repo", (s) => s.repoCost ?? 0);
 
 add(w("message-count", "activity", "Message count", ["stats"], (_d, _o, ctx) => {
   const n = ctx.data.stats?.messageCount;
@@ -946,7 +953,7 @@ add(w("budget", "usage", "Budget", ["stats"], (_d, opts, ctx) => {
   const scope = (opts.scope as string) ?? "session";
   const s = ctx.data.stats;
   const val = scope === "today" ? s?.dailyCost : scope === "month" ? s?.monthlyCost
-    : scope === "block" ? s?.blockCost : s?.sessionCost;
+    : scope === "block" ? s?.blockCost : scope === "repo" ? s?.repoCost : s?.sessionCost;
   if (val == null) return [];
   const pct = Math.round((val / amount) * 100);
   const warn = Number(opts.warningThreshold ?? 80);

@@ -15,7 +15,11 @@ interface SessionStat {
   lastTs: number;
   cost: number;
   messages: number;
-  samples: { ts: number; total: number; input: number; output: number; cost?: number }[];
+  samples: { ts: number; total: number; input: number; output: number; cost?: number; cacheRead?: number }[];
+  /** Working directory this session ran in (repo-cost aggregation). Simple cwd
+   * match, not a resolved git root — good enough to bucket "sessions in this
+   * project" without cross-provider coupling to the git data source. */
+  repo?: string;
 }
 interface StatsFile { sessions: Record<string, SessionStat>; }
 
@@ -64,8 +68,9 @@ function tokensOf(input: StatuslineInput) {
   const u = input.context_window?.current_usage;
   const i = u?.input_tokens ?? 0;
   const o = u?.output_tokens ?? 0;
-  const total = i + o + (u?.cache_read_input_tokens ?? 0) + (u?.cache_creation_input_tokens ?? 0);
-  return { input: i, output: o, total };
+  const cacheRead = u?.cache_read_input_tokens ?? 0;
+  const total = i + o + cacheRead + (u?.cache_creation_input_tokens ?? 0);
+  return { input: i, output: o, total, cacheRead };
 }
 
 export function collectStats(input: StatuslineInput, windowSec = 60): StatsInfo {
@@ -78,17 +83,19 @@ export function collectStats(input: StatuslineInput, windowSec = 60): StatsInfo 
   const t = tokensOf(input);
   const date = localDate(new Date());
   const month = date.slice(0, 7);
+  const repo = input.workspace?.current_dir ?? input.cwd;
 
   let s = data.sessions[id];
   const isNew = !s;
-  if (!s) { s = { date, month, startTs: now, lastTs: now, cost, messages: 0, samples: [] }; data.sessions[id] = s; }
+  if (!s) { s = { date, month, startTs: now, lastTs: now, cost, messages: 0, samples: [], repo }; data.sessions[id] = s; }
   if (!Array.isArray(s.samples)) s.samples = []; // heal a malformed persisted session
   s.lastTs = now;
   s.cost = cost;
   s.date = date; s.month = month;
+  if (repo) s.repo = repo; // keep a stale/missing repo current if it becomes known
   let pushed = false;
   if (s.samples.length === 0 || now - s.samples[s.samples.length - 1].ts > 1000) {
-    s.samples.push({ ts: now, total: t.total, input: t.input, output: t.output, cost });
+    s.samples.push({ ts: now, total: t.total, input: t.input, output: t.output, cost, cacheRead: t.cacheRead });
     if (s.samples.length > MAX_SAMPLES) s.samples = s.samples.slice(-MAX_SAMPLES);
     s.messages++;
     pushed = true;
@@ -108,10 +115,16 @@ export function collectStats(input: StatuslineInput, windowSec = 60): StatsInfo 
   // Aggregate cost across sessions.
   const weekAgo = localDate(new Date(now - 7 * 86400_000));
   let dailyCost = 0, weeklyCost = 0, monthlyCost = 0;
+  // Per-repo cumulative cost (claude-code-statusline `cost_repo.sh` parity): every
+  // session ever recorded (not date-scoped, unlike daily/weekly/monthly above)
+  // whose cwd matches this one. Undefined when the current session has no cwd to
+  // bucket by.
+  let repoCost: number | undefined = repo ? 0 : undefined;
   for (const sess of Object.values(data.sessions)) {
     if (sess.date === date) dailyCost += sess.cost;
     if (sess.date >= weekAgo) weeklyCost += sess.cost;
     if (sess.month === month) monthlyCost += sess.cost;
+    if (repo && sess.repo === repo) repoCost = (repoCost ?? 0) + sess.cost;
   }
 
   // Token speed over the rolling window (fallback: session average).
@@ -125,10 +138,12 @@ export function collectStats(input: StatuslineInput, windowSec = 60): StatsInfo 
     return Math.max(0, Math.round((pick(latest) - pick(base)) / dt));
   };
 
-  // Block cost (current 5h window): cost accrued since the window start, derived
-  // from cost-stamped samples. windowStart = five_hour.resets_at − 5h. Undefined
-  // when there's no rate-limit window or no cost-bearing sample to anchor on.
+  // Block cost + cache-hit rate (current 5h window): accrued since the window
+  // start, derived from cost/cacheRead-stamped samples. windowStart =
+  // five_hour.resets_at − 5h. Undefined when there's no rate-limit window or no
+  // suitable sample to anchor on.
   let blockCost: number | undefined;
+  let blockCacheHitRate: number | undefined;
   const resetsAt = input.rate_limits?.five_hour?.resets_at;
   if (resetsAt != null) {
     const resetMs = typeof resetsAt === "number" ? (resetsAt < 1e12 ? resetsAt * 1000 : resetsAt) : Date.parse(String(resetsAt));
@@ -141,13 +156,30 @@ export function collectStats(input: StatuslineInput, windowSec = 60): StatsInfo 
         const baseCost = before ? (before.cost ?? 0) : 0;
         blockCost = Math.max(0, cost - baseCost);
       }
+      // Block-wide cache-hit ratio (claude-code-statusline `cache_efficiency.sh`
+      // parity): cacheRead / (input + cacheRead), summed over the whole block via
+      // the same latest-minus-baseline delta as blockCost — a ratio of block
+      // totals, not a per-turn snapshot (which cache-hit-rate's default scope is).
+      const withCache = s.samples.filter((x) => typeof x.cacheRead === "number");
+      if (withCache.length) {
+        const before = [...withCache].reverse().find((x) => x.ts <= windowStart);
+        const baseCacheRead = before?.cacheRead ?? 0;
+        const baseInput = before?.input ?? 0;
+        const latest = withCache[withCache.length - 1];
+        const cacheReadInBlock = Math.max(0, (latest.cacheRead ?? 0) - baseCacheRead);
+        const inputInBlock = Math.max(0, latest.input - baseInput);
+        const denom = inputInBlock + cacheReadInBlock;
+        if (denom > 0) blockCacheHitRate = (cacheReadInBlock / denom) * 100;
+      }
     }
   }
 
   return {
     sessionCost: cost,
     dailyCost, weeklyCost, monthlyCost,
+    repoCost,
     blockCost,
+    blockCacheHitRate,
     tokenSpeed: { input: speed((x) => x.input), output: speed((x) => x.output), total: speed((x) => x.total) },
     messageCount: s.messages,
   };

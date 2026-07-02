@@ -137,6 +137,7 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
   ],
   "token-breakdown": [{ key: "threshold", label: "Min context %", kind: "number" }],
   "cache-roi": [{ key: "savedPerMTok", label: "$ saved / 1M tok", kind: "number" }],
+  "cache-hit-rate": [{ key: "scope", label: "Scope", kind: "enum", choices: ["turn", "block"] }],
   "provider": [
     { key: "showApi", label: "Show API label", kind: "toggle" },
     { key: "override", label: "Manual override (custom proxy)", kind: "text" },
@@ -144,7 +145,7 @@ export const WIDGET_OPTION_SPECS: Record<string, FieldSpec[]> = {
   budget: [
     { key: "amount", label: "Budget $", kind: "number" },
     { key: "warningThreshold", label: "Warn at %", kind: "number" },
-    { key: "scope", label: "Scope", kind: "enum", choices: ["session", "today", "month", "block"] },
+    { key: "scope", label: "Scope", kind: "enum", choices: ["session", "today", "month", "block", "repo"] },
   ],
   env: [{ key: "variable", label: "Env var name", kind: "text" }],
   "custom-text": [
